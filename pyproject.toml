@@ -145,6 +145,7 @@ mypy_path = "src"
 module = [
     "langgraph.*",
     "langchain_core.*",
+    "langchain_community.*",
     "litellm.*",
     "mem0ai.*",
     "graphiti_core.*",

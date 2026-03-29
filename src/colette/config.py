@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pydantic import Field
 from pydantic_settings import BaseSettings
 
 
@@ -14,10 +15,35 @@ class Settings(BaseSettings):
 
     model_config = {"env_prefix": "COLETTE_", "env_file": ".env", "extra": "ignore"}
 
-    # ── LLM ───────────────────────────────────────────────────────────
+    # ── LLM — primary models ────────────────────────────────────────
     litellm_base_url: str = "http://localhost:4000"
     default_planning_model: str = "claude-opus-4-6-20250610"
     default_execution_model: str = "claude-sonnet-4-6-20250514"
+    default_validation_model: str = "claude-haiku-4-5-20251001"
+
+    # ── LLM — fallback chains (FR-ORC-014) ──────────────────────────
+    planning_fallback_models: list[str] = Field(
+        default=["gpt-5.4", "gemini-2.5-pro"],
+        description="Fallback chain for planning tier: tried in order on failure.",
+    )
+    execution_fallback_models: list[str] = Field(
+        default=["gpt-5.4-mini", "gemini-2.5-flash"],
+        description="Fallback chain for execution tier.",
+    )
+    validation_fallback_models: list[str] = Field(
+        default=["gpt-5.4-mini", "gemini-2.5-flash"],
+        description="Fallback chain for validation tier.",
+    )
+
+    # ── LLM — embeddings & reranking ─────────────────────────────────
+    embedding_model: str = "text-embedding-3-large"
+    embedding_dimensions: int = 1536
+    reranker_model: str = "rerank-v3.5"
+
+    # ── LLM — cost & caching ────────────────────────────────────────
+    prompt_caching_enabled: bool = True
+    llm_timeout_seconds: int = 120
+    llm_max_retries: int = 2
 
     # ── Database ──────────────────────────────────────────────────────
     database_url: str = "postgresql+asyncpg://colette:colette@localhost:5432/colette"
@@ -28,15 +54,19 @@ class Settings(BaseSettings):
     neo4j_user: str = "neo4j"
     neo4j_password: str = "colette-dev"  # noqa: S105
 
-    # ── Agent defaults ────────────────────────────────────────────────
+    # ── Agent defaults (FR-ORC-011/012, FR-MEM-004) ──────────────────
     agent_max_iterations: int = 25
     agent_timeout_seconds: int = 600
     supervisor_context_budget: int = 100_000
     specialist_context_budget: int = 60_000
     validator_context_budget: int = 30_000
 
+    # ── Handoff (FR-ORC-024) ─────────────────────────────────────────
+    handoff_max_chars: int = 32_000
+
     # ── Observability ─────────────────────────────────────────────────
     otel_service_name: str = "colette"
+    otel_exporter_endpoint: str = "http://localhost:4318"
     log_level: str = "INFO"
     log_format: str = "json"
 

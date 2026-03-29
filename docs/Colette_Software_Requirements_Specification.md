@@ -2,17 +2,17 @@
 
 ## Multi-Agent End-to-End Software Development System
 
-**Codename:** Colette (Collaborative LLM Engine for Total Technology Engineering)
+**Codename:** Colette 
 
 | Document Property | Value |
 | --- | --- |
-| Version | 2.0 |
+| Version | 3.0 |
 | Date | March 29, 2026 |
 | Status | Draft for Review |
 | Classification | Internal — Confidential |
 | Methodology | MoSCoW Prioritization (Must / Should / Could / Won't) |
 | Standards Compliance | IEEE 830-1998 / ISO/IEC/IEEE 29148:2018 |
-| Change History | v1.0 (2026-03-28) Initial draft; v2.0 (2026-03-29) Structural improvements, gap analysis, testability audit |
+| Change History | v1.0 (2026-03-28) Initial draft; v2.0 (2026-03-29) Structural improvements, gap analysis, testability audit; v3.0 (2026-03-29) LangGraph/LangChain ecosystem alignment — framework-specific implementation notes on all orchestration, agent, tool, and HIL requirements |
 
 ---
 
@@ -75,7 +75,7 @@ Colette covers six SDLC stages: Requirements Analysis, System Design, Implementa
 
 | Term | Definition |
 | --- | --- |
-| Colette | Collaborative LLM Engine for Total Technology Engineering — codename for this system |
+| Colette |  |
 | Agent | An LLM-powered autonomous unit with a defined role, tools, and scope |
 | Stage | One of six SDLC phases (Requirements, Design, Implementation, Testing, Deployment, Monitoring) |
 | Stage Supervisor | An agent that coordinates specialist agents within a single stage |
@@ -91,6 +91,19 @@ Colette covers six SDLC stages: Requirements Analysis, System Design, Implementa
 | SAST | Static Application Security Testing |
 | SLO | Service Level Objective |
 | CoVe | Chain-of-Verification — technique for reducing hallucinations via self-verification |
+| LangGraph | Graph-based orchestration framework for building stateful, multi-actor LLM applications with durable execution, checkpointing, and human-in-the-loop |
+| LangChain | Framework providing composable abstractions for LLM applications: ChatModel, tools, message types, and chain/runnable protocols |
+| StateGraph | LangGraph's core primitive — a directed graph where nodes are functions and edges define control flow, with typed state flowing through the graph |
+| ChatModel | LangChain's abstract interface for LLM interaction (invoke, stream, bind_tools), implemented by provider-specific classes (ChatLiteLLM, ChatAnthropic, ChatOpenAI) |
+| Command | LangGraph's routing primitive — returned by nodes to dynamically direct execution to specific downstream nodes (e.g., supervisor delegates to specialist) |
+| Send | LangGraph's fan-out primitive — enables parallel dispatch to multiple nodes from a single node |
+| create_react_agent | LangGraph prebuilt factory that constructs a ReAct-pattern agent (reason → act → observe loop) from a ChatModel and tool list |
+| interrupt | LangGraph's human-in-the-loop primitive — pauses graph execution, persists state via checkpointer, and resumes when external input is provided via Command(resume=value) |
+| BaseTool | LangChain's abstract tool interface — all agent tools implement this protocol, enabling bind_tools() on ChatModels and ToolNode execution in LangGraph |
+| ToolNode | LangGraph prebuilt node that automatically executes tool calls from LLM responses and returns ToolMessages |
+| Checkpointer | LangGraph persistence interface — saves graph state at every super-step, enabling pause/resume/replay (MemorySaver for dev, PostgresSaver for production) |
+| with_fallbacks | LangChain's model failover method — chains multiple ChatModels so failures on the primary automatically route to the next model |
+| ChatLiteLLM | LangChain ChatModel wrapper around LiteLLM, providing a unified interface to 100+ LLM providers while supporting all LangChain protocols (tool binding, streaming, structured output) |
 
 ## 1.5 Priority Definitions
 
@@ -112,6 +125,9 @@ Colette covers six SDLC stages: Requirements Analysis, System Design, Implementa
 | REF-005 | compass_artifact_wf-f571ba0b (Context Research) | Context management: RAG pipelines, compression, hallucination defense |
 | REF-006 | IEEE 830-1998 | IEEE Recommended Practice for Software Requirements Specifications |
 | REF-007 | ISO/IEC/IEEE 29148:2018 | Systems and software engineering — Life cycle processes — Requirements engineering |
+| REF-008 | LangGraph Documentation | Graph-based orchestration framework: StateGraph, checkpointing, human-in-the-loop, multi-agent patterns |
+| REF-009 | LangChain Core Documentation | ChatModel, BaseTool, message types, callbacks, runnable protocol, structured output |
+| REF-010 | LiteLLM Documentation | Unified LLM gateway: 100+ provider support, fallback chains, rate limiting, usage tracking |
 
 ---
 
@@ -158,11 +174,13 @@ Colette provides six core functions, each corresponding to an SDLC stage:
 | Component | Requirement |
 | --- | --- |
 | Runtime | Python 3.13+ |
-| Orchestration | LangGraph with Redis checkpointing |
+| Application framework | LangChain ecosystem (langchain-core, langchain-community) — ChatModel abstraction, tool protocol, message types, runnable composition |
+| Orchestration | LangGraph (StateGraph, create_react_agent, Command/Send routing, interrupt/resume for HIL) with checkpointing (MemorySaver for dev, PostgresSaver for production) |
+| LLM abstraction | ChatLiteLLM (LangChain ChatModel over LiteLLM) with `with_fallbacks()` for provider failover |
 | Database | PostgreSQL 16+ with pgvector extension |
 | Knowledge graph | Neo4j 5+ (via Graphiti) |
 | Container runtime | Docker 24+ and Docker Compose v2 |
-| LLM gateway | LiteLLM (open-source, provider-agnostic) |
+| LLM gateway | LiteLLM (open-source, provider-agnostic) — accessed exclusively through LangChain's ChatModel interface |
 | Cloud support | AWS, GCP, Azure, or on-premises (any environment supporting Docker) |
 
 ## 2.5 Design Constraints
@@ -174,6 +192,8 @@ Colette provides six core functions, each corresponding to an SDLC stage:
 | DC-003 | LLM provider agnostic — all LLM calls routed through LiteLLM abstraction | Enable cost optimization, provider failover, and migration without code changes |
 | DC-004 | Data residency — all project data stays on user infrastructure | Compliance with enterprise security policies; no third-party data sharing except LLM API calls |
 | DC-005 | Horizontal scalability — concurrent project execution with full isolation | Support enterprise workloads; no shared state conflicts between projects |
+| DC-006 | LangGraph/LangChain ecosystem — all orchestration, agent lifecycle, tool execution, and human-in-the-loop SHALL use LangGraph and LangChain primitives | Unified programming model; leverage battle-tested abstractions for state management, checkpointing, tool calling, streaming, and multi-agent coordination rather than building custom infrastructure |
+| DC-007 | LLM calls via LangChain ChatModel — no direct LLM provider SDK calls; all LLM access goes through LangChain's ChatModel interface (ChatLiteLLM) | Enables with_fallbacks(), bind_tools(), structured output, streaming, and consistent observability across all providers without provider-specific code |
 
 ## 2.6 Assumptions and Dependencies
 
@@ -195,39 +215,39 @@ Requirements governing the core orchestration layer, agent lifecycle, and pipeli
 
 | ID | Requirement | Description | Priority |
 | --- | --- | --- | --- |
-| FR-ORC-001 | Sequential stage execution | The system SHALL execute SDLC stages in sequence: Requirements → Design → Implementation → Testing → Deployment → Monitoring. No stage shall begin until the preceding stage's quality gate passes. | MUST |
-| FR-ORC-002 | Parallel agent execution within stages | The system SHALL support parallel execution of specialist agents within a single stage (e.g., Frontend Dev, Backend Dev, DB Engineer running concurrently within Implementation). | MUST |
-| FR-ORC-003 | Pipeline pause and resume | The system SHALL persist pipeline state at every stage boundary, enabling pause at any quality gate and resume from the exact checkpoint. State SHALL be persisted within 5 seconds of any stage transition. | MUST |
-| FR-ORC-004 | Pipeline rollback | The system SHALL support rolling back to any previous stage checkpoint, discarding all subsequent artifacts and restarting from that point. | SHOULD |
-| FR-ORC-005 | Stage skip capability | The system SHALL allow authorized users to skip stages (e.g., skip Deployment for code-generation-only mode) via project configuration. | SHOULD |
-| FR-ORC-006 | Multi-project concurrency | The system SHALL execute at least 5 concurrent project pipelines with full isolation (no shared state, no cross-project memory contamination). | MUST |
-| FR-ORC-007 | Pipeline progress tracking | The system SHALL expose real-time pipeline progress (current stage, agent status, quality gate results, elapsed time, token usage) via API and dashboard, updated within 2 seconds of state changes. | MUST |
-| FR-ORC-008 | Configurable pipeline stages | The system SHOULD allow custom stage ordering and optional stages per project template (e.g., add "Code Review" between Implementation and Testing). | COULD |
+| FR-ORC-001 | Sequential stage execution | The system SHALL execute SDLC stages in sequence: Requirements → Design → Implementation → Testing → Deployment → Monitoring. No stage shall begin until the preceding stage's quality gate passes. **Implementation:** LangGraph `StateGraph` with sequential edges between stage nodes and conditional edges that check quality gate results before routing to the next stage. | MUST |
+| FR-ORC-002 | Parallel agent execution within stages | The system SHALL support parallel execution of specialist agents within a single stage (e.g., Frontend Dev, Backend Dev, DB Engineer running concurrently within Implementation). **Implementation:** LangGraph `Send` API for fan-out from supervisor to multiple specialist nodes; results collected via state reducers. | MUST |
+| FR-ORC-003 | Pipeline pause and resume | The system SHALL persist pipeline state at every stage boundary, enabling pause at any quality gate and resume from the exact checkpoint. State SHALL be persisted within 5 seconds of any stage transition. **Implementation:** LangGraph `Checkpointer` interface — `MemorySaver` for development, `PostgresSaver` for production. State automatically persisted at every super-step. Resume via `graph.invoke(Command(resume=value), config={"configurable": {"thread_id": id}})`. | MUST |
+| FR-ORC-004 | Pipeline rollback | The system SHALL support rolling back to any previous stage checkpoint, discarding all subsequent artifacts and restarting from that point. **Implementation:** LangGraph checkpointer state history — replay from any prior checkpoint by thread_id and checkpoint_id. | SHOULD |
+| FR-ORC-005 | Stage skip capability | The system SHALL allow authorized users to skip stages (e.g., skip Deployment for code-generation-only mode) via project configuration. **Implementation:** Conditional edges in StateGraph that read a `skip_stages` field from `PipelineState` and route directly to the next non-skipped stage. | SHOULD |
+| FR-ORC-006 | Multi-project concurrency | The system SHALL execute at least 5 concurrent project pipelines with full isolation (no shared state, no cross-project memory contamination). **Implementation:** Each project pipeline runs as an independent LangGraph graph invocation with a unique `thread_id`. Isolation guaranteed by the checkpointer's thread-based state partitioning. | MUST |
+| FR-ORC-007 | Pipeline progress tracking | The system SHALL expose real-time pipeline progress (current stage, agent status, quality gate results, elapsed time, token usage) via API and dashboard, updated within 2 seconds of state changes. **Implementation:** LangGraph's `stream_mode="updates"` or `stream_mode="values"` for real-time state streaming to connected clients. | MUST |
+| FR-ORC-008 | Configurable pipeline stages | The system SHOULD allow custom stage ordering and optional stages per project template (e.g., add "Code Review" between Implementation and Testing). **Implementation:** Pipeline graph built dynamically by `build_pipeline()` factory function that reads stage configuration and constructs the appropriate StateGraph topology. | COULD |
 
 ## 3.2 Agent Lifecycle
 
 | ID | Requirement | Description | Priority |
 | --- | --- | --- | --- |
-| FR-ORC-010 | Agent instantiation | The system SHALL instantiate agents on demand with their assigned role, system prompt, tool access list, and context budget. Agents SHALL NOT persist between pipeline runs. | MUST |
-| FR-ORC-011 | Iteration limits | Every agent loop SHALL have a configurable maximum iteration count (default: 25). Upon reaching the limit, the agent SHALL escalate to its supervisor with current state. The system SHALL emit a warning at 80% of the limit (20 iterations). | MUST |
-| FR-ORC-012 | Agent timeout | Each agent invocation SHALL have a configurable timeout (default: 10 minutes). Timeout triggers graceful termination with state preservation. | MUST |
-| FR-ORC-013 | Error recovery escalation | On agent failure, the system SHALL attempt in order: (1) retry with same context (max 2 retries), (2) retry with compacted context via concat-and-retry, (3) escalate to supervisor, (4) escalate to human. Each step SHALL be logged with rationale. | MUST |
-| FR-ORC-014 | Model fallback | If the primary LLM provider returns errors or exceeds latency thresholds (p95 > 60s), the system SHALL automatically route to the configured fallback model via LiteLLM. Fallback chain: Claude → GPT → Gemini. | MUST |
-| FR-ORC-015 | Agent observability | Every agent invocation SHALL emit structured OpenTelemetry traces including: agent_id, model used, token count (input/output), tool calls (name, latency, success/failure), total duration, and outcome (success/fail/escalate). | MUST |
-| FR-ORC-016 | Hot-swap agent configuration | The system SHOULD allow updating agent system prompts, tool lists, and model assignments without restarting the platform. Changes SHALL take effect on the next agent instantiation. | SHOULD |
-| FR-ORC-017 | Tool count limit | Each agent SHALL be assigned no more than 5 tools. Tool sets SHALL be curated to avoid semantic overlap between tools. | MUST |
-| FR-ORC-018 | Circuit breaker | When an agent fails 3 consecutive times within a 5-minute window, the system SHALL activate a circuit breaker, blocking further invocations for a configurable cool-down period (default: 2 minutes). | MUST |
+| FR-ORC-010 | Agent instantiation | The system SHALL instantiate agents on demand with their assigned role, system prompt, tool access list, and context budget. Agents SHALL NOT persist between pipeline runs. **Implementation:** `create_react_agent()` from `langgraph.prebuilt` — constructs a ReAct agent graph from a LangChain `ChatModel` (via `ChatLiteLLM`) and a list of `BaseTool` instances. Agent configuration stored in `AgentConfig` (Pydantic model). | MUST |
+| FR-ORC-011 | Iteration limits | Every agent loop SHALL have a configurable maximum iteration count (default: 25). Upon reaching the limit, the agent SHALL escalate to its supervisor with current state. The system SHALL emit a warning at 80% of the limit (20 iterations). **Implementation:** `recursion_limit` parameter on LangGraph `graph.invoke()` config. Warning emitted via callback at 80% threshold. | MUST |
+| FR-ORC-012 | Agent timeout | Each agent invocation SHALL have a configurable timeout (default: 10 minutes). Timeout triggers graceful termination with state preservation. **Implementation:** Python `asyncio.timeout()` wrapping the LangGraph `graph.ainvoke()` call. On timeout, current state is captured from the checkpointer. | MUST |
+| FR-ORC-013 | Error recovery escalation | On agent failure, the system SHALL attempt in order: (1) retry with same context (max 2 retries), (2) retry with compacted context via concat-and-retry, (3) escalate to supervisor, (4) escalate to human. Each step SHALL be logged with rationale. **Implementation:** Supervisor node catches specialist exceptions and applies escalation chain. Step (4) uses LangGraph `interrupt()` to pause for human input. | MUST |
+| FR-ORC-014 | Model fallback | If the primary LLM provider returns errors or exceeds latency thresholds (p95 > 60s), the system SHALL automatically route to the configured fallback model via LiteLLM. Fallback chain: Claude → GPT → Gemini. **Implementation:** LangChain's `ChatModel.with_fallbacks()` — chains `ChatLiteLLM("claude-opus-4-6")` → `ChatLiteLLM("gpt-5.4")` → `ChatLiteLLM("gemini-2.5-pro")`. Fallback is transparent to the agent; the ChatModel interface is identical regardless of which provider responds. | MUST |
+| FR-ORC-015 | Agent observability | Every agent invocation SHALL emit structured OpenTelemetry traces including: agent_id, model used, token count (input/output), tool calls (name, latency, success/failure), total duration, and outcome (success/fail/escalate). **Implementation:** LangChain callbacks (`OpenTelemetryCallbackHandler`) attached to every `ChatModel.invoke()` call. LangGraph's built-in tracing via LangSmith or OpenTelemetry exporter for graph-level spans. | MUST |
+| FR-ORC-016 | Hot-swap agent configuration | The system SHOULD allow updating agent system prompts, tool lists, and model assignments without restarting the platform. Changes SHALL take effect on the next agent instantiation. **Implementation:** `AgentConfig` loaded from database/config on each `create_react_agent()` call. Since agents are ephemeral (not persisted between runs per FR-ORC-010), new configs apply automatically on next instantiation. | SHOULD |
+| FR-ORC-017 | Tool count limit | Each agent SHALL be assigned no more than 5 tools. Tool sets SHALL be curated to avoid semantic overlap between tools. **Implementation:** Pydantic validator on `AgentConfig.tools` field — `@field_validator("tools")` rejects lists with `len > 5`. Tools are LangChain `BaseTool` instances passed to `create_react_agent()`. | MUST |
+| FR-ORC-018 | Circuit breaker | When an agent fails 3 consecutive times within a 5-minute window, the system SHALL activate a circuit breaker, blocking further invocations for a configurable cool-down period (default: 2 minutes). **Implementation:** Immutable `CircuitBreaker` dataclass tracks failure timestamps in a rolling window. Checked before `graph.ainvoke()`. State managed outside the LangGraph state to prevent graph complexity. | MUST |
 
 ## 3.3 Handoff Management
 
 | ID | Requirement | Description | Priority |
 | --- | --- | --- | --- |
-| FR-ORC-020 | Typed handoff schemas | All inter-stage transfers SHALL use versioned Pydantic schemas. The receiving stage SHALL validate the schema on receipt and reject malformed handoffs with a structured error message. | MUST |
+| FR-ORC-020 | Typed handoff schemas | All inter-stage transfers SHALL use versioned Pydantic schemas. The receiving stage SHALL validate the schema on receipt and reject malformed handoffs with a structured error message. **Implementation:** Handoff schemas are Pydantic `BaseModel` subclasses stored in the LangGraph `PipelineState` TypedDict. Each stage node reads its input handoff from `state["handoffs"]`, validates via Pydantic, and writes its output handoff back to state. | MUST |
 | FR-ORC-021 | Schema versioning | Each handoff schema SHALL include a version field. Breaking changes SHALL increment the major version. The system SHALL reject version mismatches and log the incompatibility. | MUST |
-| FR-ORC-022 | Handoff content filtering | Handoff schemas SHALL carry only: user identity, project_id, key decisions, entity references, error context, and quality gate results. Raw LLM outputs, verbose reasoning chains, and tool call logs SHALL be excluded. | MUST |
-| FR-ORC-023 | Handoff persistence | Every handoff object SHALL be persisted to the project's Git repository as a JSON file, creating a full audit trail of inter-stage communication. | SHOULD |
+| FR-ORC-022 | Handoff content filtering | Handoff schemas SHALL carry only: user identity, project_id, key decisions, entity references, error context, and quality gate results. Raw LLM outputs, verbose reasoning chains, and tool call logs SHALL be excluded. **Implementation:** LangChain message history (`BaseMessage` list) is kept in graph state for agent context but explicitly excluded from handoff serialization. Only structured Pydantic fields cross stage boundaries. | MUST |
+| FR-ORC-023 | Handoff persistence | Every handoff object SHALL be persisted to the project's Git repository as a JSON file, creating a full audit trail of inter-stage communication. **Implementation:** Additionally persisted in the LangGraph checkpointer state, enabling replay and audit via checkpoint history. | SHOULD |
 | FR-ORC-024 | Handoff size limits | Each handoff object SHALL not exceed a configurable token limit (default: 8,000 tokens). Content exceeding this limit SHALL be compressed or linked by reference. | MUST |
-| FR-ORC-025 | Handoff latency | Handoff serialization, validation, and delivery SHALL complete within 200ms (p95). | SHOULD |
+| FR-ORC-025 | Handoff latency | Handoff serialization, validation, and delivery SHALL complete within 200ms (p95). **Implementation:** Handoffs are in-process Pydantic serialization within LangGraph state transitions — no network I/O in the critical path. | SHOULD |
 
 ---
 
@@ -421,13 +441,13 @@ Requirements governing the core orchestration layer, agent lifecycle, and pipeli
 | FR-MEM-001 | Cross-session project memory | The system SHALL persist project-level knowledge (decisions, preferences, constraints) across sessions using Mem0, scoped by project_id. | MUST |
 | FR-MEM-002 | Codebase knowledge graph | The system SHALL maintain a temporal knowledge graph (Graphiti) of code entities (files, functions, classes, endpoints, tables) and their relationships (imports, calls, implements). Graph SHALL support bi-temporal queries with four timestamps per edge: valid_at, invalid_at, created_at, expired_at. | MUST |
 | FR-MEM-003 | Memory scoping | Agent memory access SHALL follow principle of least privilege: (1) Private scope — agent reasoning chains, intermediate computations; (2) Shared scope — verified facts, final outputs, coordination state; (3) Global scope — system policies, safety rules. Implementation agents SHALL NOT access Deployment configs. Monitoring agents SHALL NOT access raw source code. | MUST |
-| FR-MEM-004 | Context budget enforcement | Each agent SHALL operate within a strict token budget. Supervisors: 100K max. Specialist agents: 60K max. Validators: 30K max. Budget allocation: system prompt 10–15%, tools 15%, retrieved context 35–40%, history 15%, output+reasoning 15–25%. | MUST |
-| FR-MEM-005 | Auto-compaction | The system SHALL trigger verbatim context compaction (Morph Compact or equivalent) when any agent reaches 70% of its context budget. Compaction SHALL achieve 50–70% size reduction while preserving ≥98% verbatim accuracy on code snippets and error messages. | MUST |
+| FR-MEM-004 | Context budget enforcement | Each agent SHALL operate within a strict token budget. Supervisors: 100K max. Specialist agents: 60K max. Validators: 30K max. Budget allocation: system prompt 10–15%, tools 15%, retrieved context 35–40%, history 15%, output+reasoning 15–25%. **Implementation:** Token counts tracked via LangChain `ChatModel` callback responses (`usage_metadata`). Budget checked before each agent invocation by reading cumulative tokens from the LangGraph agent state. | MUST |
+| FR-MEM-005 | Auto-compaction | The system SHALL trigger verbatim context compaction (Morph Compact or equivalent) when any agent reaches 70% of its context budget. Compaction SHALL achieve 50–70% size reduction while preserving ≥98% verbatim accuracy on code snippets and error messages. **Implementation:** LangGraph message history in agent state uses `Annotated[list[BaseMessage], add_messages]` reducer. Compaction replaces older messages with a summary message while preserving recent messages verbatim. Triggered by a pre-invocation check on `state["messages"]` token count. | MUST |
 | FR-MEM-006 | Dependency-aware retrieval | When retrieving code context, the system SHALL include direct imports and interface definitions (1-hop graph traversal from Graphiti) alongside the requested file. | SHOULD |
 | FR-MEM-007 | RAG pipeline | The system SHALL implement a full RAG pipeline: recursive chunking (512 tokens, 10–20% overlap), hybrid retrieval (BM25 + dense vectors with RRF fusion, k=60), cross-encoder reranking (top-50 candidates → top-5 delivered), position-aware injection (highest-relevance at beginning and end of context). | MUST |
 | FR-MEM-008 | Temporal memory queries | The system SHOULD support temporal queries against the codebase knowledge graph (e.g., "what changed since last deploy?", "when was this endpoint last modified?"). | SHOULD |
 | FR-MEM-009 | Memory conflict resolution | When agents write conflicting memories (e.g., contradictory architectural decisions), the system SHALL flag the conflict for human resolution rather than silently overwriting. Conflicts SHALL be detected via hybrid LLI+LLM contradiction detection. | MUST |
-| FR-MEM-010 | Conversation history management | The system SHALL implement summary-plus-buffer history: keep recent 10 messages verbatim + compressed summary of older messages. Trigger summarization at 75% history budget. | MUST |
+| FR-MEM-010 | Conversation history management | The system SHALL implement summary-plus-buffer history: keep recent 10 messages verbatim + compressed summary of older messages. Trigger summarization at 75% history budget. **Implementation:** LangGraph agent state uses `Annotated[list[BaseMessage], add_messages]` with a custom `RemoveMessage`-based trimming strategy. Summary generated via a dedicated LangChain summarization chain before the messages list exceeds budget. | MUST |
 | FR-MEM-011 | Memory write quality gates | Memory writes SHALL pass through an extraction pipeline: extract key facts → compare against existing memories via vector similarity → apply CRUD (add new, update existing, delete contradicted, skip duplicate). | MUST |
 | FR-MEM-012 | Memory decay policy | The system SHOULD implement time-based memory decay with configurable half-lives per memory tier. Safety-critical memories (security decisions, compliance constraints) SHALL be exempt from decay and marked as permanent. | SHOULD |
 | FR-MEM-013 | RAG evaluation | The system SHALL evaluate RAG pipeline quality using the RAG Triad: context relevance (query → retrieved context), faithfulness (context → response), and answer relevance (query → response). Faithfulness below 0.85 SHALL trigger an alert. | MUST |
@@ -450,14 +470,14 @@ Requirements governing the core orchestration layer, agent lifecycle, and pipeli
 
 | ID | Requirement | Description | Priority |
 | --- | --- | --- | --- |
-| FR-HIL-001 | Approval gate system | The system SHALL implement four approval tiers: T0 (human required), T1 (human review), T2 (confidence-gated), T3 (fully autonomous). Tier assignment SHALL be configurable per action type. | MUST |
-| FR-HIL-002 | Confidence scoring | Every T2-tier agent action SHALL include a confidence score (0.0–1.0). Actions below 0.60 confidence SHALL escalate immediately. Actions 0.60–0.85 SHALL be flagged for daily review. Actions ≥ 0.85 SHALL proceed autonomously with weekly async audit. Target: 10–15% of T2 actions escalate to human. | MUST |
-| FR-HIL-003 | Structured review packages | Human review requests SHALL include: context summary (2–3 sentences), proposed action (exact diff/change), risk assessment (blast radius, reversibility), alternatives considered, and action buttons (Approve/Reject/Modify/Request More Info). | MUST |
+| FR-HIL-001 | Approval gate system | The system SHALL implement four approval tiers: T0 (human required), T1 (human review), T2 (confidence-gated), T3 (fully autonomous). Tier assignment SHALL be configurable per action type. **Implementation:** LangGraph `interrupt()` called from stage nodes for T0/T1 actions. Pauses graph execution and persists state via checkpointer. External caller resumes via `graph.invoke(Command(resume=ApprovalDecision), config)`. T3 actions never interrupt; T2 actions interrupt only when confidence < threshold. | MUST |
+| FR-HIL-002 | Confidence scoring | Every T2-tier agent action SHALL include a confidence score (0.0–1.0). Actions below 0.60 confidence SHALL escalate immediately. Actions 0.60–0.85 SHALL be flagged for daily review. Actions ≥ 0.85 SHALL proceed autonomously with weekly async audit. Target: 10–15% of T2 actions escalate to human. **Implementation:** Confidence score extracted from the LangChain ChatModel response via structured output (`model.with_structured_output()`). Score evaluated in the stage node before deciding whether to call `interrupt()`. | MUST |
+| FR-HIL-003 | Structured review packages | Human review requests SHALL include: context summary (2–3 sentences), proposed action (exact diff/change), risk assessment (blast radius, reversibility), alternatives considered, and action buttons (Approve/Reject/Modify/Request More Info). **Implementation:** `ApprovalRequest` Pydantic model passed as the argument to `interrupt(request.model_dump())`. The serialized request is available to the external caller (web UI, API) via the LangGraph checkpointer state. | MUST |
 | FR-HIL-004 | Feedback learning | Human approval/rejection decisions SHALL be stored in project memory to improve future agent confidence calibration. The system SHALL track calibration drift (predicted vs. actual approval rate) over time. | SHOULD |
 | FR-HIL-005 | Notification system | The system SHALL notify reviewers via configurable channels (email, Slack webhook, in-app) when approval is required. Notifications SHALL include: urgency tier, SLA deadline, and deep link to review interface. | MUST |
 | FR-HIL-006 | SLA tracking | The system SHALL track approval SLAs: T0 = 1 hour, T1 = 4 hours. SLA breaches SHALL trigger escalation to secondary reviewers. SLA compliance rate SHALL be tracked and reported. | SHOULD |
 | FR-HIL-007 | Batch review mode | The system SHOULD support batch review of multiple T2/T3 actions in a single review session with bulk approve/reject capability. | COULD |
-| FR-HIL-008 | Inline modification | Reviewers SHALL be able to modify agent-proposed content directly (edit code, adjust configs, refine requirements) before approving, with modifications tracked in the audit trail. | SHOULD |
+| FR-HIL-008 | Inline modification | Reviewers SHALL be able to modify agent-proposed content directly (edit code, adjust configs, refine requirements) before approving, with modifications tracked in the audit trail. **Implementation:** Modifications passed as part of the `ApprovalDecision` in `Command(resume=decision)`. Stage node merges modifications into the handoff before proceeding. | SHOULD |
 
 ---
 
@@ -476,14 +496,14 @@ Requirements governing the core orchestration layer, agent lifecycle, and pipeli
 
 | ID | Requirement | Description | Priority |
 | --- | --- | --- | --- |
-| FR-TL-001 | MCP protocol support | The system SHALL use MCP as the exclusive agent-to-tool communication protocol. All tool integrations SHALL be implemented as MCP servers. | MUST |
-| FR-TL-002 | Core MCP servers | The system SHALL include MCP servers for: filesystem (read/write/search), Git (clone/branch/commit/push/PR), terminal (sandboxed command execution), database (query/migrate/inspect), Docker (build/run/compose), and web search. | MUST |
-| FR-TL-003 | Tool access control | Each agent's MCP server access list SHALL be configured at instantiation and enforced at runtime. Agents SHALL NOT be able to call tools outside their access list. Unauthorized access attempts SHALL be logged. | MUST |
-| FR-TL-004 | Tool output sanitization | All tool outputs from external sources (web search, user-uploaded files) SHALL be sanitized before injection into agent context to prevent prompt injection. Sanitization SHALL use quarantined LLM instances that cannot trigger consequential actions. | MUST |
-| FR-TL-005 | Tool call auditing | Every tool call SHALL be logged with: agent_id, tool_name, input parameters (secrets redacted), output summary, latency, and success/failure status. Logs SHALL be retained for at least 90 days. | MUST |
-| FR-TL-006 | LLM gateway | The system SHALL use LiteLLM as a unified LLM gateway supporting: multiple providers (Anthropic, OpenAI, Google), model fallback chains, rate limit management with automatic queuing and retry, and per-agent usage tracking. | MUST |
-| FR-TL-007 | Prompt caching | The system SHALL leverage provider-native prompt caching (Anthropic: up to 90% cost savings, OpenAI: up to 50%) by maintaining stable system prompt prefixes across agent invocations. | SHOULD |
-| FR-TL-008 | Custom MCP server support | The system SHOULD allow users to register custom MCP servers for project-specific tool integrations (e.g., internal APIs, custom databases). Custom servers SHALL be version-pinned and integrity-verified. | COULD |
+| FR-TL-001 | MCP protocol support | The system SHALL use MCP as the primary agent-to-tool communication protocol. External tool integrations SHALL be implemented as MCP servers. **Implementation:** MCP tools are wrapped as LangChain `BaseTool` subclasses so they integrate seamlessly with `create_react_agent()` and `ChatModel.bind_tools()`. LangGraph's `ToolNode` handles tool call execution and returns `ToolMessage` results to the agent. | MUST |
+| FR-TL-002 | Core MCP servers | The system SHALL include MCP servers for: filesystem (read/write/search), Git (clone/branch/commit/push/PR), terminal (sandboxed command execution), database (query/migrate/inspect), Docker (build/run/compose), and web search. Each MCP server SHALL have a corresponding LangChain `BaseTool` wrapper. | MUST |
+| FR-TL-003 | Tool access control | Each agent's tool access list SHALL be configured at instantiation and enforced at runtime. Agents SHALL NOT be able to call tools outside their access list. Unauthorized access attempts SHALL be logged. **Implementation:** `AgentConfig.tools` is the explicit list of `BaseTool` instances passed to `create_react_agent()`. Only these tools are bound to the ChatModel via `model.bind_tools(tools)`. The LLM cannot invoke tools it was not bound with. | MUST |
+| FR-TL-004 | Tool output sanitization | All tool outputs from external sources (web search, user-uploaded files) SHALL be sanitized before injection into agent context to prevent prompt injection. Sanitization SHALL use quarantined LLM instances that cannot trigger consequential actions. **Implementation:** Sanitization applied in the `BaseTool` wrapper's `_run()` method before returning the `ToolMessage` content to the agent graph. | MUST |
+| FR-TL-005 | Tool call auditing | Every tool call SHALL be logged with: agent_id, tool_name, input parameters (secrets redacted), output summary, latency, and success/failure status. Logs SHALL be retained for at least 90 days. **Implementation:** LangChain callbacks on the `ToolNode` capture all tool invocations. OpenTelemetry spans created per tool call with attributes for the required fields. | MUST |
+| FR-TL-006 | LLM gateway | The system SHALL use LiteLLM as a unified LLM gateway supporting: multiple providers (Anthropic, OpenAI, Google), model fallback chains, rate limit management with automatic queuing and retry, and per-agent usage tracking. **Implementation:** All LLM access goes through `ChatLiteLLM` (LangChain ChatModel wrapping LiteLLM). Fallback chains via `model.with_fallbacks([...])`. Rate limiting and queuing handled by LiteLLM proxy or client-side. Usage tracking via LangChain `usage_metadata` on responses. | MUST |
+| FR-TL-007 | Prompt caching | The system SHALL leverage provider-native prompt caching (Anthropic: up to 90% cost savings, OpenAI: up to 50%) by maintaining stable system prompt prefixes across agent invocations. **Implementation:** System prompts passed as `SystemMessage` with stable content at the start of every agent invocation. LangChain/LiteLLM pass provider-native caching headers when supported. | SHOULD |
+| FR-TL-008 | Custom MCP server support | The system SHOULD allow users to register custom MCP servers for project-specific tool integrations (e.g., internal APIs, custom databases). Custom servers SHALL be version-pinned and integrity-verified. **Implementation:** Custom MCP servers registered via config; each auto-generates a LangChain `BaseTool` wrapper at agent instantiation time. | COULD |
 
 ---
 
@@ -538,7 +558,7 @@ Requirements governing the core orchestration layer, agent lifecycle, and pipeli
 | NFR-REL-003 | Handoff fidelity | Handoff schema validation pass rate | ≥ 98% | MUST |
 | NFR-REL-004 | Build success rate | Generated code compiles/builds without errors | ≥ 95% | MUST |
 | NFR-REL-005 | Test pass rate | Generated tests pass on first run | ≥ 90% | SHOULD |
-| NFR-REL-006 | Checkpoint recovery | Pipeline resume from checkpoint after system restart | 100% state preservation | MUST |
+| NFR-REL-006 | Checkpoint recovery | Pipeline resume from checkpoint after system restart. **Implementation:** LangGraph `PostgresSaver` persists full graph state (including message history, handoffs, and metadata) to PostgreSQL. On restart, `graph.ainvoke(None, config={"configurable": {"thread_id": id}})` resumes from the exact last checkpoint. | 100% state preservation | MUST |
 | NFR-REL-007 | Hallucination rate | Agent claims not supported by retrieved context (sampled audit) | < 5% | MUST |
 | NFR-REL-008 | Rollback success rate | Automated rollbacks restore previous version successfully | ≥ 99% | MUST |
 
@@ -562,8 +582,8 @@ Requirements governing the core orchestration layer, agent lifecycle, and pipeli
 
 | ID | Requirement | Description | Priority |
 | --- | --- | --- | --- |
-| NFR-SCA-001 | Horizontal scaling | Each stage supervisor and its agents SHALL run as independent processes, enabling horizontal scaling across multiple machines. | MUST |
-| NFR-SCA-002 | Concurrent projects | The system SHALL support at least 5 concurrent project pipelines with full isolation (separate LangGraph instances, no shared state). | MUST |
+| NFR-SCA-001 | Horizontal scaling | Each stage supervisor and its agents SHALL run as independent processes, enabling horizontal scaling across multiple machines. **Implementation:** LangGraph supports distributed execution via task queues. Each stage supervisor graph can be deployed as an independent LangGraph deployment with its own scaling policy. | MUST |
+| NFR-SCA-002 | Concurrent projects | The system SHALL support at least 5 concurrent project pipelines with full isolation (separate LangGraph instances, no shared state). **Implementation:** Each project pipeline runs as an independent `graph.ainvoke()` call with a unique `thread_id`. LangGraph's checkpointer provides thread-level state isolation. Concurrent invocations are naturally isolated. | MUST |
 | NFR-SCA-003 | Storage scaling | Vector database (pgvector) SHALL handle at least 10M embeddings with sub-500ms query latency (p95). | SHOULD |
 | NFR-SCA-004 | LLM rate limiting | The system SHALL handle LLM provider rate limits via LiteLLM with automatic queuing, exponential backoff with jitter, and provider failover. | MUST |
 
@@ -571,9 +591,9 @@ Requirements governing the core orchestration layer, agent lifecycle, and pipeli
 
 | ID | Requirement | Description | Priority |
 | --- | --- | --- | --- |
-| NFR-OBS-001 | Distributed tracing | The system SHALL emit OpenTelemetry traces for every agent invocation, tool call, and inter-stage handoff with hierarchical span relationships. | MUST |
-| NFR-OBS-002 | Token usage tracking | The system SHALL track token consumption (input + output) per agent, per stage, and per project pipeline. Usage SHALL be visible in real-time dashboards. | MUST |
-| NFR-OBS-003 | Cost tracking | The system SHALL calculate and display estimated LLM API costs per pipeline run, per stage, and per agent. Cost overruns (>2x baseline for any agent) SHALL trigger alerts. | MUST |
+| NFR-OBS-001 | Distributed tracing | The system SHALL emit OpenTelemetry traces for every agent invocation, tool call, and inter-stage handoff with hierarchical span relationships. **Implementation:** LangChain's `OpenTelemetryCallbackHandler` on all ChatModel and Tool invocations. LangGraph provides graph-level tracing spans that nest agent and tool spans hierarchically. Compatible with LangSmith for development and any OTel-compatible backend (Jaeger, Tempo) for production. | MUST |
+| NFR-OBS-002 | Token usage tracking | The system SHALL track token consumption (input + output) per agent, per stage, and per project pipeline. Usage SHALL be visible in real-time dashboards. **Implementation:** `usage_metadata` from LangChain ChatModel responses (contains `input_tokens`, `output_tokens`, `total_tokens`). Aggregated per agent in LangGraph state, per stage in pipeline state, per project in the checkpointer. | MUST |
+| NFR-OBS-003 | Cost tracking | The system SHALL calculate and display estimated LLM API costs per pipeline run, per stage, and per agent. Cost overruns (>2x baseline for any agent) SHALL trigger alerts. **Implementation:** LiteLLM provides per-model pricing data. Cost calculated from `usage_metadata` token counts × model price. Tracked alongside token usage in pipeline state. | MUST |
 | NFR-OBS-004 | Quality metrics dashboard | The system SHALL provide dashboards showing: pipeline completion rate, stage latency trends, agent success rates, hallucination rates, escalation frequency, and cost trends. | MUST |
 | NFR-OBS-005 | Alert on regression | The system SHALL alert when key metrics regress by >10% over a 7-day rolling window: agent success rate, build pass rate, test coverage, handoff fidelity. | SHOULD |
 | NFR-OBS-006 | RAG pipeline monitoring | The system SHALL track RAG Triad metrics (context relevance, faithfulness, answer relevance) on every retrieval call. Faithfulness dropping below 0.85 SHALL trigger an alert. | MUST |
@@ -713,3 +733,27 @@ Key architecture components and their governing requirements:
 | Security architecture | NFR-SEC-001 through NFR-SEC-011 |
 | Quality gates | §12 (all gates) |
 | Observability stack | NFR-OBS-001 through NFR-OBS-006 |
+
+## 16.4 Framework-to-Requirement Mapping
+
+This section maps LangGraph/LangChain framework primitives to the requirements they fulfill.
+
+| Framework Primitive | Package | Requirements Fulfilled |
+| --- | --- | --- |
+| `StateGraph` | `langgraph.graph` | FR-ORC-001 (sequential pipeline), FR-ORC-005 (stage skip via conditional edges), FR-ORC-008 (configurable stages) |
+| `create_react_agent()` | `langgraph.prebuilt` | FR-ORC-010 (agent instantiation), FR-ORC-011 (iteration limits via `recursion_limit`) |
+| `Command(goto=...)` | `langgraph.types` | FR-ORC-002 (supervisor → specialist routing) |
+| `Send()` | `langgraph.types` | FR-ORC-002 (parallel specialist fan-out) |
+| `interrupt()` / `Command(resume=)` | `langgraph.types` | FR-HIL-001 (approval gates), FR-HIL-002 (confidence-gated pause), FR-HIL-008 (inline modification), FR-ORC-013 step 4 (escalate to human) |
+| `Checkpointer` (`MemorySaver`, `PostgresSaver`) | `langgraph.checkpoint` | FR-ORC-003 (pause/resume), FR-ORC-004 (rollback), FR-ORC-006 (thread isolation), NFR-REL-006 (checkpoint recovery) |
+| `stream_mode="updates"` | `langgraph.graph` | FR-ORC-007 (real-time progress), NFR-USA-004 (real-time UI updates) |
+| `ToolNode` | `langgraph.prebuilt` | FR-TL-001 (tool execution in agent graph), FR-TL-005 (tool call auditing via callbacks) |
+| `ChatLiteLLM` | `langchain_community.chat_models` | FR-TL-006 (LLM gateway), DC-003 (provider agnostic), DC-007 (ChatModel interface) |
+| `ChatModel.with_fallbacks()` | `langchain_core.language_models` | FR-ORC-014 (model fallback chain) |
+| `ChatModel.bind_tools()` | `langchain_core.language_models` | FR-TL-003 (tool access control), FR-ORC-017 (tool count limit) |
+| `ChatModel.with_structured_output()` | `langchain_core.language_models` | FR-HIL-002 (confidence score extraction), FR-ORC-022 (structured handoff content) |
+| `BaseTool` / `@tool` | `langchain_core.tools` | FR-TL-001 (tool protocol), FR-TL-002 (core tools), FR-TL-008 (custom tools) |
+| `BaseMessage` types | `langchain_core.messages` | FR-MEM-010 (conversation history), FR-MEM-005 (context compaction), FR-ORC-022 (content filtering) |
+| `add_messages` reducer | `langgraph.graph.message` | FR-MEM-010 (message accumulation), FR-MEM-005 (compaction target) |
+| `usage_metadata` | `langchain_core.messages` | FR-MEM-004 (context budget tracking), NFR-OBS-002 (token tracking), NFR-OBS-003 (cost tracking) |
+| Callbacks (`OpenTelemetryCallbackHandler`) | `langchain_core.callbacks` | FR-ORC-015 (agent observability), FR-TL-005 (tool auditing), NFR-OBS-001 (distributed tracing) |

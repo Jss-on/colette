@@ -98,7 +98,7 @@ All planning documents are in `docs/`. Markdown versions are authoritative; .doc
 | Document | Version | Updated | Notes |
 |---|---|---|---|
 | `CLAUDE.md` | 3.0 | 2026-03-29 | Added project structure, dev commands, versioning scheme |
-| `Colette_Software_Requirements_Specification.md` | 2.0 | 2026-03-29 | 164 requirements, MoSCoW, IEEE 830 |
+| `Colette_Software_Requirements_Specification.md` | 3.0 | 2026-03-29 | 164 requirements, MoSCoW, IEEE 830; v3.0 adds LangGraph/LangChain implementation notes |
 | `MultiAgent_SDLC_System_Architecture.md` | 1.0 | 2026-03-29 | Full architecture doc |
 | `Complete_Guide_to_Building_AI_Agent_Systems.md` | 1.0 | 2026-03-29 | Implementation guide |
 | `requirements_traceability_matrix.md` | 1.0 | 2026-03-29 | Req → arch → test mapping |
