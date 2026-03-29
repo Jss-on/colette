@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import structlog
 from langchain_core.language_models import BaseChatModel
 
 from colette.llm.models import ModelChain, ModelRegistry
@@ -17,6 +18,8 @@ from colette.llm.models import ModelChain, ModelRegistry
 if TYPE_CHECKING:
     from colette.config import Settings
     from colette.schemas.agent_config import AgentConfig, ModelTier
+
+logger = structlog.get_logger(__name__)
 
 
 def _build_chat_model(
@@ -30,6 +33,15 @@ def _build_chat_model(
 
     We import inside the function so the module stays importable even
     when ``langchain_community`` is not installed (e.g. during type-checking).
+
+    Args:
+        model_name: LiteLLM model identifier (e.g. ``"claude-sonnet-4-6-20250514"``).
+        base_url: Optional LiteLLM proxy base URL.
+        timeout: Request timeout in seconds.
+        max_retries: Number of retries on transient failures.
+
+    Returns:
+        A configured :class:`BaseChatModel` instance.
     """
     from langchain_community.chat_models import ChatLiteLLM
 
@@ -41,6 +53,7 @@ def _build_chat_model(
     if base_url:
         kwargs["api_base"] = base_url
 
+    logger.debug("building_chat_model", model=model_name, timeout=timeout)
     model: BaseChatModel = ChatLiteLLM(**kwargs)
     return model
 
@@ -52,13 +65,28 @@ def _build_chain_with_fallbacks(
     timeout: int = 120,
     max_retries: int = 2,
 ) -> BaseChatModel:
-    """Build a primary ChatModel with ordered fallbacks (FR-ORC-014)."""
+    """Build a primary ChatModel with ordered fallbacks (FR-ORC-014).
+
+    Args:
+        chain: Primary model name plus fallback alternatives.
+        base_url: Optional LiteLLM proxy base URL.
+        timeout: Request timeout in seconds.
+        max_retries: Number of retries on transient failures.
+
+    Returns:
+        A :class:`BaseChatModel`, optionally wrapped with fallback models.
+    """
     primary = _build_chat_model(
         chain.primary, base_url=base_url, timeout=timeout, max_retries=max_retries
     )
     if not chain.fallbacks:
         return primary
 
+    logger.info(
+        "configuring_fallback_chain",
+        primary=chain.primary,
+        fallbacks=chain.fallbacks,
+    )
     fallback_models = [
         _build_chat_model(name, base_url=base_url, timeout=timeout, max_retries=max_retries)
         for name in chain.fallbacks
@@ -75,6 +103,7 @@ def create_chat_model(
     """Create a ChatModel for the given agent configuration.
 
     Resolution order for the model name:
+
     1. ``agent_config.model_name`` (explicit override)
     2. ``registry.get_chain(agent_config.model_tier)`` (tier-based with fallbacks)
 
@@ -84,7 +113,7 @@ def create_chat_model(
         registry: Model registry.  Built from settings if not provided.
 
     Returns:
-        A LangChain BaseChatModel (possibly with fallbacks attached).
+        A LangChain :class:`BaseChatModel` (possibly with fallbacks attached).
     """
     if settings is None:
         from colette.config import Settings
@@ -94,8 +123,14 @@ def create_chat_model(
     if registry is None:
         registry = ModelRegistry.from_settings(settings)
 
-    # Explicit model override — no fallback chain.
+    # Explicit model override -- no fallback chain.
     if agent_config.model_name:
+        logger.info(
+            "creating_chat_model",
+            role=str(agent_config.role),
+            model=agent_config.model_name,
+            source="explicit_override",
+        )
         return _build_chat_model(
             agent_config.model_name,
             base_url=settings.litellm_base_url,
@@ -105,6 +140,13 @@ def create_chat_model(
 
     # Tier-based resolution with fallback chain.
     chain = registry.get_chain(agent_config.model_tier)
+    logger.info(
+        "creating_chat_model",
+        role=str(agent_config.role),
+        tier=str(agent_config.model_tier),
+        primary=chain.primary,
+        source="tier_registry",
+    )
     return _build_chain_with_fallbacks(
         chain,
         base_url=settings.litellm_base_url,
@@ -119,7 +161,16 @@ def create_chat_model_for_tier(
     settings: Settings | None = None,
     registry: ModelRegistry | None = None,
 ) -> BaseChatModel:
-    """Convenience: create a ChatModel by tier without a full AgentConfig."""
+    """Convenience: create a ChatModel by tier without a full AgentConfig.
+
+    Args:
+        tier: The model tier (planning, execution, or validation).
+        settings: Application settings.  Loaded from env if not provided.
+        registry: Model registry.  Built from settings if not provided.
+
+    Returns:
+        A LangChain :class:`BaseChatModel` with the tier's fallback chain.
+    """
     if settings is None:
         from colette.config import Settings
 
@@ -129,6 +180,7 @@ def create_chat_model_for_tier(
         registry = ModelRegistry.from_settings(settings)
 
     chain = registry.get_chain(tier)
+    logger.info("creating_chat_model_for_tier", tier=str(tier), primary=chain.primary)
     return _build_chain_with_fallbacks(
         chain,
         base_url=settings.litellm_base_url,

@@ -112,9 +112,7 @@ async def invoke_agent(
             agent_id=agent.agent_id,
             agent_role=str(agent.role),
         )
-        raise CircuitBreakerOpenError(
-            f"Circuit breaker open for {agent.agent_id}"
-        )
+        raise CircuitBreakerOpenError(f"Circuit breaker open for {agent.agent_id}")
 
     # ── Build run config ───────────────────────────────────────────
     callback = ColletteCallbackHandler(

@@ -126,9 +126,7 @@ class EntitySpec(BaseModel):
     """A database entity specification."""
 
     name: str
-    fields: list[dict[str, str]] = Field(
-        description="List of {name, type, constraints} dicts."
-    )
+    fields: list[dict[str, str]] = Field(description="List of {name, type, constraints} dicts.")
     indexes: list[str] = Field(default_factory=list)
     relationships: list[str] = Field(default_factory=list)
 

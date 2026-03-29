@@ -20,7 +20,20 @@ logger = structlog.get_logger(__name__)
 
 
 class ColletteCallbackHandler(BaseCallbackHandler):
-    """Tracks LLM tokens and tool calls for a single agent invocation."""
+    """Tracks LLM tokens and tool calls for a single agent invocation.
+
+    Attach one instance per :func:`invoke_agent` call.  After the agent
+    finishes, call :meth:`build_record` to produce an immutable
+    :class:`AgentInvocationRecord`.
+
+    Attributes:
+        agent_id: Unique identifier of the agent invocation.
+        agent_role: Role name (e.g. ``"backend_dev"``).
+        model: Model tier or name used for this invocation.
+        input_tokens: Accumulated prompt tokens across all LLM calls.
+        output_tokens: Accumulated completion tokens across all LLM calls.
+        tool_call_records: Completed tool call metrics.
+    """
 
     def __init__(self, agent_id: str, agent_role: str, model: str) -> None:
         super().__init__()
@@ -28,11 +41,9 @@ class ColletteCallbackHandler(BaseCallbackHandler):
         self.agent_role = agent_role
         self.model = model
 
-        # Token accumulators
         self.input_tokens: int = 0
         self.output_tokens: int = 0
 
-        # Tool call tracking
         self.tool_call_records: list[ToolCallRecord] = []
         self._tool_start_times: dict[UUID, tuple[str, float]] = {}
 
@@ -44,13 +55,23 @@ class ColletteCallbackHandler(BaseCallbackHandler):
         prompts: list[str],
         **kwargs: Any,
     ) -> None:
-        pass  # Nothing to record until completion
+        """Called when an LLM call begins.  Logged for traceability."""
+        logger.debug("llm_call_started", agent_id=self.agent_id)
 
     def on_llm_end(self, response: LLMResult, **kwargs: Any) -> None:
+        """Called when an LLM call completes.  Extracts token usage."""
         if response.llm_output and "token_usage" in response.llm_output:
             usage = response.llm_output["token_usage"]
-            self.input_tokens += usage.get("prompt_tokens", 0)
-            self.output_tokens += usage.get("completion_tokens", 0)
+            prompt_tokens = usage.get("prompt_tokens", 0)
+            completion_tokens = usage.get("completion_tokens", 0)
+            self.input_tokens += prompt_tokens
+            self.output_tokens += completion_tokens
+            logger.debug(
+                "llm_call_completed",
+                agent_id=self.agent_id,
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+            )
 
     # ── Tool callbacks ──────────────────────────────────────────────
 
@@ -62,20 +83,28 @@ class ColletteCallbackHandler(BaseCallbackHandler):
         run_id: UUID,
         **kwargs: Any,
     ) -> None:
+        """Called when a tool invocation begins.  Starts the latency timer."""
         tool_name = serialized.get("name", "unknown")
         self._tool_start_times[run_id] = (tool_name, time.monotonic())
+        logger.debug("tool_started", agent_id=self.agent_id, tool_name=tool_name)
 
     def on_tool_end(self, output: str, *, run_id: UUID, **kwargs: Any) -> None:
+        """Called when a tool invocation succeeds.  Records latency."""
         if run_id in self._tool_start_times:
             tool_name, start = self._tool_start_times.pop(run_id)
             latency_ms = (time.monotonic() - start) * 1000
             self.tool_call_records.append(
-                ToolCallRecord(
-                    tool_name=tool_name, latency_ms=latency_ms, success=True
-                )
+                ToolCallRecord(tool_name=tool_name, latency_ms=latency_ms, success=True)
+            )
+            logger.debug(
+                "tool_completed",
+                agent_id=self.agent_id,
+                tool_name=tool_name,
+                latency_ms=round(latency_ms, 2),
             )
 
     def on_tool_error(self, error: BaseException, *, run_id: UUID, **kwargs: Any) -> None:
+        """Called when a tool invocation fails.  Records the error."""
         if run_id in self._tool_start_times:
             tool_name, start = self._tool_start_times.pop(run_id)
             latency_ms = (time.monotonic() - start) * 1000
@@ -87,13 +116,26 @@ class ColletteCallbackHandler(BaseCallbackHandler):
                     error=str(error),
                 )
             )
+            logger.warning(
+                "tool_failed",
+                agent_id=self.agent_id,
+                tool_name=tool_name,
+                error=str(error),
+                latency_ms=round(latency_ms, 2),
+            )
 
     # ── Record builder ──────────────────────────────────────────────
 
-    def build_record(
-        self, *, outcome: Outcome, duration_ms: float
-    ) -> AgentInvocationRecord:
-        """Build an immutable invocation record from accumulated data."""
+    def build_record(self, *, outcome: Outcome, duration_ms: float) -> AgentInvocationRecord:
+        """Build an immutable invocation record from accumulated data.
+
+        Args:
+            outcome: Final outcome of the agent invocation.
+            duration_ms: Total wall-clock time in milliseconds.
+
+        Returns:
+            An :class:`AgentInvocationRecord` snapshot.
+        """
         return AgentInvocationRecord(
             agent_id=self.agent_id,
             agent_role=self.agent_role,

@@ -47,9 +47,9 @@ class AgentRole(StrEnum):
 class ModelTier(StrEnum):
     """Model assignment tiers matching the architecture spec."""
 
-    PLANNING = "planning"       # Opus — orchestrator, design supervisor, architect
-    EXECUTION = "execution"     # Sonnet — all other agents
-    VALIDATION = "validation"   # Haiku — scanners, validators
+    PLANNING = "planning"  # Opus — orchestrator, design supervisor, architect
+    EXECUTION = "execution"  # Sonnet — all other agents
+    VALIDATION = "validation"  # Haiku — scanners, validators
 
 
 @dataclass(frozen=True)
@@ -67,11 +67,7 @@ class ContextBudgetAllocation:
 
     def __post_init__(self) -> None:
         total = (
-            self.system_prompt
-            + self.tools
-            + self.retrieved_context
-            + self.history
-            + self.output
+            self.system_prompt + self.tools + self.retrieved_context + self.history + self.output
         )
         if abs(total - 1.0) > 0.01:
             msg = f"Budget allocation must sum to 1.0, got {total:.2f}"
@@ -120,10 +116,7 @@ class AgentConfig(BaseModel):
     @classmethod
     def _enforce_tool_limit(cls, v: list[str]) -> list[str]:
         if len(v) > MAX_TOOLS_PER_AGENT:
-            msg = (
-                f"Agent may use at most {MAX_TOOLS_PER_AGENT} tools, "
-                f"got {len(v)}: {v}"
-            )
+            msg = f"Agent may use at most {MAX_TOOLS_PER_AGENT} tools, got {len(v)}: {v}"
             raise ValueError(msg)
         return v
 

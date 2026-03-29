@@ -32,11 +32,22 @@ _INJECTION_PATTERNS: list[re.Pattern[str]] = [
 ]
 
 # Keys whose values should be redacted in audit logs
-_SECRET_KEYS = frozenset({
-    "api_key", "apikey", "api_secret", "password", "passwd",
-    "secret", "token", "access_token", "refresh_token",
-    "private_key", "credential", "credentials",
-})
+_SECRET_KEYS = frozenset(
+    {
+        "api_key",
+        "apikey",
+        "api_secret",
+        "password",
+        "passwd",
+        "secret",
+        "token",
+        "access_token",
+        "refresh_token",
+        "private_key",
+        "credential",
+        "credentials",
+    }
+)
 
 _REDACTED = "***REDACTED***"
 
@@ -51,10 +62,7 @@ def sanitize_output(text: str) -> str:
 
 def redact_secrets(params: dict[str, Any]) -> dict[str, Any]:
     """Return a copy of *params* with secret values replaced (FR-TL-005)."""
-    return {
-        k: _REDACTED if k.lower() in _SECRET_KEYS else v
-        for k, v in params.items()
-    }
+    return {k: _REDACTED if k.lower() in _SECRET_KEYS else v for k, v in params.items()}
 
 
 class MCPBaseTool(BaseTool):

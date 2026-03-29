@@ -112,9 +112,7 @@ async def execute_with_recovery(
         except Exception as exc:
             last_error = exc
             log.append(
-                EscalationResult(
-                    level=EscalationLevel.COMPACT, success=False, error=str(exc)
-                )
+                EscalationResult(level=EscalationLevel.COMPACT, success=False, error=str(exc))
             )
 
     # ── Step 3: Escalate to supervisor ──────────────────────────────
@@ -130,24 +128,18 @@ async def execute_with_recovery(
 
         try:
             result = await fn(*args, **kwargs)
-            log.append(
-                EscalationResult(level=EscalationLevel.SUPERVISOR, success=True)
-            )
+            log.append(EscalationResult(level=EscalationLevel.SUPERVISOR, success=True))
             return result, log
         except Exception as exc:
             last_error = exc
             log.append(
-                EscalationResult(
-                    level=EscalationLevel.SUPERVISOR, success=False, error=str(exc)
-                )
+                EscalationResult(level=EscalationLevel.SUPERVISOR, success=False, error=str(exc))
             )
 
     # ── Step 4: Escalate to human ───────────────────────────────────
     if policy.enable_human_escalation:
         log.append(
-            EscalationResult(
-                level=EscalationLevel.HUMAN, success=False, error=str(last_error)
-            )
+            EscalationResult(level=EscalationLevel.HUMAN, success=False, error=str(last_error))
         )
         logger.warning("escalating_to_human", error=str(last_error))
 
