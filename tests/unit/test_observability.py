@@ -22,9 +22,7 @@ class TestToolCallRecord:
         assert rec.error is None
 
     def test_create_failure(self) -> None:
-        rec = ToolCallRecord(
-            tool_name="git", latency_ms=100.0, success=False, error="timeout"
-        )
+        rec = ToolCallRecord(tool_name="git", latency_ms=100.0, success=False, error="timeout")
         assert rec.success is False
         assert rec.error == "timeout"
 
@@ -101,9 +99,7 @@ class TestColletteCallbackHandler:
         handler.on_llm_start(serialized={}, prompts=["hello"])
         # Simulate LLM end with token usage
         response = MagicMock()
-        response.llm_output = {
-            "token_usage": {"prompt_tokens": 100, "completion_tokens": 50}
-        }
+        response.llm_output = {"token_usage": {"prompt_tokens": 100, "completion_tokens": 50}}
         response.generations = [[MagicMock()]]
         handler.on_llm_end(response)
 
