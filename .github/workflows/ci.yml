@@ -1,0 +1,85 @@
+# Colette CI — lint, typecheck, test, security (FR-IMP-006, FR-DEP-003)
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+      - run: uv sync --dev
+      - run: uv run ruff check src/ tests/
+      - run: uv run ruff format --check src/ tests/
+
+  typecheck:
+    name: Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+      - run: uv sync --dev
+      - run: uv run mypy src/
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: colette
+          POSTGRES_PASSWORD: colette
+          POSTGRES_DB: colette_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U colette"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+      - run: uv sync --dev
+      - run: uv run pytest --cov-report=xml
+        env:
+          COLETTE_DATABASE_URL: postgresql+asyncpg://colette:colette@localhost:5432/colette_test
+          COLETTE_REDIS_URL: redis://localhost:6379/1
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+      - run: uv sync --dev
+      - run: uv run bandit -r src/ -f json -o bandit-report.json || true
+      - run: uv run pip-audit

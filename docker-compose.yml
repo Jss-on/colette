@@ -1,0 +1,55 @@
+# Development services for Colette (SRS §2.4 Operating Environment)
+# Usage: docker compose up -d
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: colette-postgres
+    environment:
+      POSTGRES_USER: colette
+      POSTGRES_PASSWORD: colette
+      POSTGRES_DB: colette
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U colette"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: colette-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  neo4j:
+    image: neo4j:5-community
+    container_name: colette-neo4j
+    environment:
+      NEO4J_AUTH: neo4j/colette-dev
+      NEO4J_PLUGINS: '["apoc"]'
+    ports:
+      - "7474:7474"   # HTTP browser
+      - "7687:7687"   # Bolt protocol
+    volumes:
+      - neo4jdata:/data
+    healthcheck:
+      test: ["CMD-SHELL", "cypher-shell -u neo4j -p colette-dev 'RETURN 1'"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  pgdata:
+  redisdata:
+  neo4jdata:
