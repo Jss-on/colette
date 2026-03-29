@@ -7,12 +7,11 @@ from unittest.mock import patch
 import pytest
 
 from colette.schemas.agent_config import AgentConfig, AgentRole
-from colette.tools.base import MCPBaseTool, sanitize_output
+from colette.tools.base import sanitize_output
 from colette.tools.filesystem import FilesystemTool
 from colette.tools.git import GitTool
 from colette.tools.registry import ToolRegistry
 from colette.tools.terminal import TerminalTool
-
 
 # ── Sanitization (FR-TL-004) ───────────────────────────────────────
 

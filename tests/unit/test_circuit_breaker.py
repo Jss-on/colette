@@ -49,7 +49,7 @@ class TestCircuitBreaker:
             threshold=3,
             window_seconds=1,
             cooldown_seconds=120,
-            failure_timestamps=old_timestamps + (now,),
+            failure_timestamps=(*old_timestamps, now),
         )
         # Only 1 failure within window — still closed
         assert cb.state == CircuitState.CLOSED

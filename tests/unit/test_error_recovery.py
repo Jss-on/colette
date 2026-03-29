@@ -19,9 +19,7 @@ class TestEscalationResult:
         assert r.error is None
 
     def test_create_failure(self) -> None:
-        r = EscalationResult(
-            level=EscalationLevel.COMPACT, success=False, error="still failing"
-        )
+        r = EscalationResult(level=EscalationLevel.COMPACT, success=False, error="still failing")
         assert r.success is False
 
 
@@ -139,6 +137,6 @@ class TestExecuteWithRecovery:
         async def on_esc(result: EscalationResult) -> None:
             escalations.append(result)
 
-        result, log = await execute_with_recovery(fails_once, on_escalate=on_esc)
+        result, _log = await execute_with_recovery(fails_once, on_escalate=on_esc)
         assert result == "ok"
         assert len(escalations) >= 1

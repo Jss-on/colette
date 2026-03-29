@@ -14,7 +14,7 @@ from colette.orchestrator.agent_factory import (
     create_agent,
     invoke_agent,
 )
-from colette.orchestrator.circuit_breaker import CircuitBreaker, CircuitState
+from colette.orchestrator.circuit_breaker import CircuitBreaker
 from colette.schemas.agent_config import AgentConfig, AgentRole, ModelTier
 
 
@@ -31,9 +31,7 @@ def _make_config(**overrides: object) -> AgentConfig:
 class TestCreateAgent:
     @patch("colette.orchestrator.agent_factory.create_react_agent")
     @patch("colette.orchestrator.agent_factory.create_chat_model")
-    def test_returns_agent_instance(
-        self, mock_chat: MagicMock, mock_react: MagicMock
-    ) -> None:
+    def test_returns_agent_instance(self, mock_chat: MagicMock, mock_react: MagicMock) -> None:
         mock_chat.return_value = MagicMock()
         mock_react.return_value = MagicMock()
 
@@ -48,9 +46,7 @@ class TestCreateAgent:
 
     @patch("colette.orchestrator.agent_factory.create_react_agent")
     @patch("colette.orchestrator.agent_factory.create_chat_model")
-    def test_uses_llm_gateway(
-        self, mock_chat: MagicMock, mock_react: MagicMock
-    ) -> None:
+    def test_uses_llm_gateway(self, mock_chat: MagicMock, mock_react: MagicMock) -> None:
         mock_chat.return_value = MagicMock()
         mock_react.return_value = MagicMock()
 
