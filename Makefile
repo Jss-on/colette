@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help install dev lint format typecheck test test-unit test-integration security clean docker-up docker-down
+.PHONY: help install dev lint format typecheck test test-unit test-integration security clean docker-up docker-down docs-serve docs-build
 
 # ── Meta ──────────────────────────────────────────────────────────────
 help: ## Show this help
@@ -53,6 +53,13 @@ docker-build: ## Build Colette container image
 clean: ## Remove build artifacts and caches
 	rm -rf dist/ build/ *.egg-info .mypy_cache/ .ruff_cache/ .pytest_cache/ htmlcov/ .coverage
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+
+# ── Documentation ────────────────────────────────────────────────────
+docs-serve: ## Serve docs locally with hot reload
+	uv run mkdocs serve
+
+docs-build: ## Build static docs site to site/
+	uv run mkdocs build --strict
 
 # ── All checks (CI equivalent) ───────────────────────────────────────
 check: lint typecheck test security ## Run all quality checks
