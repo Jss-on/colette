@@ -64,6 +64,16 @@ class Settings(BaseSettings):
     # ── Handoff (FR-ORC-024) ─────────────────────────────────────────
     handoff_max_chars: int = 32_000
 
+    # ── Memory (FR-MEM-004/005/007/012) ─────────────────────────────
+    compaction_threshold: float = 0.70
+    rag_chunk_size: int = 512
+    rag_faithfulness_threshold: float = 0.85
+    knowledge_graph_enabled: bool = True
+    cohere_api_key: str = ""
+    cold_storage_endpoint: str = ""
+    cold_storage_bucket: str = "colette-cold"
+    memory_decay_enabled: bool = False
+
     # ── Observability ─────────────────────────────────────────────────
     otel_service_name: str = "colette"
     otel_exporter_endpoint: str = "http://localhost:4318"
