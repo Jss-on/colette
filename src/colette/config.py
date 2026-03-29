@@ -74,6 +74,30 @@ class Settings(BaseSettings):
     cold_storage_bucket: str = "colette-cold"
     memory_decay_enabled: bool = False
 
+    # ── Pipeline (FR-ORC-003/006/007) ──────────────────────────────────
+    checkpoint_backend: str = Field(
+        default="memory",
+        description="Checkpoint storage: 'memory' (dev) or 'postgres' (prod).",
+    )
+    checkpoint_db_url: str = ""
+    max_concurrent_pipelines: int = 5
+    progress_stream_interval_seconds: float = 1.0
+
+    # ── Human-in-the-loop (FR-HIL-001/002/005/006) ──────────────────
+    hil_confidence_threshold: float = Field(
+        default=0.60,
+        description="Confidence below this triggers escalation.",
+    )
+    hil_confidence_flag_threshold: float = Field(
+        default=0.85,
+        description="Confidence below this flags for review (above auto-approves).",
+    )
+    hil_t0_sla_seconds: int = 3600
+    hil_t1_sla_seconds: int = 14400
+    notification_channels: list[str] = Field(default_factory=lambda: ["in_app"])
+    notification_slack_webhook: str = ""
+    notification_email_from: str = ""
+
     # ── Observability ─────────────────────────────────────────────────
     otel_service_name: str = "colette"
     otel_exporter_endpoint: str = "http://localhost:4318"

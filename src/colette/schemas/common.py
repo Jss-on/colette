@@ -28,6 +28,27 @@ class ApprovalStatus(StrEnum):
     APPROVED = "approved"
     REJECTED = "rejected"
     MODIFIED = "modified"
+    AUTO_APPROVED = "auto_approved"
+    TIMED_OUT = "timed_out"
+
+
+class StageName(StrEnum):
+    REQUIREMENTS = "requirements"
+    DESIGN = "design"
+    IMPLEMENTATION = "implementation"
+    TESTING = "testing"
+    DEPLOYMENT = "deployment"
+    MONITORING = "monitoring"
+
+
+class StageStatus(StrEnum):
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    SKIPPED = "skipped"
+    BLOCKED_BY_GATE = "blocked_by_gate"
+    AWAITING_APPROVAL = "awaiting_approval"
 
 
 class Severity(StrEnum):

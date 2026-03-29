@@ -13,16 +13,28 @@ from colette.orchestrator.error_recovery import (
     EscalationResult,
     execute_with_recovery,
 )
+from colette.orchestrator.pipeline import build_pipeline
+from colette.orchestrator.progress import ProgressEvent, state_to_progress_event
+from colette.orchestrator.runner import ConcurrencyLimitError, PipelineRunner
+from colette.orchestrator.state import STAGE_ORDER, PipelineState, create_initial_state
 
 __all__ = [
+    "STAGE_ORDER",
     "AgentInstance",
     "CircuitBreaker",
     "CircuitBreakerOpenError",
     "CircuitState",
+    "ConcurrencyLimitError",
     "ErrorRecoveryPolicy",
     "EscalationLevel",
     "EscalationResult",
+    "PipelineRunner",
+    "PipelineState",
+    "ProgressEvent",
+    "build_pipeline",
     "create_agent",
+    "create_initial_state",
     "execute_with_recovery",
     "invoke_agent",
+    "state_to_progress_event",
 ]
