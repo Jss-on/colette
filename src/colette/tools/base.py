@@ -65,6 +65,20 @@ def redact_secrets(params: dict[str, Any]) -> dict[str, Any]:
     return {k: _REDACTED if k.lower() in _SECRET_KEYS else v for k, v in params.items()}
 
 
+def validate_path(raw: str) -> str:
+    """Reject path traversal attempts (FR-TL-004).
+
+    Returns the cleaned path string, or raises ``ValueError``
+    if the path contains ``..`` segments.
+    """
+    from pathlib import PurePosixPath, PureWindowsPath
+
+    for cls in (PurePosixPath, PureWindowsPath):
+        if ".." in cls(raw).parts:
+            raise ValueError(f"Path traversal rejected: {raw!r}")
+    return raw
+
+
 class MCPBaseTool(BaseTool):
     """Base class for MCP-wrapped tools with sanitization and auditing.
 

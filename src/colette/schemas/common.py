@@ -205,3 +205,11 @@ class DeploymentTarget(BaseModel):
     health_check_url: str | None = None
     replicas: int = 1
     resource_limits: dict[str, str] = Field(default_factory=dict)
+
+
+class GeneratedFile(BaseModel, frozen=True):
+    """A single generated source file (FR-IMP-001/002/003)."""
+
+    path: str = Field(description="Relative file path.")
+    content: str = Field(description="Full file content.")
+    language: str = Field(description="Programming language (e.g. 'python', 'typescript').")
