@@ -1,4 +1,4 @@
-"""Testing stage stub — produces a dummy test report handoff (FR-ORC-001)."""
+"""Testing stage — code to test reports (FR-TST-*, FR-ORC-001)."""
 
 from __future__ import annotations
 
@@ -7,32 +7,44 @@ from typing import Any
 
 import structlog
 
-from colette.schemas.common import StageName, StageStatus, SuiteResult
-from colette.schemas.testing import TestingToDeploymentHandoff
+from colette.config import Settings
+from colette.schemas.common import StageName, StageStatus
+from colette.schemas.implementation import ImplementationToTestingHandoff
+from colette.stages.testing.supervisor import supervise_testing
 
-logger = structlog.get_logger()
+logger = structlog.get_logger(__name__)
 
 
 async def run_stage(state: dict[str, Any]) -> dict[str, Any]:
-    """Execute the testing stage (stub)."""
-    project_id = state["project_id"]
+    """Execute the Testing stage.
+
+    Reads the Implementation handoff and produces test results as a
+    ``TestingToDeploymentHandoff``.
+    """
+    project_id: str = state["project_id"]
     logger.info("stage.start", stage="testing", project_id=project_id)
 
-    handoff = TestingToDeploymentHandoff(
+    # Retrieve implementation handoff from previous stage
+    impl_handoff_data = state.get("handoffs", {}).get(StageName.IMPLEMENTATION.value)
+    if not impl_handoff_data:
+        msg = "Testing stage requires a completed Implementation handoff in state"
+        raise ValueError(msg)
+    impl_handoff = ImplementationToTestingHandoff.model_validate(impl_handoff_data)
+
+    settings = Settings()
+    handoff = await supervise_testing(
         project_id=project_id,
-        test_results=[
-            SuiteResult(category="unit", total=42, passed=42, line_coverage=85.0),
-            SuiteResult(category="integration", total=10, passed=10),
-        ],
-        overall_line_coverage=85.0,
-        overall_branch_coverage=75.0,
-        contract_tests_passed=True,
-        deploy_readiness_score=90,
-        git_ref="main",
-        quality_gate_passed=True,
+        impl_handoff=impl_handoff,
+        settings=settings,
     )
 
-    logger.info("stage.complete", stage="testing", project_id=project_id)
+    logger.info(
+        "stage.complete",
+        stage="testing",
+        project_id=project_id,
+        readiness_score=handoff.deploy_readiness_score,
+    )
+
     return {
         "current_stage": StageName.TESTING.value,
         "stage_statuses": {

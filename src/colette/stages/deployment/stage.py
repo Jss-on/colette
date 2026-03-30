@@ -1,4 +1,4 @@
-"""Deployment stage stub — produces a dummy deployment handoff (FR-ORC-001)."""
+"""Deployment stage — tested code to staging/production (FR-DEP-*, FR-ORC-001)."""
 
 from __future__ import annotations
 
@@ -7,35 +7,44 @@ from typing import Any
 
 import structlog
 
-from colette.schemas.common import DeploymentTarget, StageName, StageStatus
-from colette.schemas.deployment import DeploymentToMonitoringHandoff
+from colette.config import Settings
+from colette.schemas.common import StageName, StageStatus
+from colette.schemas.testing import TestingToDeploymentHandoff
+from colette.stages.deployment.supervisor import supervise_deployment
 
-logger = structlog.get_logger()
+logger = structlog.get_logger(__name__)
 
 
 async def run_stage(state: dict[str, Any]) -> dict[str, Any]:
-    """Execute the deployment stage (stub)."""
-    project_id = state["project_id"]
+    """Execute the Deployment stage.
+
+    Reads the Testing handoff and produces deployment artifacts as a
+    ``DeploymentToMonitoringHandoff``.
+    """
+    project_id: str = state["project_id"]
     logger.info("stage.start", stage="deployment", project_id=project_id)
 
-    handoff = DeploymentToMonitoringHandoff(
+    # Retrieve testing handoff from previous stage
+    testing_handoff_data = state.get("handoffs", {}).get(StageName.TESTING.value)
+    if not testing_handoff_data:
+        msg = "Deployment stage requires a completed Testing handoff in state"
+        raise ValueError(msg)
+    testing_handoff = TestingToDeploymentHandoff.model_validate(testing_handoff_data)
+
+    settings = Settings()
+    handoff = await supervise_deployment(
         project_id=project_id,
-        deployment_id=f"deploy-{project_id}-stub",
-        targets=[
-            DeploymentTarget(
-                environment="staging",
-                url="https://staging.example.com",
-                health_check_url="https://staging.example.com/health",
-            ),
-        ],
-        docker_images=["app:latest"],
-        git_ref="main",
-        rollback_command="kubectl rollout undo deployment/app",
-        slo_targets={"availability": "99.9%", "p99_latency": "500ms"},
-        quality_gate_passed=True,
+        testing_handoff=testing_handoff,
+        settings=settings,
     )
 
-    logger.info("stage.complete", stage="deployment", project_id=project_id)
+    logger.info(
+        "stage.complete",
+        stage="deployment",
+        project_id=project_id,
+        deployment_id=handoff.deployment_id,
+    )
+
     return {
         "current_stage": StageName.DEPLOYMENT.value,
         "stage_statuses": {

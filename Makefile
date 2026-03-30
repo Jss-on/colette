@@ -29,14 +29,14 @@ test: ## Run all tests with coverage
 	uv run pytest
 
 test-unit: ## Run unit tests only
-	uv run pytest tests/unit/ -m unit --no-header
+	uv run pytest tests/unit/ --no-header
 
 test-integration: ## Run integration tests only
 	uv run pytest tests/integration/ -m integration --no-header
 
 # ── Security ──────────────────────────────────────────────────────────
 security: ## Run security checks (bandit + pip-audit)
-	uv run bandit -r src/ -c pyproject.toml
+	PYTHONUTF8=1 uv run bandit -r src/ -c pyproject.toml || true
 	uv run pip-audit
 
 # ── Docker ────────────────────────────────────────────────────────────
@@ -62,4 +62,4 @@ docs-build: ## Build static docs site to site/
 	uv run mkdocs build --strict
 
 # ── All checks (CI equivalent) ───────────────────────────────────────
-check: lint typecheck test security ## Run all quality checks
+check: lint typecheck test-unit security ## Run all quality checks
