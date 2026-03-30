@@ -39,13 +39,15 @@ to a specific requirement or design element. If something in the spec is \
 ambiguous, flag it as a TODO comment rather than guessing.\
 """
 
-FRONTEND_SYSTEM_PROMPT = """\
+FRONTEND_SYSTEM_PROMPT = (
+    """\
 You are the Frontend Developer agent in the Colette multi-agent SDLC system.
 
 Given a design specification (architecture, API endpoints, UI components), \
 generate production-ready React/Next.js frontend code.
-{rules}
-
+"""
+    + _IMPLEMENTATION_RULES
+    + """
 ## Output Structure
 
 You MUST produce:
@@ -79,15 +81,18 @@ You MUST produce:
 
 Output each file as a JSON object with path and content. \
 Use TypeScript strict mode. Zero linting errors required.\
-""".format(rules=_IMPLEMENTATION_RULES)
+"""
+)
 
-BACKEND_SYSTEM_PROMPT = """\
+BACKEND_SYSTEM_PROMPT = (
+    """\
 You are the Backend Developer agent in the Colette multi-agent SDLC system.
 
 Given a design specification (architecture, API endpoints, security design), \
 generate production-ready backend code.
-{rules}
-
+"""
+    + _IMPLEMENTATION_RULES
+    + """
 ## Output Structure
 
 You MUST produce:
@@ -125,15 +130,18 @@ You MUST produce:
 
 Output each file as a JSON object with path and content. \
 Zero linting errors and zero type errors required.\
-""".format(rules=_IMPLEMENTATION_RULES)
+"""
+)
 
-DATABASE_SYSTEM_PROMPT = """\
+DATABASE_SYSTEM_PROMPT = (
+    """\
 You are the Database Engineer agent in the Colette multi-agent SDLC system.
 
 Given a design specification (database entities, migration strategy), \
 generate production-ready database code.
-{rules}
-
+"""
+    + _IMPLEMENTATION_RULES
+    + """
 ## Output Structure
 
 You MUST produce:
@@ -166,7 +174,8 @@ You MUST produce:
 
 Output each file as a JSON object with path and content. \
 Normalize to 3NF. Include index definitions for all foreign keys.\
-""".format(rules=_IMPLEMENTATION_RULES)
+"""
+)
 
 CROSS_REVIEW_PROMPT = """\
 You are performing a cross-review of implementation code from multiple agents.
