@@ -59,9 +59,21 @@ class PipelineRunner:
     def _create_checkpointer(self) -> MemorySaver:
         """Create the checkpoint backend.
 
-        PostgresSaver support is deferred to Phase 8 — for now, always
-        use ``MemorySaver`` which is sufficient for dev and testing.
+        Uses ``MemorySaver`` for dev/test (default) and
+        ``PostgresSaver`` for production when ``checkpoint_backend="postgres"``.
         """
+        if self._settings.checkpoint_backend == "postgres":
+            try:
+                from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+
+                db_url = self._settings.checkpoint_db_url or self._settings.database_url
+                # Convert asyncpg URL to psycopg for checkpoint library.
+                sync_url = db_url.replace("+asyncpg", "+psycopg")
+                return AsyncPostgresSaver.from_conn_string(sync_url)  # type: ignore[no-any-return]
+            except ImportError:
+                logger.warning(
+                    "langgraph-checkpoint-postgres not installed; falling back to MemorySaver"
+                )
         return MemorySaver()
 
     # ── Public API ───────────────────────────────────────────────────

@@ -2,7 +2,7 @@
 # Build: docker build -t colette .
 # Run:   docker run -p 8000:8000 colette
 
-# ── Stage 1: Build ────────────────────────────────────────────────────
+# -- Stage 1: Build --------------------------------------------------------
 FROM python:3.13-slim AS builder
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
@@ -15,9 +15,11 @@ RUN uv sync --frozen --no-dev --no-install-project
 
 # Copy source and install project
 COPY src/ src/
+COPY alembic/ alembic/
+COPY alembic.ini .
 RUN uv sync --frozen --no-dev
 
-# ── Stage 2: Runtime ──────────────────────────────────────────────────
+# -- Stage 2: Runtime ------------------------------------------------------
 FROM python:3.13-slim AS runtime
 
 # Non-root user (FR-DEP-001: non-root)
@@ -29,6 +31,8 @@ WORKDIR /app
 # Copy virtual environment from builder
 COPY --from=builder /app/.venv /app/.venv
 COPY --from=builder /app/src /app/src
+COPY --from=builder /app/alembic /app/alembic
+COPY --from=builder /app/alembic.ini /app/alembic.ini
 
 # Put venv on PATH
 ENV PATH="/app/.venv/bin:$PATH" \
@@ -42,4 +46,4 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD ["python", "-c", "import httpx; httpx.get('http://localhost:8000/health').raise_for_status()"]
 
-ENTRYPOINT ["python", "-m", "uvicorn", "colette.cli:main", "--host", "0.0.0.0", "--port", "8000"]
+ENTRYPOINT ["colette", "serve", "--host", "0.0.0.0", "--port", "8000"]

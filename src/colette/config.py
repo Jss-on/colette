@@ -140,7 +140,21 @@ class Settings(BaseSettings):
     regression_window_days: int = 7
     regression_threshold_pct: float = 10.0
 
+    # ── Database — connection pool (NFR-PER-001) ────────────────────────
+    db_pool_size: int = 5
+    db_max_overflow: int = 10
+    db_pool_timeout: int = 30
+    db_pool_recycle: int = 3600
+
+    # ── API ────────────────────────────────────────────────────────────
+    api_key_header: str = "X-API-Key"
+    api_rate_limit_per_minute: int = 100
+    api_admin_rate_limit_per_minute: int = 1000
+    cors_origins: list[str] = Field(default_factory=lambda: ["*"])
+    ws_heartbeat_seconds: float = 15.0
+
     # ── Server ────────────────────────────────────────────────────────
     host: str = "0.0.0.0"  # noqa: S104
     port: int = 8000
+    workers: int = 1
     debug: bool = False
