@@ -19,7 +19,15 @@ class TestBuildPipeline:
         settings = Settings()
         graph = build_pipeline(registry, settings)
         nodes = graph.get_graph().nodes
-        for stage in ("requirements", "design", "implementation", "testing", "deployment", "monitoring"):
+        stages = (
+            "requirements",
+            "design",
+            "implementation",
+            "testing",
+            "deployment",
+            "monitoring",
+        )
+        for stage in stages:
             assert f"stage_{stage}" in nodes
 
     def test_has_gate_nodes(self) -> None:

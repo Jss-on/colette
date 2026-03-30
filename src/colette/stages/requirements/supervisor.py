@@ -46,9 +46,7 @@ def _compute_completeness(analysis: AnalysisResult) -> float:
     excess_questions = max(0, len(analysis.open_questions) - 5)
     penalties += 0.05 * min(excess_questions, 4)
 
-    stories_without_criteria = sum(
-        1 for s in analysis.user_stories if not s.acceptance_criteria
-    )
+    stories_without_criteria = sum(1 for s in analysis.user_stories if not s.acceptance_criteria)
     if stories_without_criteria > 0:
         penalties += 0.1
 
@@ -66,9 +64,7 @@ def assemble_handoff(
     # Merge tech constraints from analyst and researcher (immutable)
     existing_ids = {c.id for c in analysis.tech_constraints}
     constraints = list(analysis.tech_constraints) + [
-        c
-        for c in (research.suggested_constraints if research else [])
-        if c.id not in existing_ids
+        c for c in (research.suggested_constraints if research else []) if c.id not in existing_ids
     ]
 
     completeness = _compute_completeness(analysis)

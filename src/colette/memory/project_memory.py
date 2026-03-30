@@ -175,10 +175,19 @@ class Mem0ProjectMemoryStore:
                     confidence=float(meta.get("confidence", 1.0)),
                     is_permanent=meta.get("is_permanent", "False").lower() == "true",
                     metadata=_dict_to_tuples(
-                        {k: str(v) for k, v in meta.items() if k not in {
-                            "project_id", "scope", "agent_id", "user_id",
-                            "is_permanent", "confidence",
-                        }}
+                        {
+                            k: str(v)
+                            for k, v in meta.items()
+                            if k
+                            not in {
+                                "project_id",
+                                "scope",
+                                "agent_id",
+                                "user_id",
+                                "is_permanent",
+                                "confidence",
+                            }
+                        }
                     ),
                 )
             )
@@ -200,9 +209,7 @@ class Mem0ProjectMemoryStore:
             return 0
 
         half_life_hours = self._settings.decay_default_half_life_hours
-        all_memories = await self.search(
-            project_id, "", scope=MemoryScope.GLOBAL, limit=1000
-        )
+        all_memories = await self.search(project_id, "", scope=MemoryScope.GLOBAL, limit=1000)
         decayed = 0
         for mem in all_memories:
             if mem.is_permanent:

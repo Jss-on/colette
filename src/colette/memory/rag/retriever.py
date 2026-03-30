@@ -100,9 +100,7 @@ class HybridRetriever:
         """Hybrid retrieval: BM25 + dense + RRF fusion."""
         # Dense retrieval
         query_embedding = await self._get_query_embedding(query)
-        dense_results = await self._indexer.search_dense(
-            project_id, query_embedding, top_k=top_k
-        )
+        dense_results = await self._indexer.search_dense(project_id, query_embedding, top_k=top_k)
 
         # BM25 retrieval
         bm25_results = self._bm25_search(project_id, query, dense_results, top_k)
@@ -134,7 +132,7 @@ class HybridRetriever:
             return []
 
         try:
-            from rank_bm25 import BM25Okapi  # type: ignore[import-untyped]
+            from rank_bm25 import BM25Okapi
         except ImportError:
             logger.warning("rank_bm25_not_installed")
             return []
@@ -158,13 +156,13 @@ class HybridRetriever:
     async def _get_query_embedding(self, query: str) -> list[float]:
         """Generate embedding for the query text."""
         try:
-            import litellm  # type: ignore[import-untyped]
+            import litellm
 
             response = await litellm.aembedding(
                 model=self._settings.embedding_model,
                 input=[query],
             )
-            return response.data[0]["embedding"]  # type: ignore[no-any-return]
+            return list(response.data[0]["embedding"])
         except Exception as exc:
             from colette.memory.exceptions import MemoryBackendError
 

@@ -71,9 +71,7 @@ def _design_to_context(handoff: DesignToImplementationHandoff) -> str:
     if handoff.db_entities:
         sections.append("\n## Database Entities")
         for entity in handoff.db_entities:
-            fields_str = ", ".join(
-                f"{f['name']} ({f['type']})" for f in entity.fields
-            )
+            fields_str = ", ".join(f"{f['name']} ({f['type']})" for f in entity.fields)
             sections.append(f"- **{entity.name}**: {fields_str}")
             if entity.indexes:
                 sections.append(f"  Indexes: {', '.join(entity.indexes)}")
@@ -161,9 +159,7 @@ def _evaluate_quality(
         return False
 
     if review:
-        critical_count = sum(
-            1 for f in review.findings if f.severity == Severity.CRITICAL
-        )
+        critical_count = sum(1 for f in review.findings if f.severity == Severity.CRITICAL)
         if critical_count > 0:
             return False
 
@@ -203,12 +199,10 @@ async def _run_cross_review(
         for f in frontend.files[:5]  # limit context
     )
     backend_summary = "\n\n".join(
-        f"### {f.path}\n```{f.language}\n{f.content}\n```"
-        for f in backend.files[:5]
+        f"### {f.path}\n```{f.language}\n{f.content}\n```" for f in backend.files[:5]
     )
     user_content = (
-        "# Frontend Code\n\n" + frontend_summary
-        + "\n\n# Backend Code\n\n" + backend_summary
+        "# Frontend Code\n\n" + frontend_summary + "\n\n# Backend Code\n\n" + backend_summary
     )
 
     result = await invoke_structured(
@@ -293,7 +287,12 @@ async def supervise_implementation(
         logger.warning("cross_review.failed", error_type=type(exc).__name__)
 
     handoff = assemble_handoff(
-        project_id, design_handoff, frontend, backend, database, review,
+        project_id,
+        design_handoff,
+        frontend,
+        backend,
+        database,
+        review,
     )
 
     logger.info(

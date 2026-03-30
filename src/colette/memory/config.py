@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -53,7 +54,8 @@ class MemorySettings:
 
         Reads matching attributes from *settings* with safe fallbacks.
         """
-        def _get(attr: str, default: object) -> object:
+
+        def _get(attr: str, default: object) -> Any:
             return getattr(settings, attr, default)
 
         return cls(

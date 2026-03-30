@@ -37,16 +37,18 @@ from colette.stages.implementation.supervisor import (
 
 
 def _make_design_handoff() -> DesignToImplementationHandoff:
-    spec = json.dumps({
-        "openapi": "3.1.0",
-        "info": {"title": "Todo API", "version": "1.0.0"},
-        "paths": {
-            "/api/v1/todos": {
-                "get": {"summary": "List todos"},
-                "post": {"summary": "Create todo"},
+    spec = json.dumps(
+        {
+            "openapi": "3.1.0",
+            "info": {"title": "Todo API", "version": "1.0.0"},
+            "paths": {
+                "/api/v1/todos": {
+                    "get": {"summary": "List todos"},
+                    "post": {"summary": "Create todo"},
+                },
             },
-        },
-    })
+        }
+    )
     return DesignToImplementationHandoff(
         project_id="proj-1",
         architecture_summary="Monolith with React frontend and FastAPI backend.",
@@ -273,36 +275,48 @@ class TestParseEndpoints:
 
 class TestEvaluateQuality:
     def test_passes_with_files_and_no_critical(self) -> None:
-        assert _evaluate_quality(
-            _make_frontend_result(),
-            _make_backend_result(),
-            _make_database_result(),
-            _make_review_result(),
-        ) is True
+        assert (
+            _evaluate_quality(
+                _make_frontend_result(),
+                _make_backend_result(),
+                _make_database_result(),
+                _make_review_result(),
+            )
+            is True
+        )
 
     def test_fails_with_empty_frontend(self) -> None:
-        assert _evaluate_quality(
-            FrontendResult(files=[]),
-            _make_backend_result(),
-            _make_database_result(),
-            None,
-        ) is False
+        assert (
+            _evaluate_quality(
+                FrontendResult(files=[]),
+                _make_backend_result(),
+                _make_database_result(),
+                None,
+            )
+            is False
+        )
 
     def test_fails_with_empty_backend(self) -> None:
-        assert _evaluate_quality(
-            _make_frontend_result(),
-            BackendResult(files=[]),
-            _make_database_result(),
-            None,
-        ) is False
+        assert (
+            _evaluate_quality(
+                _make_frontend_result(),
+                BackendResult(files=[]),
+                _make_database_result(),
+                None,
+            )
+            is False
+        )
 
     def test_fails_with_empty_database(self) -> None:
-        assert _evaluate_quality(
-            _make_frontend_result(),
-            _make_backend_result(),
-            DatabaseResult(files=[]),
-            None,
-        ) is False
+        assert (
+            _evaluate_quality(
+                _make_frontend_result(),
+                _make_backend_result(),
+                DatabaseResult(files=[]),
+                None,
+            )
+            is False
+        )
 
     def test_fails_with_critical_finding(self) -> None:
         review = CrossReviewResult(
@@ -314,20 +328,26 @@ class TestEvaluateQuality:
                 ),
             ],
         )
-        assert _evaluate_quality(
-            _make_frontend_result(),
-            _make_backend_result(),
-            _make_database_result(),
-            review,
-        ) is False
+        assert (
+            _evaluate_quality(
+                _make_frontend_result(),
+                _make_backend_result(),
+                _make_database_result(),
+                review,
+            )
+            is False
+        )
 
     def test_passes_with_no_review(self) -> None:
-        assert _evaluate_quality(
-            _make_frontend_result(),
-            _make_backend_result(),
-            _make_database_result(),
-            None,
-        ) is True
+        assert (
+            _evaluate_quality(
+                _make_frontend_result(),
+                _make_backend_result(),
+                _make_database_result(),
+                None,
+            )
+            is True
+        )
 
 
 # ── assemble_handoff ────────────────────────────────────────────────────
@@ -406,7 +426,9 @@ class TestSuperviseImplementation:
             ),
         ):
             handoff = await supervise_implementation(
-                "proj-1", design, settings=settings,  # type: ignore[arg-type]
+                "proj-1",
+                design,
+                settings=settings,  # type: ignore[arg-type]
             )
 
         assert handoff.project_id == "proj-1"
@@ -440,7 +462,9 @@ class TestSuperviseImplementation:
             ),
         ):
             handoff = await supervise_implementation(
-                "proj-1", design, settings=settings,  # type: ignore[arg-type]
+                "proj-1",
+                design,
+                settings=settings,  # type: ignore[arg-type]
             )
 
         # Cross-review is SHOULD, so failure doesn't block

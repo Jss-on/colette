@@ -24,18 +24,12 @@ class TestNullKnowledgeGraphStore:
     def null_store(self) -> NullKnowledgeGraphStore:
         return NullKnowledgeGraphStore()
 
-    async def test_add_entity_returns_id(
-        self, null_store: NullKnowledgeGraphStore
-    ) -> None:
-        entity = KGEntity(
-            id="e1", project_id="p1", entity_type="func", name="foo"
-        )
+    async def test_add_entity_returns_id(self, null_store: NullKnowledgeGraphStore) -> None:
+        entity = KGEntity(id="e1", project_id="p1", entity_type="func", name="foo")
         result = await null_store.add_entity(entity)
         assert result == "e1"
 
-    async def test_add_relationship_returns_id(
-        self, null_store: NullKnowledgeGraphStore
-    ) -> None:
+    async def test_add_relationship_returns_id(self, null_store: NullKnowledgeGraphStore) -> None:
         rel = KGRelationship(
             id="r1",
             project_id="p1",
@@ -46,27 +40,17 @@ class TestNullKnowledgeGraphStore:
         result = await null_store.add_relationship(rel)
         assert result == "r1"
 
-    async def test_get_entity_returns_none(
-        self, null_store: NullKnowledgeGraphStore
-    ) -> None:
+    async def test_get_entity_returns_none(self, null_store: NullKnowledgeGraphStore) -> None:
         assert await null_store.get_entity("e1") is None
 
-    async def test_get_neighbors_returns_empty(
-        self, null_store: NullKnowledgeGraphStore
-    ) -> None:
+    async def test_get_neighbors_returns_empty(self, null_store: NullKnowledgeGraphStore) -> None:
         assert await null_store.get_neighbors("e1") == []
 
-    async def test_query_temporal_returns_empty(
-        self, null_store: NullKnowledgeGraphStore
-    ) -> None:
-        result = await null_store.query_temporal(
-            "p1", since=datetime.now(UTC)
-        )
+    async def test_query_temporal_returns_empty(self, null_store: NullKnowledgeGraphStore) -> None:
+        result = await null_store.query_temporal("p1", since=datetime.now(UTC))
         assert result == []
 
-    async def test_delete_entity_noop(
-        self, null_store: NullKnowledgeGraphStore
-    ) -> None:
+    async def test_delete_entity_noop(self, null_store: NullKnowledgeGraphStore) -> None:
         await null_store.delete_entity("e1")
 
 
@@ -93,9 +77,7 @@ class TestGraphitiKnowledgeGraphStore:
         mock_driver.session.return_value = mock_session
         store._driver = mock_driver
 
-        entity = KGEntity(
-            id="e1", project_id="p1", entity_type="class", name="MyClass"
-        )
+        entity = KGEntity(id="e1", project_id="p1", entity_type="class", name="MyClass")
         result = await store.add_entity(entity)
         assert result == "e1"
         mock_session.run.assert_called_once()
@@ -113,9 +95,7 @@ class TestGraphitiKnowledgeGraphStore:
         mock_driver.session.return_value = mock_session
         store._driver = mock_driver
 
-        entity = KGEntity(
-            id="e1", project_id="p1", entity_type="func", name="foo"
-        )
+        entity = KGEntity(id="e1", project_id="p1", entity_type="func", name="foo")
         with pytest.raises(MemoryBackendError, match="neo4j"):
             await store.add_entity(entity)
 

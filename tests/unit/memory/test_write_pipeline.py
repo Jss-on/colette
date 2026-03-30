@@ -68,9 +68,7 @@ class TestMemoryWritePipeline:
         pipeline: MemoryWritePipeline,
         mock_store: AsyncMock,
     ) -> None:
-        decisions = await pipeline.process_write(
-            "proj-1", "A new architectural decision was made"
-        )
+        decisions = await pipeline.process_write("proj-1", "A new architectural decision was made")
         assert len(decisions) >= 1
         assert any(d.result == MemoryWriteResult.ADDED for d in decisions)
         mock_store.store.assert_called()
@@ -81,9 +79,7 @@ class TestMemoryWritePipeline:
         mock_store: AsyncMock,
         mock_detector: AsyncMock,
     ) -> None:
-        existing = MemoryEntry(
-            id="e1", project_id="proj-1", content="existing fact"
-        )
+        existing = MemoryEntry(id="e1", project_id="proj-1", content="existing fact")
         mock_store.search.return_value = [existing]
         mock_detector.detect.return_value = ConflictReport(
             existing_entry=existing,
@@ -100,9 +96,7 @@ class TestMemoryWritePipeline:
         mock_store: AsyncMock,
         mock_detector: AsyncMock,
     ) -> None:
-        existing = MemoryEntry(
-            id="e1", project_id="proj-1", content="old version of the fact"
-        )
+        existing = MemoryEntry(id="e1", project_id="proj-1", content="old version of the fact")
         mock_store.search.return_value = [existing]
         mock_detector.detect.return_value = ConflictReport(
             existing_entry=existing,
@@ -110,9 +104,7 @@ class TestMemoryWritePipeline:
             similarity_score=0.88,
             conflict_type=ConflictType.UPDATE,
         )
-        decisions = await pipeline.process_write(
-            "proj-1", "new version of the fact here"
-        )
+        decisions = await pipeline.process_write("proj-1", "new version of the fact here")
         assert any(d.result == MemoryWriteResult.UPDATED for d in decisions)
         mock_store.update.assert_called()
 
@@ -122,9 +114,7 @@ class TestMemoryWritePipeline:
         mock_store: AsyncMock,
         mock_detector: AsyncMock,
     ) -> None:
-        existing = MemoryEntry(
-            id="e1", project_id="proj-1", content="system uses caching"
-        )
+        existing = MemoryEntry(id="e1", project_id="proj-1", content="system uses caching")
         mock_store.search.return_value = [existing]
         mock_detector.detect.return_value = ConflictReport(
             existing_entry=existing,
@@ -132,9 +122,7 @@ class TestMemoryWritePipeline:
             similarity_score=0.75,
             conflict_type=ConflictType.CONTRADICTION,
         )
-        decisions = await pipeline.process_write(
-            "proj-1", "system does not use caching anymore"
-        )
+        decisions = await pipeline.process_write("proj-1", "system does not use caching anymore")
         assert any(d.result == MemoryWriteResult.CONFLICT_FLAGGED for d in decisions)
         mock_store.store.assert_not_called()
 

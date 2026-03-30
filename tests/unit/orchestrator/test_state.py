@@ -50,4 +50,4 @@ class TestStageOrder:
             "deployment",
             "monitoring",
         ]
-        assert STAGE_ORDER == expected
+        assert expected == STAGE_ORDER

@@ -47,7 +47,7 @@ _GATE_AFTER_STAGE: dict[str, str] = {
 def _next_stage(current: str, skip_stages: list[str]) -> str | None:
     """Return the next non-skipped stage, or ``None`` if *current* is last."""
     idx = STAGE_ORDER.index(current)
-    for candidate in STAGE_ORDER[idx + 1:]:
+    for candidate in STAGE_ORDER[idx + 1 :]:
         if candidate not in skip_stages:
             return candidate
     return None

@@ -31,9 +31,7 @@ class TestMem0Integration:
         entry_id = await store.store(entry)
         assert entry_id
 
-        results = await store.retrieve(
-            "integration-test", "database", scope=MemoryScope.SHARED
-        )
+        results = await store.retrieve("integration-test", "database", scope=MemoryScope.SHARED)
         assert len(results) >= 1
 
     async def test_scope_isolation(self, store: Mem0ProjectMemoryStore) -> None:

@@ -66,9 +66,7 @@ def build_sla_report(records: list[SLARecord]) -> dict[str, Any]:
     avg_resolution = 0.0
     if resolved:
         deltas = [
-            (r.resolved_at - r.created_at).total_seconds()
-            for r in resolved
-            if r.resolved_at
+            (r.resolved_at - r.created_at).total_seconds() for r in resolved if r.resolved_at
         ]
         avg_resolution = sum(deltas) / len(deltas)
 

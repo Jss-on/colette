@@ -81,8 +81,7 @@ class TestHistoryManager:
     def test_summarize_appends_to_existing_summary(self) -> None:
         hm = HistoryManager(
             messages=tuple(
-                {"role": "user", "content": f"msg {i} " + "a " * 30}
-                for i in range(15)
+                {"role": "user", "content": f"msg {i} " + "a " * 30} for i in range(15)
             ),
             recent_count=5,
             compacted_summary="previous summary",

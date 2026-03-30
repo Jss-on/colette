@@ -46,7 +46,8 @@ def _make_analysis(
         project_overview="Test project overview",
         user_stories=stories or [_make_story()],
         nfrs=(
-            nfrs if nfrs is not None
+            nfrs
+            if nfrs is not None
             else [NFRSpec(id="NFR-001", category="performance", description="Fast")]
         ),
         tech_constraints=[],
@@ -212,7 +213,9 @@ class TestSuperviseRequirements:
             ),
         ):
             handoff = await supervise_requirements(
-                "proj-1", "Build a todo app", settings=settings,  # type: ignore[arg-type]
+                "proj-1",
+                "Build a todo app",
+                settings=settings,  # type: ignore[arg-type]
             )
 
         assert handoff.project_id == "proj-1"
@@ -239,7 +242,9 @@ class TestSuperviseRequirements:
             ),
         ):
             handoff = await supervise_requirements(
-                "proj-1", "Build a todo app", settings=settings,  # type: ignore[arg-type]
+                "proj-1",
+                "Build a todo app",
+                settings=settings,  # type: ignore[arg-type]
             )
 
         assert handoff.project_id == "proj-1"

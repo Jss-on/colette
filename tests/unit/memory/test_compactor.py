@@ -59,8 +59,7 @@ class TestVerbatimCompactor:
     def test_compact_messages_compacts_older(self) -> None:
         compactor = self._make()
         messages = [
-            {"role": "user", "content": f"message number {i} " + "x " * 50}
-            for i in range(15)
+            {"role": "user", "content": f"message number {i} " + "x " * 50} for i in range(15)
         ]
         result_msgs, result = compactor.compact_messages(
             messages, target_tokens=5000, keep_recent=10
@@ -76,9 +75,7 @@ class TestVerbatimCompactor:
             {"role": "system", "content": "You are helpful."},
             *[{"role": "user", "content": f"msg {i} " + "a " * 50} for i in range(15)],
         ]
-        result_msgs, _ = compactor.compact_messages(
-            messages, target_tokens=5000, keep_recent=10
-        )
+        result_msgs, _ = compactor.compact_messages(messages, target_tokens=5000, keep_recent=10)
         system_msgs = [m for m in result_msgs if m["role"] == "system"]
         assert len(system_msgs) >= 1
         assert any("You are helpful" in m["content"] for m in system_msgs)

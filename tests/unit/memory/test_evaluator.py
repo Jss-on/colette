@@ -27,9 +27,7 @@ class TestCosineSimilarity:
 
 class TestRAGTriadEvaluator:
     def _make(self, threshold: float = 0.85) -> RAGTriadEvaluator:
-        return RAGTriadEvaluator(
-            MemorySettings(rag_faithfulness_threshold=threshold)
-        )
+        return RAGTriadEvaluator(MemorySettings(rag_faithfulness_threshold=threshold))
 
     async def test_basic_evaluation(self) -> None:
         evaluator = self._make()
@@ -76,14 +74,10 @@ class TestRAGTriadEvaluator:
 
     async def test_empty_context(self) -> None:
         evaluator = self._make()
-        result = await evaluator.evaluate(
-            query="test", context=[], response="answer"
-        )
+        result = await evaluator.evaluate(query="test", context=[], response="answer")
         assert result.faithfulness == 0.0
 
     async def test_empty_response(self) -> None:
         evaluator = self._make()
-        result = await evaluator.evaluate(
-            query="test", context=["some context"], response=""
-        )
+        result = await evaluator.evaluate(query="test", context=["some context"], response="")
         assert result.faithfulness == 0.0

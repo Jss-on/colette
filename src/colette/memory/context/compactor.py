@@ -154,12 +154,13 @@ class VerbatimCompactor:
 
         # Compact the older messages into a single summary segment
         older_text = "\n\n".join(
-            f"[{m.get('role', 'unknown')}]: {m.get('content', '')}"
-            for m in older
+            f"[{m.get('role', 'unknown')}]: {m.get('content', '')}" for m in older
         )
-        available = max(target_tokens - sum(
-            estimate_tokens(m.get("content", "")) for m in system_msgs + recent
-        ), 100)
+        available = max(
+            target_tokens
+            - sum(estimate_tokens(m.get("content", "")) for m in system_msgs + recent),
+            100,
+        )
 
         result = self.compact(older_text, available)
 

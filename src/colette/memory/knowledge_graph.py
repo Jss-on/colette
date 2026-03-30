@@ -76,14 +76,12 @@ class GraphitiKnowledgeGraphStore:
         self._driver: Any = None
 
         if not settings.knowledge_graph_enabled:
-            raise KnowledgeGraphUnavailableError(
-                "Knowledge graph is disabled in configuration"
-            )
+            raise KnowledgeGraphUnavailableError("Knowledge graph is disabled in configuration")
 
     def _ensure_driver(self) -> Any:
         if self._driver is None:
             try:
-                from neo4j import GraphDatabase  # type: ignore[import-untyped]
+                from neo4j import GraphDatabase
 
                 self._driver = GraphDatabase.driver(
                     "bolt://localhost:7687",

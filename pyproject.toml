@@ -165,6 +165,8 @@ module = [
     "graphiti_core.*",
     "neo4j.*",
     "pgvector.*",
+    "cohere.*",
+    "rank_bm25.*",
 ]
 ignore_missing_imports = true
 

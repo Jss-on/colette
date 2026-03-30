@@ -35,9 +35,9 @@ def settings() -> MemorySettings:
 @pytest.fixture
 def mock_write_pipeline() -> AsyncMock:
     pipeline = AsyncMock(spec=MemoryWritePipeline)
-    pipeline.process_write = AsyncMock(return_value=[
-        WriteDecision(fact="test", result=MemoryWriteResult.ADDED, new_id="new-1")
-    ])
+    pipeline.process_write = AsyncMock(
+        return_value=[WriteDecision(fact="test", result=MemoryWriteResult.ADDED, new_id="new-1")]
+    )
     return pipeline
 
 
@@ -45,13 +45,17 @@ def mock_write_pipeline() -> AsyncMock:
 def mock_retriever() -> AsyncMock:
     retriever = AsyncMock()
     chunk = ChunkRecord(
-        id="c1", project_id="p1", source_path="a.py",
-        content="test content", token_count=5,
-        chunk_index=0, total_chunks=1,
+        id="c1",
+        project_id="p1",
+        source_path="a.py",
+        content="test content",
+        token_count=5,
+        chunk_index=0,
+        total_chunks=1,
     )
-    retriever.retrieve = AsyncMock(return_value=[
-        RetrievalResult(chunk=chunk, score=0.9, source="rrf")
-    ])
+    retriever.retrieve = AsyncMock(
+        return_value=[RetrievalResult(chunk=chunk, score=0.9, source="rrf")]
+    )
     return retriever
 
 
@@ -137,14 +141,10 @@ class TestHistoryManager:
 
 class TestKnowledgeGraph:
     async def test_add_entity(self, manager: MemoryManager) -> None:
-        entity = KGEntity(
-            id="e1", project_id="p1", entity_type="func", name="foo"
-        )
+        entity = KGEntity(id="e1", project_id="p1", entity_type="func", name="foo")
         result = await manager.add_to_knowledge_graph(entity)
         assert result == "e1"
 
-    async def test_query_returns_empty_for_null(
-        self, manager: MemoryManager
-    ) -> None:
+    async def test_query_returns_empty_for_null(self, manager: MemoryManager) -> None:
         results = await manager.query_knowledge_graph("e1")
         assert results == []

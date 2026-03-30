@@ -88,9 +88,7 @@ class HybridConflictDetector:
             # Content is unrelated — no conflict
             return None
 
-        conflict_type = _classify_conflict(
-            existing.content, incoming_content, similarity
-        )
+        conflict_type = _classify_conflict(existing.content, incoming_content, similarity)
 
         logger.info(
             "conflict_detected",

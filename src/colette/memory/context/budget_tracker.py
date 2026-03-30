@@ -14,13 +14,15 @@ from colette.memory.exceptions import BudgetExceededError
 logger = structlog.get_logger(__name__)
 
 # Slot names matching ContextBudgetAllocation fields
-SLOT_NAMES = frozenset({
-    "system_prompt",
-    "tools",
-    "retrieved_context",
-    "history",
-    "output",
-})
+SLOT_NAMES = frozenset(
+    {
+        "system_prompt",
+        "tools",
+        "retrieved_context",
+        "history",
+        "output",
+    }
+)
 
 
 @dataclass(frozen=True)

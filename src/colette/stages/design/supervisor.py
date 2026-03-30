@@ -31,8 +31,7 @@ def _prd_to_text(handoff: RequirementsToDesignHandoff) -> str:
             f"As a {story.persona}, I want to {story.goal}, "
             f"so that {story.benefit}.\n"
             f"Priority: {story.priority}\n"
-            "Acceptance Criteria:\n"
-            + "\n".join(f"- {c}" for c in story.acceptance_criteria)
+            "Acceptance Criteria:\n" + "\n".join(f"- {c}" for c in story.acceptance_criteria)
         )
     if handoff.nonfunctional_requirements:
         sections.append("\n## Non-Functional Requirements")

@@ -52,11 +52,13 @@ class HistoryManager:
         """Return renderable messages: compacted summary + recent messages."""
         result: list[dict[str, str]] = []
         if self.compacted_summary:
-            result.append({
-                "role": "system",
-                "content": f"[Prior conversation summary]\n{self.compacted_summary}",
-            })
-        recent = self.messages[-self.recent_count:]
+            result.append(
+                {
+                    "role": "system",
+                    "content": f"[Prior conversation summary]\n{self.compacted_summary}",
+                }
+            )
+        recent = self.messages[-self.recent_count :]
         result.extend(recent)
         return result
 
@@ -73,12 +75,11 @@ class HistoryManager:
         if len(self.messages) <= self.recent_count:
             return self
 
-        recent = self.messages[-self.recent_count:]
-        older = self.messages[:-self.recent_count]
+        recent = self.messages[-self.recent_count :]
+        older = self.messages[: -self.recent_count]
 
         older_text = "\n".join(
-            f"[{m.get('role', 'unknown')}]: {m.get('content', '')}"
-            for m in older
+            f"[{m.get('role', 'unknown')}]: {m.get('content', '')}" for m in older
         )
 
         compactor = VerbatimCompactor()

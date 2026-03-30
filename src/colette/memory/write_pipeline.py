@@ -117,9 +117,7 @@ class MemoryWritePipeline:
     ) -> WriteDecision:
         """Process a single fact through search -> compare -> CRUD."""
         # Search for existing memories
-        existing = await self._store.search(
-            project_id, fact, scope=scope, limit=5
-        )
+        existing = await self._store.search(project_id, fact, scope=scope, limit=5)
 
         if not existing:
             # No match — add new

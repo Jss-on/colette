@@ -14,8 +14,7 @@ class ScopeViolationError(ColetteMemoryError):
         self.agent_scope = agent_scope
         self.target_scope = target_scope
         super().__init__(
-            f"Scope violation: agent in scope '{agent_scope}' "
-            f"cannot access scope '{target_scope}'"
+            f"Scope violation: agent in scope '{agent_scope}' cannot access scope '{target_scope}'"
         )
 
 

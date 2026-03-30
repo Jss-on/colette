@@ -5,6 +5,8 @@ Cohere reranker with NoOp fallback when the API key is unavailable.
 
 from __future__ import annotations
 
+from typing import Any
+
 import structlog
 
 from colette.memory.config import MemorySettings
@@ -40,12 +42,12 @@ class CohereReranker:
         self._settings = settings or MemorySettings()
         self._client = None
 
-    def _ensure_client(self) -> object:
+    def _ensure_client(self) -> Any:
         if self._client is None:
             if not self._settings.cohere_api_key:
                 raise _NoApiKeyError
             try:
-                import cohere  # type: ignore[import-untyped]
+                import cohere
 
                 self._client = cohere.ClientV2(self._settings.cohere_api_key)
             except Exception as exc:
@@ -72,7 +74,7 @@ class CohereReranker:
 
         documents = [r.chunk.content for r in candidates]
         try:
-            response = client.rerank(  # type: ignore[union-attr]
+            response = client.rerank(
                 model=self._settings.cohere_api_key and "rerank-v3.5",
                 query=query,
                 documents=documents,
@@ -83,7 +85,7 @@ class CohereReranker:
             return await NoOpReranker().rerank(query, results, top_n=top_n)
 
         reranked: list[RetrievalResult] = []
-        for item in response.results:  # type: ignore[union-attr]
+        for item in response.results:
             idx = item.index
             reranked.append(
                 RetrievalResult(

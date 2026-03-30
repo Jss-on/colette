@@ -134,9 +134,7 @@ class MemoryManager:
         raw_results = await self._retriever.retrieve(
             project_id, query, top_k=self._settings.rag_retrieval_k
         )
-        reranked = await self._reranker.rerank(
-            query, raw_results, top_n=top_k
-        )
+        reranked = list(await self._reranker.rerank(query, raw_results, top_n=top_k))
 
         logger.info(
             "context_retrieved",
@@ -181,9 +179,7 @@ class MemoryManager:
         recent_count: int | None = None,
     ) -> HistoryManager:
         """Create a new conversation history manager."""
-        return HistoryManager(
-            recent_count=recent_count or self._settings.history_recent_count
-        )
+        return HistoryManager(recent_count=recent_count or self._settings.history_recent_count)
 
     # ── Knowledge graph ─────────────────────────────────────────────
 

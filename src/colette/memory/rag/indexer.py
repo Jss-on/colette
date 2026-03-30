@@ -70,14 +70,12 @@ class PgVectorIndexer:
             )
             await conn.execute(
                 __import__("sqlalchemy").text(
-                    "CREATE INDEX IF NOT EXISTS ix_chunks_project "
-                    "ON chunks(project_id)"
+                    "CREATE INDEX IF NOT EXISTS ix_chunks_project ON chunks(project_id)"
                 )
             )
             await conn.execute(
                 __import__("sqlalchemy").text(
-                    "CREATE INDEX IF NOT EXISTS ix_chunks_source "
-                    "ON chunks(source_path)"
+                    "CREATE INDEX IF NOT EXISTS ix_chunks_source ON chunks(source_path)"
                 )
             )
         logger.info("pgvector_table_ensured")
@@ -94,9 +92,7 @@ class PgVectorIndexer:
         # Generate embeddings in batches
         for batch_start in range(0, len(chunks), _EMBED_BATCH_SIZE):
             batch = chunks[batch_start : batch_start + _EMBED_BATCH_SIZE]
-            embeddings = await self._generate_embeddings(
-                [c.content for c in batch]
-            )
+            embeddings = await self._generate_embeddings([c.content for c in batch])
 
             async with engine.begin() as conn:
                 for chunk, embedding in zip(batch, embeddings, strict=True):
@@ -134,7 +130,7 @@ class PgVectorIndexer:
                 sa.text("DELETE FROM chunks WHERE source_path = :path"),
                 {"path": source_path},
             )
-            count = result.rowcount
+            count: int = int(result.rowcount)
         logger.info("chunks_deleted", source_path=source_path, count=count)
         return count
 
@@ -189,7 +185,7 @@ class PgVectorIndexer:
     ) -> list[list[float]]:
         """Generate embeddings via LiteLLM."""
         try:
-            import litellm  # type: ignore[import-untyped]
+            import litellm
 
             response = await litellm.aembedding(
                 model=self._settings.embedding_model,

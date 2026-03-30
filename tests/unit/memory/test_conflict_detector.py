@@ -48,24 +48,18 @@ class TestHybridConflictDetector:
 
     async def test_similar_content_detected_as_update(self) -> None:
         detector = HybridConflictDetector()
-        existing = self._make_entry(
-            "The database schema uses PostgreSQL with three main tables"
-        )
+        existing = self._make_entry("The database schema uses PostgreSQL with three main tables")
         result = await detector.detect(
-            existing,
-            "The database schema uses PostgreSQL with four main tables and indexes"
+            existing, "The database schema uses PostgreSQL with four main tables and indexes"
         )
         assert result is not None
         assert result.conflict_type in (ConflictType.UPDATE, ConflictType.CONTRADICTION)
 
     async def test_contradiction_with_negation(self) -> None:
         detector = HybridConflictDetector()
-        existing = self._make_entry(
-            "The system does use caching for all API responses"
-        )
+        existing = self._make_entry("The system does use caching for all API responses")
         result = await detector.detect(
-            existing,
-            "The system does not use caching for all API responses"
+            existing, "The system does not use caching for all API responses"
         )
         assert result is not None
         assert result.conflict_type == ConflictType.CONTRADICTION

@@ -102,7 +102,9 @@ class PipelineRunner:
         self._active[project_id] = thread_id
 
         initial = create_initial_state(
-            project_id, pipeline_run_id=thread_id, user_request=user_request,
+            project_id,
+            pipeline_run_id=thread_id,
+            user_request=user_request,
         )
         if skip_stages:
             initial["skip_stages"] = skip_stages

@@ -101,21 +101,23 @@ def _make_arch_result() -> ArchitectureResult:
 
 
 def _make_api_result() -> APIDesignResult:
-    spec = json.dumps({
-        "openapi": "3.1.0",
-        "info": {"title": "Todo API", "version": "1.0.0"},
-        "paths": {
-            "/api/v1/todos": {
-                "get": {"summary": "List todos"},
-                "post": {"summary": "Create todo"},
+    spec = json.dumps(
+        {
+            "openapi": "3.1.0",
+            "info": {"title": "Todo API", "version": "1.0.0"},
+            "paths": {
+                "/api/v1/todos": {
+                    "get": {"summary": "List todos"},
+                    "post": {"summary": "Create todo"},
+                },
+                "/api/v1/todos/{id}": {
+                    "get": {"summary": "Get todo"},
+                    "put": {"summary": "Update todo"},
+                    "delete": {"summary": "Delete todo"},
+                },
             },
-            "/api/v1/todos/{id}": {
-                "get": {"summary": "Get todo"},
-                "put": {"summary": "Update todo"},
-                "delete": {"summary": "Delete todo"},
-            },
-        },
-    })
+        }
+    )
     return APIDesignResult(
         openapi_spec=spec,
         endpoints=[
@@ -237,7 +239,10 @@ class TestGenerateTasks:
 class TestAssembleHandoff:
     def test_basic_assembly(self) -> None:
         handoff = assemble_handoff(
-            "proj-1", _make_arch_result(), _make_api_result(), _make_ui_result(),
+            "proj-1",
+            _make_arch_result(),
+            _make_api_result(),
+            _make_ui_result(),
         )
         assert handoff.project_id == "proj-1"
         assert handoff.source_stage == "design"
@@ -278,7 +283,9 @@ class TestSuperviseDesign:
             ),
         ):
             handoff = await supervise_design(
-                "proj-1", prd, settings=settings,  # type: ignore[arg-type]
+                "proj-1",
+                prd,
+                settings=settings,  # type: ignore[arg-type]
             )
 
         assert handoff.project_id == "proj-1"

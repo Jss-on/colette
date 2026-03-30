@@ -36,37 +36,23 @@ def store(
 class TestScopeEnforcement:
     def test_private_cannot_access_shared(self) -> None:
         with pytest.raises(ScopeViolationError):
-            Mem0ProjectMemoryStore._check_scope(
-                MemoryScope.PRIVATE, MemoryScope.SHARED
-            )
+            Mem0ProjectMemoryStore._check_scope(MemoryScope.PRIVATE, MemoryScope.SHARED)
 
     def test_private_cannot_access_global(self) -> None:
         with pytest.raises(ScopeViolationError):
-            Mem0ProjectMemoryStore._check_scope(
-                MemoryScope.PRIVATE, MemoryScope.GLOBAL
-            )
+            Mem0ProjectMemoryStore._check_scope(MemoryScope.PRIVATE, MemoryScope.GLOBAL)
 
     def test_shared_cannot_access_private(self) -> None:
         with pytest.raises(ScopeViolationError):
-            Mem0ProjectMemoryStore._check_scope(
-                MemoryScope.SHARED, MemoryScope.PRIVATE
-            )
+            Mem0ProjectMemoryStore._check_scope(MemoryScope.SHARED, MemoryScope.PRIVATE)
 
     def test_shared_can_access_shared(self) -> None:
-        Mem0ProjectMemoryStore._check_scope(
-            MemoryScope.SHARED, MemoryScope.SHARED
-        )
+        Mem0ProjectMemoryStore._check_scope(MemoryScope.SHARED, MemoryScope.SHARED)
 
     def test_global_can_access_all(self) -> None:
-        Mem0ProjectMemoryStore._check_scope(
-            MemoryScope.GLOBAL, MemoryScope.GLOBAL
-        )
-        Mem0ProjectMemoryStore._check_scope(
-            MemoryScope.GLOBAL, MemoryScope.SHARED
-        )
-        Mem0ProjectMemoryStore._check_scope(
-            MemoryScope.GLOBAL, MemoryScope.PRIVATE
-        )
+        Mem0ProjectMemoryStore._check_scope(MemoryScope.GLOBAL, MemoryScope.GLOBAL)
+        Mem0ProjectMemoryStore._check_scope(MemoryScope.GLOBAL, MemoryScope.SHARED)
+        Mem0ProjectMemoryStore._check_scope(MemoryScope.GLOBAL, MemoryScope.PRIVATE)
 
 
 class TestStore:
@@ -76,9 +62,7 @@ class TestStore:
         mock_mem0_client: MagicMock,
     ) -> None:
         mock_mem0_client.add.return_value = {"id": "new-id"}
-        entry = MemoryEntry(
-            id="", project_id="proj-1", content="fact: sky is blue"
-        )
+        entry = MemoryEntry(id="", project_id="proj-1", content="fact: sky is blue")
         result = await store.store(entry)
         assert result == "new-id"
         mock_mem0_client.add.assert_called_once()

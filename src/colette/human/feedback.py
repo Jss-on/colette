@@ -29,13 +29,11 @@ def compute_calibration_drift(records: list[FeedbackRecord]) -> float:
     if not records:
         return 0.0
 
-    predicted_approve_rate = sum(
-        1 for r in records if r.predicted_confidence >= 0.85
-    ) / len(records)
+    predicted_approve_rate = sum(1 for r in records if r.predicted_confidence >= 0.85) / len(
+        records
+    )
     approved = (ApprovalStatus.APPROVED, ApprovalStatus.AUTO_APPROVED)
-    actual_approve_rate = sum(
-        1 for r in records if r.actual_decision in approved
-    ) / len(records)
+    actual_approve_rate = sum(1 for r in records if r.actual_decision in approved) / len(records)
 
     return abs(predicted_approve_rate - actual_approve_rate)
 

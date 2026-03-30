@@ -15,16 +15,18 @@ def validator() -> OpenAPIValidatorTool:
 
 
 def _valid_spec() -> str:
-    return json.dumps({
-        "openapi": "3.1.0",
-        "info": {"title": "Test API", "version": "1.0.0"},
-        "paths": {
-            "/api/v1/items": {
-                "get": {"summary": "List items"},
-                "post": {"summary": "Create item"},
+    return json.dumps(
+        {
+            "openapi": "3.1.0",
+            "info": {"title": "Test API", "version": "1.0.0"},
+            "paths": {
+                "/api/v1/items": {
+                    "get": {"summary": "List items"},
+                    "post": {"summary": "Create item"},
+                },
             },
-        },
-    })
+        }
+    )
 
 
 class TestOpenAPIValidator:
@@ -48,11 +50,13 @@ class TestOpenAPIValidator:
         assert "openapi" in result.lower()
 
     def test_wrong_openapi_version(self, validator: OpenAPIValidatorTool) -> None:
-        spec = json.dumps({
-            "openapi": "2.0",
-            "info": {"title": "T", "version": "1"},
-            "paths": {},
-        })
+        spec = json.dumps(
+            {
+                "openapi": "2.0",
+                "info": {"title": "T", "version": "1"},
+                "paths": {},
+            }
+        )
         result = validator._run(spec=spec)
         assert "FAILED" in result
 
@@ -63,20 +67,24 @@ class TestOpenAPIValidator:
         assert "info" in result.lower()
 
     def test_missing_paths(self, validator: OpenAPIValidatorTool) -> None:
-        spec = json.dumps({
-            "openapi": "3.1.0",
-            "info": {"title": "T", "version": "1"},
-        })
+        spec = json.dumps(
+            {
+                "openapi": "3.1.0",
+                "info": {"title": "T", "version": "1"},
+            }
+        )
         result = validator._run(spec=spec)
         assert "FAILED" in result
         assert "paths" in result.lower()
 
     def test_invalid_path_prefix(self, validator: OpenAPIValidatorTool) -> None:
-        spec = json.dumps({
-            "openapi": "3.1.0",
-            "info": {"title": "T", "version": "1"},
-            "paths": {"no-slash": {"get": {}}},
-        })
+        spec = json.dumps(
+            {
+                "openapi": "3.1.0",
+                "info": {"title": "T", "version": "1"},
+                "paths": {"no-slash": {"get": {}}},
+            }
+        )
         result = validator._run(spec=spec)
         assert "FAILED" in result
         assert "no-slash" in result
@@ -87,11 +95,13 @@ class TestOpenAPIValidator:
         assert "exceeds maximum size" in result
 
     def test_empty_paths_is_valid(self, validator: OpenAPIValidatorTool) -> None:
-        spec = json.dumps({
-            "openapi": "3.1.0",
-            "info": {"title": "T", "version": "1"},
-            "paths": {},
-        })
+        spec = json.dumps(
+            {
+                "openapi": "3.1.0",
+                "info": {"title": "T", "version": "1"},
+                "paths": {},
+            }
+        )
         result = validator._run(spec=spec)
         assert "PASSED" in result
         assert "0 path(s)" in result

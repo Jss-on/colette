@@ -33,7 +33,8 @@ class TestDetermineApprovalAction:
         assert determine_approval_action(ApprovalTier.T2_MODERATE, None, settings) == "interrupt"
 
     def test_t2_auto_approves_high_confidence(self, settings: Settings) -> None:
-        assert determine_approval_action(ApprovalTier.T2_MODERATE, 0.90, settings) == "auto_approve"
+        result = determine_approval_action(ApprovalTier.T2_MODERATE, 0.90, settings)
+        assert result == "auto_approve"
 
     def test_t3_always_auto_approves(self, settings: Settings) -> None:
         assert determine_approval_action(ApprovalTier.T3_ROUTINE, 0.10, settings) == "auto_approve"
