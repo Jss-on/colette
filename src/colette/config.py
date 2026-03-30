@@ -104,6 +104,42 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     log_format: str = "json"
 
+    # ── Cost tracking (NFR-OBS-002/003) ──────────────────────────────
+    cost_overrun_multiplier: float = Field(
+        default=2.0,
+        description="Alert when agent cost exceeds baseline x this multiplier.",
+    )
+    cost_currency: str = "USD"
+
+    # ── Security — RBAC (NFR-SEC-008) ────────────────────────────────
+    rbac_enabled: bool = True
+    rbac_default_role: str = "observer"
+
+    # ── Security — Audit (NFR-SEC-005) ───────────────────────────────
+    audit_log_path: str = "logs/audit.jsonl"
+    audit_retention_days: int = 365
+
+    # ── Security — Secret filtering (NFR-SEC-002) ────────────────────
+    secret_filter_enabled: bool = True
+
+    # ── Security — MCP pinning (NFR-SEC-004/009) ─────────────────────
+    mcp_pin_file: str = "mcp-pins.json"
+    mcp_allow_unverified: bool = False
+
+    # ── Security — Prompt injection (NFR-SEC-001) ────────────────────
+    prompt_injection_defense_enabled: bool = True
+
+    # ── Security — Memory guard (NFR-SEC-010) ────────────────────────
+    memory_write_confidence_threshold: float = Field(
+        default=0.70,
+        description="Minimum confidence for autonomous memory writes.",
+    )
+    memory_high_importance_audit: bool = True
+
+    # ── Observability — Alerts (NFR-OBS-005) ─────────────────────────
+    regression_window_days: int = 7
+    regression_threshold_pct: float = 10.0
+
     # ── Server ────────────────────────────────────────────────────────
     host: str = "0.0.0.0"  # noqa: S104
     port: int = 8000
