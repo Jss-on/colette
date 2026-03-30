@@ -121,6 +121,7 @@ See `src/colette/config.py` for the full settings schema.
 
 | Document | Description |
 |----------|-------------|
+| [User Guide](docs/guide.md) | How to use Colette -- pipeline stages, configuration, extending |
 | [Software Requirements Specification](docs/Colette_Software_Requirements_Specification.md) | 164 requirements, MoSCoW prioritized, IEEE 830 |
 | [System Architecture](docs/MultiAgent_SDLC_System_Architecture.md) | Agent catalog, handoff schemas, memory tiers, MCP integration |
 | [Implementation Guide](docs/Complete_Guide_to_Building_AI_Agent_Systems.md) | Patterns and guidance for building the agent system |

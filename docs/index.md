@@ -19,6 +19,7 @@ User Request -> Requirements -> Design -> Implementation -> Testing -> Deploymen
 
 ## Quick Links
 
+- [User Guide](guide.md) -- how to use Colette, pipeline stages, configuration, extending
 - [Getting Started](getting-started.md) -- installation and first run
 - [Architecture](architecture.md) -- system design overview
 - [API Reference](api/index.md) -- auto-generated from source code
