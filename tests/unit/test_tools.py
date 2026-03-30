@@ -95,15 +95,15 @@ class TestToolRegistry:
         names = {t.name for t in tools}
         assert names == {"filesystem", "git"}
 
-    def test_logs_unauthorized_access(self, capsys: pytest.CaptureFixture[str]) -> None:
+    def test_logs_unauthorized_access(self, caplog: pytest.LogCaptureFixture) -> None:
         registry = ToolRegistry()
         registry.register(FilesystemTool())
 
         config = self._make_config(["filesystem", "nonexistent_tool"])
-        tools = registry.get_tools_for_agent(config)
+        with caplog.at_level("WARNING"):
+            tools = registry.get_tools_for_agent(config)
         assert len(tools) == 1  # only filesystem returned
-        captured = capsys.readouterr()
-        assert "nonexistent_tool" in captured.out
+        assert "nonexistent_tool" in caplog.text
 
     def test_empty_tool_list(self) -> None:
         registry = ToolRegistry()
