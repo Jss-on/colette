@@ -20,6 +20,7 @@ from colette.stages.design.api_designer import APIDesignResult
 from colette.stages.design.architect import ArchitectureResult
 from colette.stages.design.stage import run_stage
 from colette.stages.design.supervisor import (
+    _evaluate_design_quality,
     _generate_tasks,
     _prd_to_text,
     assemble_handoff,
@@ -142,6 +143,34 @@ def _make_ui_result() -> UIDesignResult:
     )
 
 
+# ── _evaluate_design_quality ─────────────────────────────────────────────
+
+
+class TestEvaluateDesignQuality:
+    def test_passes_with_complete_outputs(self) -> None:
+        assert _evaluate_design_quality(_make_arch_result(), _make_api_result()) is True
+
+    def test_fails_with_empty_architecture(self) -> None:
+        arch = ArchitectureResult(
+            architecture_summary="",
+            tech_stack={"backend": "FastAPI"},
+            db_entities=[],
+        )
+        assert _evaluate_design_quality(arch, _make_api_result()) is False
+
+    def test_fails_with_no_endpoints(self) -> None:
+        api = APIDesignResult(openapi_spec='{"openapi":"3.1.0"}', endpoints=[])
+        assert _evaluate_design_quality(_make_arch_result(), api) is False
+
+    def test_fails_with_empty_tech_stack(self) -> None:
+        arch = ArchitectureResult(
+            architecture_summary="Some arch",
+            tech_stack={},
+            db_entities=[EntitySpec(name="t", fields=[{"name": "id", "type": "int"}])],
+        )
+        assert _evaluate_design_quality(arch, _make_api_result()) is False
+
+
 # ── _prd_to_text ────────────────────────────────────────────────────────
 
 
@@ -262,6 +291,16 @@ class TestSuperviseDesign:
 
 
 class TestRunStage:
+    @pytest.mark.asyncio
+    async def test_raises_on_missing_requirements_handoff(self) -> None:
+        state = {
+            "project_id": "test-proj",
+            "stage_statuses": {},
+            "handoffs": {},
+        }
+        with pytest.raises(ValueError, match="requires a completed Requirements handoff"):
+            await run_stage(state)
+
     @pytest.mark.asyncio
     async def test_produces_valid_state_update(self) -> None:
         prd = _make_prd_handoff()

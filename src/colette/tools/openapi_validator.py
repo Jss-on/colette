@@ -16,6 +16,40 @@ _VALID_HTTP_METHODS = frozenset(
 )
 _PATH_LEVEL_KEYS = _VALID_HTTP_METHODS | {"parameters", "summary", "description", "servers"}
 
+# Guard against extremely large specs before parsing.
+MAX_SPEC_BYTES = 1_000_000
+
+
+def _validate_info(data: dict[str, object], errors: list[str]) -> None:
+    """Validate the ``info`` object."""
+    info = data.get("info")
+    if info is None:
+        errors.append("Missing required field: 'info'")
+    elif isinstance(info, dict):
+        if "title" not in info:
+            errors.append("Missing 'info.title'")
+        if "version" not in info:
+            errors.append("Missing 'info.version'")
+    else:
+        errors.append("'info' must be an object")
+
+
+def _validate_paths(data: dict[str, object], errors: list[str]) -> None:
+    """Validate the ``paths`` object."""
+    paths = data.get("paths")
+    if paths is None:
+        errors.append("Missing required field: 'paths'")
+    elif isinstance(paths, dict):
+        for path, methods in paths.items():
+            if not path.startswith("/"):
+                errors.append(f"Path must start with '/': {path}")
+            if isinstance(methods, dict):
+                for key in methods:
+                    if key.lower() not in _PATH_LEVEL_KEYS:
+                        errors.append(f"Invalid key '{key}' in path '{path}'")
+    else:
+        errors.append("'paths' must be an object")
+
 
 class OpenAPIValidatorTool(MCPBaseTool):
     """Validate an OpenAPI 3.1 JSON specification."""
@@ -31,7 +65,9 @@ class OpenAPIValidatorTool(MCPBaseTool):
         if not spec:
             return "Error: No OpenAPI spec provided."
 
-        errors: list[str] = []
+        if len(spec.encode()) > MAX_SPEC_BYTES:
+            return f"Error: OpenAPI spec exceeds maximum size ({MAX_SPEC_BYTES} bytes)."
+
         try:
             data = json.loads(spec)
         except json.JSONDecodeError as exc:
@@ -40,6 +76,8 @@ class OpenAPIValidatorTool(MCPBaseTool):
         if not isinstance(data, dict):
             return "Error: OpenAPI spec must be a JSON object."
 
+        errors: list[str] = []
+
         # Required: openapi version
         version = data.get("openapi", "")
         if not version:
@@ -47,32 +85,8 @@ class OpenAPIValidatorTool(MCPBaseTool):
         elif not str(version).startswith("3."):
             errors.append(f"Expected OpenAPI 3.x, got: {version}")
 
-        # Required: info
-        info = data.get("info")
-        if info is None:
-            errors.append("Missing required field: 'info'")
-        elif isinstance(info, dict):
-            if "title" not in info:
-                errors.append("Missing 'info.title'")
-            if "version" not in info:
-                errors.append("Missing 'info.version'")
-        else:
-            errors.append("'info' must be an object")
-
-        # Required: paths
-        paths = data.get("paths")
-        if paths is None:
-            errors.append("Missing required field: 'paths'")
-        elif isinstance(paths, dict):
-            for path, methods in paths.items():
-                if not path.startswith("/"):
-                    errors.append(f"Path must start with '/': {path}")
-                if isinstance(methods, dict):
-                    for key in methods:
-                        if key.lower() not in _PATH_LEVEL_KEYS:
-                            errors.append(f"Invalid key '{key}' in path '{path}'")
-        else:
-            errors.append("'paths' must be an object")
+        _validate_info(data, errors)
+        _validate_paths(data, errors)
 
         if errors:
             return "Validation FAILED:\n" + "\n".join(f"- {e}" for e in errors)

@@ -81,6 +81,11 @@ class TestOpenAPIValidator:
         assert "FAILED" in result
         assert "no-slash" in result
 
+    def test_oversized_spec_rejected(self, validator: OpenAPIValidatorTool) -> None:
+        huge_spec = "{" + " " * 1_100_000 + "}"
+        result = validator._run(spec=huge_spec)
+        assert "exceeds maximum size" in result
+
     def test_empty_paths_is_valid(self, validator: OpenAPIValidatorTool) -> None:
         spec = json.dumps({
             "openapi": "3.1.0",

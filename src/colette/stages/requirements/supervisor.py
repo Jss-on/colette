@@ -22,15 +22,7 @@ def _ensure_story_ids(stories: list[UserStory]) -> list[UserStory]:
     result: list[UserStory] = []
     for idx, story in enumerate(stories, start=1):
         if not story.id.startswith("US-REQ-"):
-            story = UserStory(
-                id=f"US-REQ-{idx:03d}",
-                title=story.title,
-                persona=story.persona,
-                goal=story.goal,
-                benefit=story.benefit,
-                acceptance_criteria=story.acceptance_criteria,
-                priority=story.priority,
-            )
+            story = story.model_copy(update={"id": f"US-REQ-{idx:03d}"})
         result.append(story)
     return result
 
@@ -71,13 +63,13 @@ def assemble_handoff(
     """Assemble the Requirements-to-Design handoff from specialist outputs."""
     stories = _ensure_story_ids(analysis.user_stories)
 
-    # Merge tech constraints from analyst and researcher
-    constraints = list(analysis.tech_constraints)
-    if research:
-        existing_ids = {c.id for c in constraints}
-        for constraint in research.suggested_constraints:
-            if constraint.id not in existing_ids:
-                constraints.append(constraint)
+    # Merge tech constraints from analyst and researcher (immutable)
+    existing_ids = {c.id for c in analysis.tech_constraints}
+    constraints = list(analysis.tech_constraints) + [
+        c
+        for c in (research.suggested_constraints if research else [])
+        if c.id not in existing_ids
+    ]
 
     completeness = _compute_completeness(analysis)
 
@@ -115,8 +107,8 @@ async def supervise_requirements(
     research: ResearchResult | None = None
     try:
         research = await run_researcher(user_request, settings=settings)
-    except Exception as exc:
-        logger.warning("researcher.failed", error=str(exc))
+    except (ValueError, TimeoutError, RuntimeError) as exc:
+        logger.warning("researcher.failed", error_type=type(exc).__name__)
 
     handoff = assemble_handoff(project_id, analysis, research)
 

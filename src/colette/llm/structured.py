@@ -16,18 +16,20 @@ from pydantic import BaseModel
 
 from colette.llm.gateway import create_chat_model_for_tier
 from colette.schemas.agent_config import ModelTier
+from colette.tools.base import sanitize_output
 
 if TYPE_CHECKING:
     from colette.config import Settings
 
 logger = structlog.get_logger(__name__)
 
+
 def extract_json_block(text: str) -> str:
     """Extract a JSON object or array from LLM text, handling markdown fences.
 
-    Tries in order: ```json fence, ``` fence, raw braces.
+    Tries in order: ```json fence, ``` fence, raw braces, raw brackets.
     """
-    # ```json { ... } ```
+    # ```json { ... } ``` or ```json [ ... ] ```
     match = re.search(r"```json\s*(\{.*\})\s*```", text, re.DOTALL)
     if match:
         return match.group(1)
@@ -38,11 +40,60 @@ def extract_json_block(text: str) -> str:
     match = re.search(r"```\s*(\{.*\})\s*```", text, re.DOTALL)
     if match:
         return match.group(1)
-    # Raw JSON (first outermost braces)
+    # Raw JSON object (first outermost braces)
     match = re.search(r"(\{[\s\S]*\})", text)
     if match:
         return match.group(1)
+    # Raw JSON array
+    match = re.search(r"(\[[\s\S]*\])", text)
+    if match:
+        return match.group(1)
     return text
+
+
+def _build_structured_prompt(system_prompt: str, output_type: type[BaseModel]) -> str:
+    """Augment a system prompt with the JSON schema of *output_type*."""
+    schema = json.dumps(output_type.model_json_schema(), indent=2)
+    return (
+        f"{system_prompt}\n\n"
+        "You MUST respond with valid JSON matching this schema. "
+        "Do NOT include any text outside the JSON object.\n\n"
+        f"JSON Schema:\n```json\n{schema}\n```"
+    )
+
+
+def _parse_structured_response[T: BaseModel](
+    raw_text: str,
+    output_type: type[T],
+) -> T:
+    """Parse an LLM text response into *output_type* via JSON extraction.
+
+    Tries ``model_validate_json`` first, then falls back to ``model_validate``
+    with ``json.loads`` for looser parsing.
+
+    Raises
+    ------
+    ValueError
+        If the response cannot be parsed.
+    """
+    json_str = extract_json_block(raw_text)
+
+    try:
+        return output_type.model_validate_json(json_str)
+    except Exception as first_exc:
+        logger.debug("structured_output_first_parse_failed", error=str(first_exc))
+        try:
+            data: object = json.loads(json_str)
+            return output_type.model_validate(data)
+        except Exception as exc:
+            logger.error(
+                "structured_output_parse_error",
+                output_type=output_type.__name__,
+                raw_length=len(raw_text),
+            )
+            raise ValueError(
+                f"Failed to parse LLM output as {output_type.__name__}: {exc}"
+            ) from exc
 
 
 async def invoke_structured[T: BaseModel](
@@ -55,26 +106,9 @@ async def invoke_structured[T: BaseModel](
 ) -> T:
     """Invoke the LLM and parse the response as a typed Pydantic model.
 
-    The system prompt is augmented with the JSON schema of *output_type*
-    and explicit instructions to output only valid JSON.
-
-    Parameters
-    ----------
-    system_prompt:
-        Domain-specific instructions for the LLM.
-    user_content:
-        The user-facing content (project description, PRD, etc.).
-    output_type:
-        Pydantic model class to parse the response into.
-    settings:
-        Application settings.  Loaded from env if ``None``.
-    model_tier:
-        Which model tier to use (planning, execution, validation).
-
-    Returns
-    -------
-    T
-        An instance of *output_type* parsed from the LLM's JSON response.
+    The system prompt is augmented with the JSON schema of *output_type*.
+    User content is sanitized to strip prompt-injection markers before
+    being sent to the LLM (FR-TL-004).
 
     Raises
     ------
@@ -86,39 +120,17 @@ async def invoke_structured[T: BaseModel](
 
         settings = _Settings()
 
-    schema = json.dumps(output_type.model_json_schema(), indent=2)
-    full_prompt = (
-        f"{system_prompt}\n\n"
-        "You MUST respond with valid JSON matching this schema. "
-        "Do NOT include any text outside the JSON object.\n\n"
-        f"JSON Schema:\n```json\n{schema}\n```"
-    )
+    # Sanitize user content to strip prompt-injection markers (H1)
+    safe_content = sanitize_output(user_content)
 
+    full_prompt = _build_structured_prompt(system_prompt, output_type)
     model = create_chat_model_for_tier(model_tier, settings=settings)
+
     response = await model.ainvoke(
         [
             SystemMessage(content=full_prompt),
-            HumanMessage(content=user_content),
+            HumanMessage(content=safe_content),
         ]
     )
 
-    raw_text = str(response.content)
-    json_str = extract_json_block(raw_text)
-
-    try:
-        return output_type.model_validate_json(json_str)
-    except Exception:
-        # Fall back to dict-based validation for looser parsing
-        try:
-            data: object = json.loads(json_str)
-            return output_type.model_validate(data)
-        except Exception as exc:
-            logger.error(
-                "structured_output_parse_error",
-                output_type=output_type.__name__,
-                raw_length=len(raw_text),
-                error=str(exc),
-            )
-            raise ValueError(
-                f"Failed to parse LLM output as {output_type.__name__}: {exc}"
-            ) from exc
+    return _parse_structured_response(str(response.content), output_type)

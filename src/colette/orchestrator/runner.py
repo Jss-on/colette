@@ -22,6 +22,14 @@ class ConcurrencyLimitError(Exception):
     """Raised when the maximum number of concurrent pipelines is reached."""
 
 
+class UserRequestTooLargeError(ValueError):
+    """Raised when user_request exceeds the maximum allowed length."""
+
+
+# Align with HandoffSchema.DEFAULT_MAX_HANDOFF_CHARS (32K chars ≈ 8K tokens).
+MAX_USER_REQUEST_CHARS = 32_000
+
+
 class PipelineRunner:
     """High-level API for starting, resuming, and monitoring pipelines.
 
@@ -76,6 +84,13 @@ class PipelineRunner:
         Raises ``ConcurrencyLimitExceeded`` if the concurrent-pipeline
         limit has been reached.
         """
+        if len(user_request) > MAX_USER_REQUEST_CHARS:
+            msg = (
+                f"user_request exceeds maximum length "
+                f"({len(user_request)} > {MAX_USER_REQUEST_CHARS} chars)"
+            )
+            raise UserRequestTooLargeError(msg)
+
         if len(self._active) >= self._settings.max_concurrent_pipelines:
             msg = (
                 f"Concurrent pipeline limit ({self._settings.max_concurrent_pipelines}) "

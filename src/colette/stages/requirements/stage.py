@@ -11,7 +11,7 @@ from colette.config import Settings
 from colette.schemas.common import StageName, StageStatus
 from colette.stages.requirements.supervisor import supervise_requirements
 
-logger = structlog.get_logger()
+logger = structlog.get_logger(__name__)
 
 
 async def run_stage(state: dict[str, Any]) -> dict[str, Any]:

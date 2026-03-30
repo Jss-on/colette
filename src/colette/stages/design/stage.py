@@ -12,7 +12,7 @@ from colette.schemas.common import StageName, StageStatus
 from colette.schemas.requirements import RequirementsToDesignHandoff
 from colette.stages.design.supervisor import supervise_design
 
-logger = structlog.get_logger()
+logger = structlog.get_logger(__name__)
 
 
 async def run_stage(state: dict[str, Any]) -> dict[str, Any]:
@@ -26,7 +26,10 @@ async def run_stage(state: dict[str, Any]) -> dict[str, Any]:
     logger.info("stage.start", stage="design", project_id=project_id)
 
     # Retrieve PRD from requirements stage
-    req_handoff_data = state.get("handoffs", {}).get(StageName.REQUIREMENTS.value, {})
+    req_handoff_data = state.get("handoffs", {}).get(StageName.REQUIREMENTS.value)
+    if not req_handoff_data:
+        msg = "Design stage requires a completed Requirements handoff in state"
+        raise ValueError(msg)
     prd_handoff = RequirementsToDesignHandoff.model_validate(req_handoff_data)
 
     settings = Settings()

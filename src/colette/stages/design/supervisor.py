@@ -107,6 +107,20 @@ def _generate_tasks(
     return tasks
 
 
+def _evaluate_design_quality(
+    arch: ArchitectureResult,
+    api: APIDesignResult,
+) -> bool:
+    """Derive quality gate status from actual design outputs."""
+    return (
+        bool(arch.architecture_summary)
+        and bool(arch.tech_stack)
+        and bool(arch.db_entities)
+        and bool(api.openapi_spec)
+        and bool(api.endpoints)
+    )
+
+
 def assemble_handoff(
     project_id: str,
     arch: ArchitectureResult,
@@ -115,6 +129,7 @@ def assemble_handoff(
 ) -> DesignToImplementationHandoff:
     """Assemble the Design-to-Implementation handoff from specialist outputs."""
     tasks = _generate_tasks(arch, api, ui)
+    gate_passed = _evaluate_design_quality(arch, api)
 
     return DesignToImplementationHandoff(
         project_id=project_id,
@@ -129,7 +144,7 @@ def assemble_handoff(
         adrs=arch.adrs,
         security_design=arch.security_design,
         tasks=tasks,
-        quality_gate_passed=True,
+        quality_gate_passed=gate_passed,
     )
 
 
