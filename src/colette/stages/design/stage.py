@@ -1,4 +1,4 @@
-"""Design stage stub — produces a dummy architecture handoff (FR-ORC-001)."""
+"""Design stage — PRD to architecture, API, DB schema, UI (FR-DES-*, FR-ORC-001)."""
 
 from __future__ import annotations
 
@@ -7,32 +7,42 @@ from typing import Any
 
 import structlog
 
-from colette.schemas.common import EntitySpec, StageName, StageStatus
-from colette.schemas.design import DesignToImplementationHandoff
+from colette.config import Settings
+from colette.schemas.common import StageName, StageStatus
+from colette.schemas.requirements import RequirementsToDesignHandoff
+from colette.stages.design.supervisor import supervise_design
 
 logger = structlog.get_logger()
 
 
 async def run_stage(state: dict[str, Any]) -> dict[str, Any]:
-    """Execute the design stage (stub)."""
-    project_id = state["project_id"]
+    """Execute the Design stage.
+
+    Reads the Requirements handoff and produces architecture,
+    API specs, DB schema, and UI component specifications as a
+    ``DesignToImplementationHandoff``.
+    """
+    project_id: str = state["project_id"]
     logger.info("stage.start", stage="design", project_id=project_id)
 
-    handoff = DesignToImplementationHandoff(
+    # Retrieve PRD from requirements stage
+    req_handoff_data = state.get("handoffs", {}).get(StageName.REQUIREMENTS.value, {})
+    prd_handoff = RequirementsToDesignHandoff.model_validate(req_handoff_data)
+
+    settings = Settings()
+    handoff = await supervise_design(
         project_id=project_id,
-        architecture_summary="Stub architecture — placeholder for real design.",
-        tech_stack={"frontend": "Next.js", "backend": "Python/FastAPI", "database": "PostgreSQL"},
-        openapi_spec='{"openapi":"3.1.0","info":{"title":"Stub","version":"0.1.0"},"paths":{}}',
-        db_entities=[
-            EntitySpec(
-                name="users",
-                fields=[{"name": "id", "type": "uuid", "constraints": "PRIMARY KEY"}],
-            ),
-        ],
-        quality_gate_passed=True,
+        prd_handoff=prd_handoff,
+        settings=settings,
     )
 
-    logger.info("stage.complete", stage="design", project_id=project_id)
+    logger.info(
+        "stage.complete",
+        stage="design",
+        project_id=project_id,
+        endpoints=len(handoff.endpoints),
+    )
+
     return {
         "current_stage": StageName.DESIGN.value,
         "stage_statuses": {

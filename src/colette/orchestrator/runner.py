@@ -62,10 +62,16 @@ class PipelineRunner:
         self,
         project_id: str,
         *,
+        user_request: str = "",
         skip_stages: list[str] | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Start a new pipeline run for *project_id*.
+
+        Parameters
+        ----------
+        user_request:
+            Natural language project description from the user (FR-REQ-001).
 
         Raises ``ConcurrencyLimitExceeded`` if the concurrent-pipeline
         limit has been reached.
@@ -80,7 +86,9 @@ class PipelineRunner:
         thread_id = f"{project_id}-{uuid.uuid4().hex[:8]}"
         self._active[project_id] = thread_id
 
-        initial = create_initial_state(project_id, pipeline_run_id=thread_id)
+        initial = create_initial_state(
+            project_id, pipeline_run_id=thread_id, user_request=user_request,
+        )
         if skip_stages:
             initial["skip_stages"] = skip_stages
         if metadata:

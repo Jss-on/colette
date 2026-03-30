@@ -52,11 +52,19 @@ class PipelineState(TypedDict, total=False):
     completed_at: str | None
     total_tokens_used: int
 
+    # ── User input ───────────────────────────────────────────────────
+    user_request: str
+
     # ── Extensible bag ───────────────────────────────────────────────
     metadata: dict[str, Any]
 
 
-def create_initial_state(project_id: str, *, pipeline_run_id: str = "") -> PipelineState:
+def create_initial_state(
+    project_id: str,
+    *,
+    pipeline_run_id: str = "",
+    user_request: str = "",
+) -> PipelineState:
     """Build a fresh ``PipelineState`` with all fields initialised."""
     now = datetime.now(UTC).isoformat()
     return PipelineState(
@@ -71,6 +79,7 @@ def create_initial_state(project_id: str, *, pipeline_run_id: str = "") -> Pipel
         progress_events=[],
         error_log=[],
         skip_stages=[],
+        user_request=user_request,
         started_at=now,
         completed_at=None,
         total_tokens_used=0,

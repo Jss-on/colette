@@ -1,4 +1,8 @@
-"""Tests for all 6 stage stubs."""
+"""Tests for stage stubs (implementation, testing, deployment, monitoring).
+
+Requirements and Design stages are now real implementations and have
+their own test files: test_requirements_stage.py and test_design_stage.py.
+"""
 
 from __future__ import annotations
 
@@ -7,46 +11,14 @@ import pytest
 from colette.orchestrator.state import create_initial_state
 from colette.schemas.common import StageName, StageStatus
 from colette.stages.deployment.stage import run_stage as deployment_run
-from colette.stages.design.stage import run_stage as design_run
 from colette.stages.implementation.stage import run_stage as implementation_run
 from colette.stages.monitoring.stage import run_stage as monitoring_run
-from colette.stages.requirements.stage import run_stage as requirements_run
 from colette.stages.testing.stage import run_stage as run_testing_stage
 
 
 @pytest.fixture
 def initial_state() -> dict:
     return dict(create_initial_state("test-project"))
-
-
-class TestRequirementsStub:
-    @pytest.mark.asyncio
-    async def test_produces_valid_handoff(self, initial_state: dict) -> None:
-        result = await requirements_run(initial_state)
-        assert StageName.REQUIREMENTS.value in result["handoffs"]
-        handoff = result["handoffs"][StageName.REQUIREMENTS.value]
-        assert handoff["source_stage"] == "requirements"
-        assert handoff["target_stage"] == "design"
-
-    @pytest.mark.asyncio
-    async def test_marks_stage_completed(self, initial_state: dict) -> None:
-        result = await requirements_run(initial_state)
-        assert result["stage_statuses"][StageName.REQUIREMENTS.value] == StageStatus.COMPLETED.value
-
-    @pytest.mark.asyncio
-    async def test_emits_progress_event(self, initial_state: dict) -> None:
-        result = await requirements_run(initial_state)
-        assert len(result["progress_events"]) == 1
-        assert result["progress_events"][0]["stage"] == "requirements"
-
-
-class TestDesignStub:
-    @pytest.mark.asyncio
-    async def test_produces_valid_handoff(self, initial_state: dict) -> None:
-        result = await design_run(initial_state)
-        handoff = result["handoffs"][StageName.DESIGN.value]
-        assert handoff["source_stage"] == "design"
-        assert "openapi_spec" in handoff
 
 
 class TestImplementationStub:
