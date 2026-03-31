@@ -22,28 +22,28 @@ async def run_stage(state: dict[str, Any]) -> dict[str, Any]:
     ``TestingToDeploymentHandoff``.
     """
     project_id: str = state["project_id"]
-    logger.info("stage.start", stage="testing", project_id=project_id)
 
-    # Retrieve implementation handoff from previous stage
-    impl_handoff_data = state.get("handoffs", {}).get(StageName.IMPLEMENTATION.value)
-    if not impl_handoff_data:
-        msg = "Testing stage requires a completed Implementation handoff in state"
-        raise ValueError(msg)
-    impl_handoff = ImplementationToTestingHandoff.model_validate(impl_handoff_data)
+    structlog.contextvars.bind_contextvars(stage="testing", project_id=project_id)
+    try:
+        logger.info("stage.start")
 
-    settings = Settings()
-    handoff = await supervise_testing(
-        project_id=project_id,
-        impl_handoff=impl_handoff,
-        settings=settings,
-    )
+        # Retrieve implementation handoff from previous stage
+        impl_handoff_data = state.get("handoffs", {}).get(StageName.IMPLEMENTATION.value)
+        if not impl_handoff_data:
+            msg = "Testing stage requires a completed Implementation handoff in state"
+            raise ValueError(msg)
+        impl_handoff = ImplementationToTestingHandoff.model_validate(impl_handoff_data)
 
-    logger.info(
-        "stage.complete",
-        stage="testing",
-        project_id=project_id,
-        readiness_score=handoff.deploy_readiness_score,
-    )
+        settings = Settings()
+        handoff = await supervise_testing(
+            project_id=project_id,
+            impl_handoff=impl_handoff,
+            settings=settings,
+        )
+
+        logger.info("stage.complete", readiness_score=handoff.deploy_readiness_score)
+    finally:
+        structlog.contextvars.unbind_contextvars("stage", "project_id")
 
     return {
         "current_stage": StageName.TESTING.value,

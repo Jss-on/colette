@@ -23,28 +23,28 @@ async def run_stage(state: dict[str, Any]) -> dict[str, Any]:
     ``DesignToImplementationHandoff``.
     """
     project_id: str = state["project_id"]
-    logger.info("stage.start", stage="design", project_id=project_id)
 
-    # Retrieve PRD from requirements stage
-    req_handoff_data = state.get("handoffs", {}).get(StageName.REQUIREMENTS.value)
-    if not req_handoff_data:
-        msg = "Design stage requires a completed Requirements handoff in state"
-        raise ValueError(msg)
-    prd_handoff = RequirementsToDesignHandoff.model_validate(req_handoff_data)
+    structlog.contextvars.bind_contextvars(stage="design", project_id=project_id)
+    try:
+        logger.info("stage.start")
 
-    settings = Settings()
-    handoff = await supervise_design(
-        project_id=project_id,
-        prd_handoff=prd_handoff,
-        settings=settings,
-    )
+        # Retrieve PRD from requirements stage
+        req_handoff_data = state.get("handoffs", {}).get(StageName.REQUIREMENTS.value)
+        if not req_handoff_data:
+            msg = "Design stage requires a completed Requirements handoff in state"
+            raise ValueError(msg)
+        prd_handoff = RequirementsToDesignHandoff.model_validate(req_handoff_data)
 
-    logger.info(
-        "stage.complete",
-        stage="design",
-        project_id=project_id,
-        endpoints=len(handoff.endpoints),
-    )
+        settings = Settings()
+        handoff = await supervise_design(
+            project_id=project_id,
+            prd_handoff=prd_handoff,
+            settings=settings,
+        )
+
+        logger.info("stage.complete", endpoints=len(handoff.endpoints))
+    finally:
+        structlog.contextvars.unbind_contextvars("stage", "project_id")
 
     return {
         "current_stage": StageName.DESIGN.value,

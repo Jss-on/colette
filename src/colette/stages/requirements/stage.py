@@ -28,21 +28,20 @@ async def run_stage(state: dict[str, Any]) -> dict[str, Any]:
     if not user_request:
         user_request = state.get("metadata", {}).get("user_request", "")
 
-    logger.info("stage.start", stage="requirements", project_id=project_id)
+    structlog.contextvars.bind_contextvars(stage="requirements", project_id=project_id)
+    try:
+        logger.info("stage.start")
 
-    settings = Settings()
-    handoff = await supervise_requirements(
-        project_id=project_id,
-        user_request=user_request,
-        settings=settings,
-    )
+        settings = Settings()
+        handoff = await supervise_requirements(
+            project_id=project_id,
+            user_request=user_request,
+            settings=settings,
+        )
 
-    logger.info(
-        "stage.complete",
-        stage="requirements",
-        project_id=project_id,
-        completeness=handoff.completeness_score,
-    )
+        logger.info("stage.complete", completeness=handoff.completeness_score)
+    finally:
+        structlog.contextvars.unbind_contextvars("stage", "project_id")
 
     return {
         "current_stage": StageName.REQUIREMENTS.value,

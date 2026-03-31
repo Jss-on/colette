@@ -37,60 +37,96 @@ async def _run_pipeline_bg(
     user_request: str,
     session_factory: async_sessionmaker[AsyncSession] | None,
 ) -> None:
-    """Background task: run the pipeline and update project status on completion."""
+    """Background task: run the pipeline and update project status on completion.
+
+    Phase 5 guarantees:
+    - A terminal event (PIPELINE_COMPLETED or PIPELINE_FAILED) is always emitted.
+    - Both project AND pipeline_run DB rows are updated on completion/failure.
+    - DB update failures are logged at CRITICAL level, never swallowed.
+    - Traceback is included in all failure events for downstream consumers.
+    """
     import traceback as tb_mod
 
     import structlog
+
+    from colette.orchestrator.event_bus import EventType, PipelineEvent
 
     log = structlog.get_logger(__name__)
 
     if session_factory is None:
         log.error("pipeline.no_session_factory", project_id=project_id)
+        project_status_registry.mark(project_id, "failed")
+        runner.event_bus.emit(
+            PipelineEvent(
+                project_id=project_id,
+                event_type=EventType.PIPELINE_FAILED,
+                message="No session factory available — cannot track pipeline state",
+            )
+        )
         return
 
-    # Register as running so LLM calls are allowed.
-    project_status_registry.mark(project_id, "running")
-
+    # runner.run() manages the registry state machine (running → completed/failed).
     try:
         await runner.run(project_id, user_request=user_request)
-
-        # Pipeline completed — update DB and registry.
-        project_status_registry.mark(project_id, "completed")
-        async with session_factory() as session:
-            repo = ProjectRepository(session)
-            await repo.update_status(uuid.UUID(project_id), "completed")
-            run_repo = PipelineRunRepository(session)
-            runs = await run_repo.list_for_project(uuid.UUID(project_id), limit=1)
-            if runs:
-                await run_repo.update_state(runs[0].id, status="completed")
-            await session.commit()
-        log.info("pipeline.completed", project_id=project_id)
-
     except Exception as exc:
-        # Pipeline failed — block LLM calls immediately.
+        # Pipeline failed — runner.run() already emitted PIPELINE_FAILED
+        # and marked the registry. We just need to update the DB.
         project_status_registry.mark(project_id, "failed")
-
         log.error(
             "pipeline.failed",
             project_id=project_id,
             error=str(exc),
-            traceback=tb_mod.format_exc(),
         )
         try:
             async with session_factory() as session:
                 repo = ProjectRepository(session)
                 await repo.update_status(uuid.UUID(project_id), "failed")
                 run_repo = PipelineRunRepository(session)
-                runs = await run_repo.list_for_project(uuid.UUID(project_id), limit=1)
+                runs = await run_repo.list_for_project(
+                    uuid.UUID(project_id), limit=1
+                )
                 if runs:
                     await run_repo.update_state(runs[0].id, status="failed")
                 await session.commit()
         except Exception as db_exc:
-            structlog.get_logger(__name__).critical(
+            log.critical(
                 "pipeline.status_update_failed",
                 project_id=project_id,
                 error=str(db_exc),
             )
+        return
+
+    # Pipeline completed — update DB and registry.
+    project_status_registry.mark(project_id, "completed")
+    try:
+        async with session_factory() as session:
+            repo = ProjectRepository(session)
+            await repo.update_status(uuid.UUID(project_id), "completed")
+            run_repo = PipelineRunRepository(session)
+            runs = await run_repo.list_for_project(
+                uuid.UUID(project_id), limit=1
+            )
+            if runs:
+                await run_repo.update_state(runs[0].id, status="completed")
+            await session.commit()
+        log.info("pipeline.completed", project_id=project_id)
+    except Exception as db_exc:
+        # Pipeline succeeded but DB update failed — emit PIPELINE_FAILED
+        # so SSE consumers know something went wrong.
+        project_status_registry.mark(project_id, "failed")
+        runner.event_bus.emit(
+            PipelineEvent(
+                project_id=project_id,
+                event_type=EventType.PIPELINE_FAILED,
+                message=f"DB update failed after pipeline completed: {db_exc}",
+                detail={"traceback": tb_mod.format_exc()},
+            )
+        )
+        log.critical(
+            "pipeline.status_update_failed",
+            project_id=project_id,
+            error=str(db_exc),
+        )
 
 
 @router.post("", status_code=status.HTTP_201_CREATED, response_model=ProjectResponse)

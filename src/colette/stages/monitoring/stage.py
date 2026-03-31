@@ -23,32 +23,35 @@ async def run_stage(state: dict[str, Any]) -> dict[str, Any]:
     is stored under the monitoring key and ``completed_at`` is set.
     """
     project_id: str = state["project_id"]
-    logger.info("stage.start", stage="monitoring", project_id=project_id)
 
-    deployment_handoff_data = state.get("handoffs", {}).get(StageName.DEPLOYMENT.value)
-    if not deployment_handoff_data:
-        msg = "Monitoring stage requires a completed Deployment handoff in state"
-        raise ValueError(msg)
-    deployment_handoff = DeploymentToMonitoringHandoff.model_validate(
-        deployment_handoff_data,
-    )
+    structlog.contextvars.bind_contextvars(stage="monitoring", project_id=project_id)
+    try:
+        logger.info("stage.start")
 
-    settings = Settings()
-    result = await supervise_monitoring(
-        project_id=project_id,
-        deployment_handoff=deployment_handoff,
-        settings=settings,
-    )
+        deployment_handoff_data = state.get("handoffs", {}).get(StageName.DEPLOYMENT.value)
+        if not deployment_handoff_data:
+            msg = "Monitoring stage requires a completed Deployment handoff in state"
+            raise ValueError(msg)
+        deployment_handoff = DeploymentToMonitoringHandoff.model_validate(
+            deployment_handoff_data,
+        )
+
+        settings = Settings()
+        result = await supervise_monitoring(
+            project_id=project_id,
+            deployment_handoff=deployment_handoff,
+            settings=settings,
+        )
+
+        logger.info(
+            "stage.complete",
+            deployment_id=result.deployment_id,
+            gate_passed=result.quality_gate_passed,
+        )
+    finally:
+        structlog.contextvars.unbind_contextvars("stage", "project_id")
 
     now = datetime.now(UTC).isoformat()
-
-    logger.info(
-        "stage.complete",
-        stage="monitoring",
-        project_id=project_id,
-        deployment_id=result.deployment_id,
-        gate_passed=result.quality_gate_passed,
-    )
 
     return {
         "current_stage": StageName.MONITORING.value,

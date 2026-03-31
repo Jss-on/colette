@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import traceback as tb_mod
 import uuid
 from typing import Any
 
@@ -169,6 +170,7 @@ class PipelineRunner:
                     project_id=project_id,
                     event_type=EventType.PIPELINE_FAILED,
                     message=str(exc),
+                    detail={"traceback": tb_mod.format_exc()},
                     elapsed_seconds=compute_elapsed(initial["started_at"]),
                 )
             )
