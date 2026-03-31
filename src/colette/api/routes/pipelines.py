@@ -75,7 +75,11 @@ async def _emit_catchup_events(
 ) -> AsyncGenerator[str]:
     """Emit synthetic events for stages that already progressed.
 
-    Solves the race where events fire before the SSE client subscribes.
+    Since LangGraph only checkpoints AFTER a node completes, the
+    checkpoint's ``stage_statuses`` may still say "pending" for the
+    current running stage.  We infer state from ``is_active`` +
+    ``progress.stage``: stages before the current one are completed,
+    the current one is running.
     """
     from colette.orchestrator.state import STAGE_ORDER
 
@@ -84,40 +88,25 @@ async def _emit_catchup_events(
     except Exception:  # best-effort catch-up
         return
 
-    stage_statuses: dict[str, str] = {}
-    # get_progress only tells us the *current* stage; infer completed stages.
     try:
         current_idx = STAGE_ORDER.index(progress.stage)
     except ValueError:
         return
 
+    ts = datetime.now(UTC).isoformat()
     for i, stage_name in enumerate(STAGE_ORDER):
         if i < current_idx:
-            stage_statuses[stage_name] = "completed"
-        elif i == current_idx:
-            stage_statuses[stage_name] = progress.status
-
-    ts = datetime.now(UTC).isoformat()
-    for stage_name, st in stage_statuses.items():
-        if st == "completed":
+            yield _make_sse_payload(
+                "stage_started", project_id, stage=stage_name, timestamp=ts,
+            )
             yield _make_sse_payload(
                 "stage_completed", project_id,
                 stage=stage_name, timestamp=ts,
                 elapsed_seconds=progress.elapsed_seconds,
             )
-        elif st in ("running", "in_progress"):
+        elif i == current_idx:
             yield _make_sse_payload(
-                "stage_started", project_id,
-                stage=stage_name, timestamp=ts,
-            )
-        elif st in ("failed", "blocked_by_gate"):
-            yield _make_sse_payload(
-                "stage_started", project_id,
-                stage=stage_name, timestamp=ts,
-            )
-            yield _make_sse_payload(
-                "stage_failed", project_id,
-                stage=stage_name, timestamp=ts,
+                "stage_started", project_id, stage=stage_name, timestamp=ts,
             )
 
 
