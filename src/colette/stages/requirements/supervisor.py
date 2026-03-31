@@ -103,8 +103,8 @@ async def supervise_requirements(
     research: ResearchResult | None = None
     try:
         research = await run_researcher(user_request, settings=settings)
-    except (ValueError, TimeoutError, RuntimeError) as exc:
-        logger.warning("researcher.failed", error_type=type(exc).__name__)
+    except Exception as exc:
+        logger.warning("researcher.failed", error_type=type(exc).__name__, error=str(exc)[:200])
 
     handoff = assemble_handoff(project_id, analysis, research)
 

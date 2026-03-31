@@ -283,8 +283,8 @@ async def supervise_implementation(
     review: CrossReviewResult | None = None
     try:
         review = await _run_cross_review(frontend, backend, settings=settings)
-    except (ValueError, TimeoutError, RuntimeError) as exc:
-        logger.warning("cross_review.failed", error_type=type(exc).__name__)
+    except Exception as exc:
+        logger.warning("cross_review.failed", error_type=type(exc).__name__, error=str(exc)[:200])
 
     handoff = assemble_handoff(
         project_id,
