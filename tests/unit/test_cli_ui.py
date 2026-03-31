@@ -2,14 +2,22 @@
 
 from __future__ import annotations
 
+import dataclasses
 from io import StringIO
+from typing import Any
 
+import pytest
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from rich.tree import Tree
 
 from colette.cli_ui import (
+    PIPELINE_STAGES,
+    PipelineProgressDisplay,
+    StageState,
+    build_progress_renderable,
+    build_summary_panel,
     render_approval_prompt,
     render_artifact_tree,
     render_config_table,
@@ -276,3 +284,255 @@ class TestRenderMessages:
             assert "all good" in output
         finally:
             colette.cli_ui.console = original
+
+
+# ── StageState ───────────────────────────────────────────────────────
+
+
+class TestStageState:
+    def test_defaults(self) -> None:
+        s = StageState(name="design")
+        assert s.name == "design"
+        assert s.status == "pending"
+        assert s.elapsed_seconds == 0.0
+        assert s.tokens_used == 0
+        assert s.agent == ""
+        assert s.message == ""
+
+    def test_frozen(self) -> None:
+        s = StageState(name="testing")
+        with pytest.raises(dataclasses.FrozenInstanceError):
+            s.name = "other"  # type: ignore[misc]
+
+    def test_custom_values(self) -> None:
+        s = StageState(
+            name="design",
+            status="running",
+            elapsed_seconds=12.5,
+            tokens_used=400,
+            agent="System Architect",
+            message="Generating architecture...",
+        )
+        assert s.status == "running"
+        assert s.agent == "System Architect"
+
+
+# ── build_progress_renderable ────────────────────────────────────────
+
+
+class TestBuildProgressRenderable:
+    def _make_stages(self, **overrides: dict[str, Any]) -> tuple[StageState, ...]:
+        """Create default pending stages with optional overrides."""
+        stages = []
+        for name in PIPELINE_STAGES:
+            kwargs = overrides.get(name, {})
+            stages.append(StageState(name=name, **kwargs))
+        return tuple(stages)
+
+    def test_all_pending(self) -> None:
+        stages = self._make_stages()
+        table = build_progress_renderable(stages)
+        output = _render_to_str(table)
+        for label in (
+            "Requirements", "Design", "Implementation",
+            "Testing", "Deployment", "Monitoring",
+        ):
+            assert label in output
+
+    def test_completed_stage_shows_checkmark(self) -> None:
+        stages = self._make_stages(
+            requirements={"status": "completed", "elapsed_seconds": 23.0},
+        )
+        table = build_progress_renderable(stages)
+        output = _render_to_str(table)
+        assert "✓" in output or "completed" in output.lower()
+
+    def test_running_stage_shows_arrow(self) -> None:
+        stages = self._make_stages(
+            design={"status": "running", "agent": "System Architect", "message": "Designing..."},
+        )
+        table = build_progress_renderable(stages)
+        output = _render_to_str(table)
+        assert ">" in output or "running" in output.lower()
+        assert "System Architect" in output
+        assert "Designing..." in output
+
+    def test_failed_stage_shows_x(self) -> None:
+        stages = self._make_stages(
+            testing={"status": "failed"},
+        )
+        table = build_progress_renderable(stages, error_message="Test suite crashed")
+        output = _render_to_str(table)
+        assert "✗" in output or "failed" in output.lower()
+        assert "Test suite crashed" in output
+
+    def test_elapsed_shown_for_completed(self) -> None:
+        stages = self._make_stages(
+            requirements={"status": "completed", "elapsed_seconds": 23.0},
+        )
+        output = _render_to_str(build_progress_renderable(stages))
+        assert "23" in output
+
+    def test_returns_table(self) -> None:
+        stages = self._make_stages()
+        result = build_progress_renderable(stages)
+        assert isinstance(result, Table)
+
+
+# ── build_summary_panel ──────────────────────────────────────────────
+
+
+class TestBuildSummaryPanel:
+    def _completed_stages(self) -> tuple[StageState, ...]:
+        return tuple(
+            StageState(name=n, status="completed", elapsed_seconds=10.0, tokens_used=500)
+            for n in PIPELINE_STAGES
+        )
+
+    def test_completed_summary(self) -> None:
+        stages = self._completed_stages()
+        panel = build_summary_panel(stages, "proj-123", "completed")
+        assert isinstance(panel, Panel)
+        output = _render_to_str(panel)
+        assert "proj-123" in output
+        assert "completed" in output
+        assert "3,000" in output  # 6 stages * 500 tokens
+        assert "60" in output  # 6 stages * 10s
+
+    def test_failed_summary_includes_error(self) -> None:
+        stages = (
+            StageState(
+                name="requirements", status="completed",
+                elapsed_seconds=10.0, tokens_used=200,
+            ),
+            StageState(name="design", status="failed"),
+            *(StageState(name=n) for n in PIPELINE_STAGES[2:]),
+        )
+        panel = build_summary_panel(
+            stages, "proj-456", "failed",
+            error_message="Design agent crashed",
+        )
+        output = _render_to_str(panel)
+        assert "failed" in output
+        assert "Design agent crashed" in output
+        assert "1/6" in output  # 1 completed out of 6
+
+    def test_returns_panel(self) -> None:
+        stages = self._completed_stages()
+        result = build_summary_panel(stages, "p", "completed")
+        assert isinstance(result, Panel)
+
+
+# ── PipelineProgressDisplay ──────────────────────────────────────────
+
+
+class TestPipelineProgressDisplay:
+    def test_initial_state_all_pending(self) -> None:
+        d = PipelineProgressDisplay("proj-1")
+        assert not d.is_done
+        assert d.project_id == "proj-1"
+        for stage in d.stages:
+            assert stage.status == "pending"
+
+    def test_stage_started(self) -> None:
+        d = PipelineProgressDisplay("p")
+        d.process_event({"event_type": "stage_started", "stage": "requirements"})
+        assert d.stages[0].status == "running"
+
+    def test_stage_completed(self) -> None:
+        d = PipelineProgressDisplay("p")
+        d.process_event({"event_type": "stage_started", "stage": "requirements"})
+        d.process_event({
+            "event_type": "stage_completed",
+            "stage": "requirements",
+            "elapsed_seconds": 23.5,
+            "tokens_used": 1200,
+        })
+        assert d.stages[0].status == "completed"
+        assert d.stages[0].elapsed_seconds == 23.5
+        assert d.stages[0].tokens_used == 1200
+
+    def test_stage_failed(self) -> None:
+        d = PipelineProgressDisplay("p")
+        d.process_event({"event_type": "stage_started", "stage": "design"})
+        d.process_event({
+            "event_type": "stage_failed",
+            "stage": "design",
+            "message": "Architect timed out",
+        })
+        assert d.stages[1].status == "failed"
+        assert d.error_message == "Architect timed out"
+
+    def test_agent_started_updates_message(self) -> None:
+        d = PipelineProgressDisplay("p")
+        d.process_event({"event_type": "stage_started", "stage": "design"})
+        d.process_event({
+            "event_type": "agent_started",
+            "stage": "design",
+            "agent": "System Architect",
+            "message": "Generating architecture...",
+        })
+        assert d.stages[1].agent == "System Architect"
+        assert d.stages[1].message == "Generating architecture..."
+
+    def test_agent_completed_clears_message(self) -> None:
+        d = PipelineProgressDisplay("p")
+        d.process_event({"event_type": "stage_started", "stage": "design"})
+        d.process_event({
+            "event_type": "agent_started",
+            "stage": "design",
+            "agent": "Architect",
+            "message": "Working...",
+        })
+        d.process_event({"event_type": "agent_completed", "stage": "design"})
+        assert d.stages[1].agent == ""
+        assert d.stages[1].message == ""
+
+    def test_pipeline_completed(self) -> None:
+        d = PipelineProgressDisplay("p")
+        terminal = d.process_event({"event_type": "pipeline_completed"})
+        assert terminal is True
+        assert d.is_done
+        assert d.final_status == "completed"
+
+    def test_pipeline_failed(self) -> None:
+        d = PipelineProgressDisplay("p")
+        terminal = d.process_event({
+            "event_type": "pipeline_failed",
+            "message": "Fatal error",
+        })
+        assert terminal is True
+        assert d.is_done
+        assert d.final_status == "failed"
+        assert d.error_message == "Fatal error"
+
+    def test_render_returns_table_when_running(self) -> None:
+        d = PipelineProgressDisplay("p")
+        result = d.render()
+        assert isinstance(result, Table)
+
+    def test_render_returns_panel_when_done(self) -> None:
+        d = PipelineProgressDisplay("p")
+        d.process_event({"event_type": "pipeline_completed"})
+        result = d.render()
+        assert isinstance(result, Panel)
+
+    def test_unknown_stage_ignored(self) -> None:
+        d = PipelineProgressDisplay("p")
+        d.process_event({"event_type": "stage_started", "stage": "unknown_stage"})
+        # All stages remain pending — no crash
+        for stage in d.stages:
+            assert stage.status == "pending"
+
+    def test_gate_events_do_not_crash(self) -> None:
+        d = PipelineProgressDisplay("p")
+        d.process_event({"event_type": "gate_passed", "stage": "design"})
+        d.process_event({"event_type": "gate_failed", "stage": "design", "message": "Blocked"})
+        assert d.stages[1].status == "failed"
+
+    def test_complete_event_alias(self) -> None:
+        """The SSE endpoint sends 'complete' as a terminal alias."""
+        d = PipelineProgressDisplay("p")
+        terminal = d.process_event({"event_type": "complete"})
+        assert terminal is True
+        assert d.is_done

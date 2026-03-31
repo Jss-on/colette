@@ -7,10 +7,15 @@ configuration, logs, and server management.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import click
 import structlog
 
 from colette import __version__
+
+if TYPE_CHECKING:
+    from rich.console import Console
 
 logger = structlog.get_logger(__name__)
 
@@ -48,6 +53,55 @@ def main(ctx: click.Context, log_level: str, log_format: str, api_url: str) -> N
     ctx.ensure_object(dict)
     ctx.obj["log_level"] = log_level
     ctx.obj["api_url"] = api_url
+
+
+# ── Shared SSE progress streaming (Phase 4) ───────────────────────────
+
+
+def _stream_progress(api_url: str, project_id: str, target_console: Console) -> None:
+    """Stream pipeline events via SSE and render with Rich Live.
+
+    Connects to the SSE endpoint, creates a :class:`PipelineProgressDisplay`,
+    and drives a Rich ``Live`` display until a terminal event or Ctrl+C.
+    """
+    import json
+
+    import httpx
+    from rich.live import Live
+
+    from colette.cli_ui import PipelineProgressDisplay
+
+    display = PipelineProgressDisplay(project_id)
+    headers = {"X-API-Key": "default"}
+
+    try:
+        with httpx.Client(timeout=600) as client, client.stream(
+            "GET",
+            f"{api_url}/api/v1/projects/{project_id}/pipeline/events",
+            headers=headers,
+        ) as resp:
+            resp.raise_for_status()
+            with Live(
+                display.render(),
+                console=target_console,
+                refresh_per_second=4,
+            ) as live:
+                for line in resp.iter_lines():
+                    # SSE protocol: skip event/comment lines, parse data lines.
+                    if not line.startswith("data: "):
+                        continue
+                    event = json.loads(line[6:])
+                    is_terminal = display.process_event(event)
+                    live.update(display.render())
+                    if is_terminal:
+                        break
+    except httpx.HTTPError as exc:
+        target_console.print(f"[red bold]Error:[/red bold] Stream failed: {exc}")
+        return
+
+    # Print final summary after Live context exits.
+    if display.is_done:
+        target_console.print(display.render())
 
 
 # ── Submit ──────────────────────────────────────────────────────────────
@@ -91,10 +145,18 @@ def submit(ctx: click.Context, description: str | None, name: str) -> None:
             data = resp.json()
             project_id = data.get("id", "?")
             render_success(f"Project created: {project_id}")
-            console.print(f"Monitor: [bold]colette status {project_id} --follow[/bold]")
     except httpx.HTTPError as exc:
         render_error(f"API request failed: {exc}")
         raise SystemExit(1) from exc
+
+    # Auto-stream progress inline (Phase 4).
+    try:
+        _stream_progress(api_url, project_id, console)
+    except KeyboardInterrupt:
+        console.print(
+            f"\n[yellow]Interrupted.[/yellow] "
+            f"Resume: [bold]colette status {project_id} --follow[/bold]"
+        )
 
 
 # ── Status ──────────────────────────────────────────────────────────────
@@ -135,31 +197,14 @@ def status(ctx: click.Context, project_id: str, follow: bool) -> None:
             raise SystemExit(1) from exc
         return
 
-    # Streaming mode (SSE).
+    # Streaming mode — Rich Live display (Phase 4).
     try:
-        with httpx.Client(timeout=600) as client, client.stream(
-            "GET",
-            f"{api_url}/api/v1/projects/{project_id}/pipeline/events",
-            headers=headers,
-        ) as resp:
-            resp.raise_for_status()
-            for line in resp.iter_lines():
-                if line.startswith("data: "):
-                    import json
-
-                    event = json.loads(line[6:])
-                    if event.get("event") == "complete":
-                        console.print("[green]Pipeline complete.[/green]")
-                        break
-                    stage = event.get("stage", "?")
-                    st = event.get("status", "?")
-                    elapsed = event.get("elapsed_seconds", 0)
-                    console.print(
-                        f"  [{st}] {stage} — {elapsed:.1f}s elapsed"
-                    )
-    except httpx.HTTPError as exc:
-        render_error(f"Stream failed: {exc}")
-        raise SystemExit(1) from exc
+        _stream_progress(api_url, project_id, console)
+    except KeyboardInterrupt:
+        console.print(
+            f"\n[yellow]Interrupted.[/yellow] "
+            f"Resume: [bold]colette status {project_id} --follow[/bold]"
+        )
 
 
 # ── Approve / Reject ────────────────────────────────────────────────────
