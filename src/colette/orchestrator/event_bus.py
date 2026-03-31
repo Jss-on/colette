@@ -31,6 +31,12 @@ class EventType(StrEnum):
     AGENT_STARTED = "agent_started"
     AGENT_COMPLETED = "agent_completed"
     AGENT_ERROR = "agent_error"
+    AGENT_THINKING = "agent_thinking"
+    AGENT_TOOL_CALL = "agent_tool_call"
+    AGENT_REVIEWING = "agent_reviewing"
+    AGENT_HANDOFF = "agent_handoff"
+    AGENT_MESSAGE = "agent_message"
+    AGENT_STATE_CHANGED = "agent_state_changed"
     PIPELINE_COMPLETED = "pipeline_completed"
     PIPELINE_FAILED = "pipeline_failed"
 

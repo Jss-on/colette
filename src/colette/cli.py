@@ -58,7 +58,12 @@ def main(ctx: click.Context, log_level: str, log_format: str, api_url: str) -> N
 # ── Shared SSE progress streaming (Phase 4) ───────────────────────────
 
 
-def _stream_progress(api_url: str, project_id: str, target_console: Console) -> None:
+def _stream_progress(
+    api_url: str,
+    project_id: str,
+    target_console: Console,
+    activity: str = "status",
+) -> None:
     """Stream pipeline events via SSE and render with Rich Live.
 
     Connects to the SSE endpoint, creates a :class:`PipelineProgressDisplay`,
@@ -69,9 +74,10 @@ def _stream_progress(api_url: str, project_id: str, target_console: Console) -> 
     import httpx
     from rich.live import Live
 
-    from colette.cli_ui import PipelineProgressDisplay
+    from colette.cli_ui import ActivityMode, PipelineProgressDisplay
 
-    display = PipelineProgressDisplay(project_id)
+    mode = ActivityMode(activity)
+    display = PipelineProgressDisplay(project_id, activity_mode=mode)
     headers = {"X-API-Key": "default"}
 
     try:
@@ -110,8 +116,14 @@ def _stream_progress(api_url: str, project_id: str, target_console: Console) -> 
 @main.command()
 @click.option("--description", "-d", default=None, help="Project description (NL).")
 @click.option("--name", "-n", default="Untitled", help="Project name.")
+@click.option(
+    "--activity",
+    type=click.Choice(["minimal", "status", "conversation", "verbose"]),
+    default="status",
+    help="Agent activity display mode.",
+)
 @click.pass_context
-def submit(ctx: click.Context, description: str | None, name: str) -> None:
+def submit(ctx: click.Context, description: str | None, name: str, activity: str) -> None:
     """Submit a new project for autonomous development."""
     import httpx
 
@@ -151,7 +163,7 @@ def submit(ctx: click.Context, description: str | None, name: str) -> None:
 
     # Auto-stream progress inline (Phase 4).
     try:
-        _stream_progress(api_url, project_id, console)
+        _stream_progress(api_url, project_id, console, activity=activity)
     except KeyboardInterrupt:
         console.print(
             f"\n[yellow]Interrupted.[/yellow] "
@@ -165,8 +177,14 @@ def submit(ctx: click.Context, description: str | None, name: str) -> None:
 @main.command()
 @click.argument("project_id")
 @click.option("--follow", "-f", is_flag=True, help="Stream real-time progress.")
+@click.option(
+    "--activity",
+    type=click.Choice(["minimal", "status", "conversation", "verbose"]),
+    default="status",
+    help="Agent activity display mode (with --follow).",
+)
 @click.pass_context
-def status(ctx: click.Context, project_id: str, follow: bool) -> None:
+def status(ctx: click.Context, project_id: str, follow: bool, activity: str) -> None:
     """Check pipeline status for a project."""
     import httpx
 
@@ -199,7 +217,7 @@ def status(ctx: click.Context, project_id: str, follow: bool) -> None:
 
     # Streaming mode — Rich Live display (Phase 4).
     try:
-        _stream_progress(api_url, project_id, console)
+        _stream_progress(api_url, project_id, console, activity=activity)
     except KeyboardInterrupt:
         console.print(
             f"\n[yellow]Interrupted.[/yellow] "

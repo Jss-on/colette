@@ -7,15 +7,18 @@ from io import StringIO
 from typing import Any
 
 import pytest
-from rich.console import Console
+from rich.console import Console, Group
 from rich.panel import Panel
 from rich.table import Table
 from rich.tree import Tree
 
 from colette.cli_ui import (
     PIPELINE_STAGES,
+    ActivityMode,
     PipelineProgressDisplay,
     StageState,
+    build_agent_activity_panel,
+    build_conversation_feed,
     build_progress_renderable,
     build_summary_panel,
     render_approval_prompt,
@@ -26,6 +29,11 @@ from colette.cli_ui import (
     render_progress_table,
     render_status_notice,
     render_success,
+)
+from colette.orchestrator.agent_presence import (
+    AgentPresence,
+    AgentState,
+    ConversationEntry,
 )
 
 
@@ -506,8 +514,13 @@ class TestPipelineProgressDisplay:
         assert d.final_status == "failed"
         assert d.error_message == "Fatal error"
 
-    def test_render_returns_table_when_running(self) -> None:
+    def test_render_returns_group_when_running_default_mode(self) -> None:
         d = PipelineProgressDisplay("p")
+        result = d.render()
+        assert isinstance(result, Group)
+
+    def test_render_returns_table_when_running_minimal(self) -> None:
+        d = PipelineProgressDisplay("p", activity_mode=ActivityMode.MINIMAL)
         result = d.render()
         assert isinstance(result, Table)
 
@@ -536,3 +549,219 @@ class TestPipelineProgressDisplay:
         terminal = d.process_event({"event_type": "complete"})
         assert terminal is True
         assert d.is_done
+
+
+# ── Phase 7: build_agent_activity_panel ─────────────────────────────
+
+
+class TestBuildAgentActivityPanel:
+    def test_returns_table(self) -> None:
+        table = build_agent_activity_panel(())
+        assert isinstance(table, Table)
+
+    def test_renders_active_agents(self) -> None:
+        agents = (
+            AgentPresence(
+                agent_id="arch", display_name="System Architect",
+                stage="design", state=AgentState.THINKING,
+                activity="Designing schema",
+            ),
+            AgentPresence(
+                agent_id="api", display_name="API Designer",
+                stage="design", state=AgentState.IDLE,
+            ),
+        )
+        table = build_agent_activity_panel(agents)
+        output = _render_to_str(table)
+        assert "System Architect" in output
+        assert "API Designer" in output
+        assert "thinking" in output
+        assert "Designing schema" in output
+
+    def test_empty_agents(self) -> None:
+        table = build_agent_activity_panel(())
+        output = _render_to_str(table)
+        assert "Agent Activity" in output
+
+    def test_handoff_shows_target(self) -> None:
+        agents = (
+            AgentPresence(
+                agent_id="arch", display_name="Architect",
+                stage="design", state=AgentState.HANDING_OFF,
+                activity="architecture.yaml", target_agent="API Designer",
+            ),
+        )
+        output = _render_to_str(build_agent_activity_panel(agents))
+        assert "API Designer" in output
+
+
+# ── Phase 7: build_conversation_feed ────────────────────────────────
+
+
+class TestBuildConversationFeed:
+    def test_returns_table(self) -> None:
+        table = build_conversation_feed(())
+        assert isinstance(table, Table)
+
+    def test_renders_entries(self) -> None:
+        entries = (
+            ConversationEntry(
+                agent_id="a", display_name="Architect",
+                stage="design", message="Generated schema",
+            ),
+        )
+        output = _render_to_str(build_conversation_feed(entries))
+        assert "Architect" in output
+        assert "Generated schema" in output
+
+    def test_respects_max_lines(self) -> None:
+        entries = tuple(
+            ConversationEntry(
+                agent_id="a", display_name="A",
+                stage="s", message=f"msg-{i}",
+            )
+            for i in range(20)
+        )
+        output = _render_to_str(build_conversation_feed(entries, max_lines=5))
+        # Only last 5 should appear
+        assert "msg-15" in output
+        assert "msg-19" in output
+        assert "msg-0" not in output
+
+    def test_empty_entries(self) -> None:
+        output = _render_to_str(build_conversation_feed(()))
+        assert "Conversation" in output
+
+    def test_target_agent_shown(self) -> None:
+        entries = (
+            ConversationEntry(
+                agent_id="a", display_name="Architect",
+                stage="design", message="Handoff",
+                target_agent="API Designer",
+            ),
+        )
+        output = _render_to_str(build_conversation_feed(entries))
+        assert "API Designer" in output
+
+
+# ── Phase 7: PipelineProgressDisplay modes ──────────────────────────
+
+
+class TestPipelineProgressDisplayModes:
+    def test_minimal_mode_no_agent_panel(self) -> None:
+        d = PipelineProgressDisplay("p", activity_mode=ActivityMode.MINIMAL)
+        result = d.render()
+        assert isinstance(result, Table)
+
+    def test_status_mode_returns_group(self) -> None:
+        d = PipelineProgressDisplay("p", activity_mode=ActivityMode.STATUS)
+        result = d.render()
+        assert isinstance(result, Group)
+
+    def test_conversation_mode_returns_group(self) -> None:
+        d = PipelineProgressDisplay("p", activity_mode=ActivityMode.CONVERSATION)
+        result = d.render()
+        assert isinstance(result, Group)
+
+    def test_verbose_mode_returns_group(self) -> None:
+        d = PipelineProgressDisplay("p", activity_mode=ActivityMode.VERBOSE)
+        result = d.render()
+        assert isinstance(result, Group)
+
+    def test_done_always_returns_panel(self) -> None:
+        """All modes return summary panel when pipeline is done."""
+        for mode in ActivityMode:
+            d = PipelineProgressDisplay("p", activity_mode=mode)
+            d.process_event({"event_type": "pipeline_completed"})
+            assert isinstance(d.render(), Panel)
+
+
+# ── Phase 7: PipelineProgressDisplay new event handling ─────────────
+
+
+class TestPipelineProgressDisplayPresenceEvents:
+    def test_agent_thinking_updates_presence(self) -> None:
+        d = PipelineProgressDisplay("p", activity_mode=ActivityMode.STATUS)
+        d.process_event({
+            "event_type": "agent_thinking",
+            "agent": "Architect",
+            "stage": "design",
+            "message": "Thinking about schema...",
+            "model": "claude-sonnet",
+        })
+        assert len(d.agents) == 1
+        assert d.agents[0].state == AgentState.THINKING
+        assert d.agents[0].activity == "Thinking about schema..."
+
+    def test_agent_tool_call_updates_presence(self) -> None:
+        d = PipelineProgressDisplay("p")
+        d.process_event({
+            "event_type": "agent_tool_call",
+            "agent": "Backend Dev",
+            "stage": "implementation",
+            "message": "Running code generator",
+        })
+        assert d.agents[0].state == AgentState.TOOL_USE
+
+    def test_agent_reviewing_updates_presence(self) -> None:
+        d = PipelineProgressDisplay("p")
+        d.process_event({
+            "event_type": "agent_reviewing",
+            "agent": "Reviewer",
+            "stage": "testing",
+            "message": "Reviewing test output",
+        })
+        assert d.agents[0].state == AgentState.REVIEWING
+
+    def test_agent_state_changed_with_explicit_state(self) -> None:
+        d = PipelineProgressDisplay("p")
+        d.process_event({
+            "event_type": "agent_state_changed",
+            "agent": "Architect",
+            "stage": "design",
+            "agent_state": "done",
+        })
+        assert d.agents[0].state == AgentState.DONE
+
+    def test_agent_handoff_sets_target(self) -> None:
+        d = PipelineProgressDisplay("p")
+        d.process_event({
+            "event_type": "agent_handoff",
+            "agent": "Architect",
+            "stage": "design",
+            "message": "architecture.yaml",
+            "target_agent": "API Designer",
+        })
+        assert d.agents[0].state == AgentState.HANDING_OFF
+        assert d.agents[0].target_agent == "API Designer"
+        # Also adds a conversation entry
+        assert len(d.conversation) == 1
+
+    def test_agent_message_adds_conversation(self) -> None:
+        d = PipelineProgressDisplay("p")
+        d.process_event({
+            "event_type": "agent_message",
+            "agent": "Supervisor",
+            "stage": "design",
+            "message": "Please generate the API spec",
+            "target_agent": "API Designer",
+        })
+        assert len(d.conversation) == 1
+        assert d.conversation[0].message == "Please generate the API spec"
+        assert d.conversation[0].target_agent == "API Designer"
+
+    def test_agent_message_ring_buffer_trims(self) -> None:
+        d = PipelineProgressDisplay("p")
+        for i in range(55):
+            d.process_event({
+                "event_type": "agent_message",
+                "agent": "A",
+                "stage": "s",
+                "message": f"msg-{i}",
+            })
+        assert len(d.conversation) == 50
+
+    def test_unknown_event_type_no_crash(self) -> None:
+        d = PipelineProgressDisplay("p")
+        result = d.process_event({"event_type": "totally_unknown_event"})
+        assert result is False

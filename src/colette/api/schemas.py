@@ -83,6 +83,8 @@ class PipelineSSEEvent(BaseModel, frozen=True):
     timestamp: str
     elapsed_seconds: float = 0.0
     tokens_used: int = 0
+    agent_state: str = ""
+    target_agent: str = ""
 
 
 class PipelineResumeRequest(BaseModel, frozen=True):

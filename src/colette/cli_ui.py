@@ -3,13 +3,22 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+from datetime import datetime
+from enum import StrEnum
 from typing import Any
 
-from rich.console import Console
+from rich.console import Console, Group
 from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
 from rich.tree import Tree
+
+from colette.orchestrator.agent_presence import (
+    AgentPresence,
+    AgentPresenceTracker,
+    AgentState,
+    ConversationEntry,
+)
 
 console = Console()
 
@@ -182,6 +191,93 @@ _STATUS_ICONS: dict[str, str] = {
 }
 
 
+# ── Phase 7: Agent presence display ──────────────────────────────────
+
+
+class ActivityMode(StrEnum):
+    """Display verbosity for agent activity feed."""
+
+    MINIMAL = "minimal"
+    STATUS = "status"
+    CONVERSATION = "conversation"
+    VERBOSE = "verbose"
+
+
+_AGENT_STATE_ICONS: dict[str, str] = {
+    "idle": "[dim]○[/dim]",
+    "thinking": "[cyan]●[/cyan]",
+    "tool_use": "[yellow]●[/yellow]",
+    "reviewing": "[blue]●[/blue]",
+    "handing_off": "[magenta]→[/magenta]",
+    "done": "[green]●[/green]",
+    "error": "[red]●[/red]",
+}
+
+_PRESENCE_EVENT_STATE_MAP: dict[str, AgentState] = {
+    "agent_thinking": AgentState.THINKING,
+    "agent_tool_call": AgentState.TOOL_USE,
+    "agent_reviewing": AgentState.REVIEWING,
+    "agent_state_changed": AgentState.IDLE,
+}
+
+
+def build_agent_activity_panel(agents: tuple[AgentPresence, ...]) -> Table:
+    """Build a compact table of active agents and their states."""
+    table = Table(
+        title="Agent Activity",
+        show_header=False,
+        box=None,
+        padding=(0, 1),
+    )
+    table.add_column("icon", width=3, no_wrap=True)
+    table.add_column("agent", min_width=20)
+    table.add_column("state", width=12)
+    table.add_column("activity")
+
+    for agent in agents:
+        icon = _AGENT_STATE_ICONS.get(agent.state.value, " ")
+        name = escape(agent.display_name or agent.agent_id)
+        state_label = agent.state.value.replace("_", " ")
+        activity = escape(agent.activity) if agent.activity else ""
+        if agent.state == AgentState.HANDING_OFF and agent.target_agent:
+            activity = f"→ {escape(agent.target_agent)}: {activity}"
+        table.add_row(icon, name, f"[dim]{state_label}[/dim]", activity)
+
+    return table
+
+
+def build_conversation_feed(
+    entries: tuple[ConversationEntry, ...],
+    max_lines: int = 10,
+) -> Table:
+    """Build a scrolling conversation feed from the ring buffer."""
+    table = Table(
+        title="Conversation",
+        show_header=False,
+        box=None,
+        padding=(0, 1),
+    )
+    table.add_column("time", width=10, style="dim")
+    table.add_column("agent", min_width=20)
+    table.add_column("message")
+
+    visible = entries[-max_lines:] if len(entries) > max_lines else entries
+    for entry in visible:
+        ts = _format_time(entry.timestamp)
+        name = escape(entry.display_name or entry.agent_id)
+        if entry.target_agent:
+            name += f" → {escape(entry.target_agent)}"
+        msg = escape(entry.message)
+        table.add_row(ts, name, msg)
+
+    return table
+
+
+def _format_time(dt: datetime) -> str:
+    """Format a datetime as HH:MM:SS for the conversation feed."""
+    return dt.strftime("%H:%M:%S")
+
+
 def build_progress_renderable(
     stages: tuple[StageState, ...],
     error_message: str = "",
@@ -247,11 +343,19 @@ class PipelineProgressDisplay:
     states immutably, and produces Rich renderables via :meth:`render`.
     """
 
-    def __init__(self, project_id: str, target_console: Console | None = None) -> None:
+    def __init__(
+        self,
+        project_id: str,
+        target_console: Console | None = None,
+        activity_mode: ActivityMode = ActivityMode.STATUS,
+    ) -> None:
         self._project_id = project_id
         self._stages = tuple(StageState(name=n) for n in PIPELINE_STAGES)
         self._error = ""
         self._final_status = ""
+        self._activity_mode = activity_mode
+        self._presence = AgentPresenceTracker()
+        self._project_id_for_presence = project_id
 
     # ── Read-only properties ──────────────────────────────────────────
 
@@ -338,14 +442,100 @@ class PipelineProgressDisplay:
             self._error = event.get("message", "Pipeline failed")
             return True
 
+        # Phase 7: agent presence events
+        elif etype in _PRESENCE_EVENT_STATE_MAP:
+            self._handle_presence_event(event, etype)
+
+        elif etype == "agent_handoff":
+            self._handle_handoff_event(event)
+
+        elif etype == "agent_message":
+            self._handle_message_event(event)
+
         return False
+
+    def _handle_presence_event(self, event: dict[str, Any], etype: str) -> None:
+        """Update agent presence for thinking/tool_call/reviewing/state_changed."""
+        state = _PRESENCE_EVENT_STATE_MAP.get(etype, AgentState.IDLE)
+        agent_state = event.get("agent_state", "")
+        if agent_state:
+            state = AgentState(agent_state)
+        self._presence.update_agent(
+            self._project_id_for_presence,
+            event.get("agent", "unknown"),
+            display_name=event.get("agent", ""),
+            stage=event.get("stage", ""),
+            state=state,
+            activity=event.get("message", ""),
+            model=event.get("model", ""),
+        )
+
+    def _handle_handoff_event(self, event: dict[str, Any]) -> None:
+        """Update agent presence for a handoff and add conversation entry."""
+        target = event.get("target_agent", "") or event.get("detail", {}).get("target_agent", "")
+        self._presence.update_agent(
+            self._project_id_for_presence,
+            event.get("agent", "unknown"),
+            display_name=event.get("agent", ""),
+            stage=event.get("stage", ""),
+            state=AgentState.HANDING_OFF,
+            activity=event.get("message", ""),
+            model=event.get("model", ""),
+            target_agent=target,
+        )
+        self._presence.add_conversation(
+            self._project_id_for_presence,
+            ConversationEntry(
+                agent_id=event.get("agent", "unknown"),
+                display_name=event.get("agent", ""),
+                stage=event.get("stage", ""),
+                message=event.get("message", ""),
+                target_agent=target,
+            ),
+        )
+
+    def _handle_message_event(self, event: dict[str, Any]) -> None:
+        """Append a conversation entry for an agent message."""
+        target = event.get("target_agent", "") or event.get("detail", {}).get("target_agent", "")
+        self._presence.add_conversation(
+            self._project_id_for_presence,
+            ConversationEntry(
+                agent_id=event.get("agent", "unknown"),
+                display_name=event.get("agent", ""),
+                stage=event.get("stage", ""),
+                message=event.get("message", ""),
+                target_agent=target,
+            ),
+        )
+
+    # ── Read-only access to presence (for testing) ─────────────────────
+
+    @property
+    def agents(self) -> tuple[AgentPresence, ...]:
+        return self._presence.get_agents(self._project_id_for_presence)
+
+    @property
+    def conversation(self) -> tuple[ConversationEntry, ...]:
+        return self._presence.get_conversation(self._project_id_for_presence)
 
     # ── Rendering ─────────────────────────────────────────────────────
 
-    def render(self) -> Table | Panel:
-        """Return the current renderable — progress table or summary."""
+    def render(self) -> Table | Panel | Group:
+        """Return the current renderable based on activity mode."""
         if self.is_done:
             return build_summary_panel(
                 self._stages, self._project_id, self._final_status, self._error
             )
-        return build_progress_renderable(self._stages, self._error)
+        progress = build_progress_renderable(self._stages, self._error)
+        if self._activity_mode == ActivityMode.MINIMAL:
+            return progress
+        agents = self._presence.get_agents(self._project_id_for_presence)
+        panel = build_agent_activity_panel(agents)
+        if self._activity_mode == ActivityMode.STATUS:
+            return Group(progress, panel)
+        entries = self._presence.get_conversation(self._project_id_for_presence)
+        feed = build_conversation_feed(entries)
+        if self._activity_mode == ActivityMode.CONVERSATION:
+            return Group(progress, panel, feed)
+        # VERBOSE
+        return Group(progress, panel, feed)

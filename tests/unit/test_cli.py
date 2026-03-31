@@ -131,3 +131,55 @@ def test_status_follow_uses_stream_progress(
     mock_stream.assert_called_once()
     call_args = mock_stream.call_args
     assert call_args[0][1] == "proj-ccc"
+
+
+# ── Phase 7: --activity flag ──────────────────────────────────────
+
+
+def test_submit_help_shows_activity_option(runner: CliRunner) -> None:
+    result = runner.invoke(main, ["submit", "--help"])
+    assert result.exit_code == 0
+    assert "--activity" in result.output
+
+
+@patch("colette.cli._stream_progress")
+@patch("httpx.Client")
+def test_submit_with_activity_flag(
+    mock_client_cls: MagicMock, mock_stream: MagicMock, runner: CliRunner
+) -> None:
+    """Submit with --activity=conversation should pass mode through."""
+    mock_resp = MagicMock()
+    mock_resp.json.return_value = {"id": "proj-act"}
+    mock_resp.raise_for_status = MagicMock()
+    mock_client = MagicMock()
+    mock_client.__enter__ = MagicMock(return_value=mock_client)
+    mock_client.__exit__ = MagicMock(return_value=False)
+    mock_client.post.return_value = mock_resp
+    mock_client_cls.return_value = mock_client
+
+    result = runner.invoke(
+        main, ["submit", "-d", "Build app", "--activity", "conversation"]
+    )
+    assert result.exit_code == 0
+    mock_stream.assert_called_once()
+    _, kwargs = mock_stream.call_args
+    assert kwargs.get("activity") == "conversation"
+
+
+@patch("colette.cli._stream_progress")
+def test_status_follow_with_activity_flag(
+    mock_stream: MagicMock, runner: CliRunner
+) -> None:
+    """status --follow --activity=verbose should pass mode through."""
+    result = runner.invoke(
+        main, ["status", "proj-v", "--follow", "--activity", "verbose"]
+    )
+    assert result.exit_code == 0
+    mock_stream.assert_called_once()
+    _, kwargs = mock_stream.call_args
+    assert kwargs.get("activity") == "verbose"
+
+
+def test_submit_invalid_activity_flag(runner: CliRunner) -> None:
+    result = runner.invoke(main, ["submit", "-d", "test", "--activity", "invalid"])
+    assert result.exit_code != 0

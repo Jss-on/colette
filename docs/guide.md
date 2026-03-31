@@ -9,6 +9,7 @@ Colette is a multi-agent AI system that turns a natural language description int
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [CLI Reference](#cli-reference)
+  - [Agent Activity Display](#agent-activity-display)
 - [API Reference](#api-reference)
 - [Programmatic Usage (Python)](#programmatic-usage-python)
 - [Configuration Reference](#configuration-reference)
@@ -222,27 +223,31 @@ colette [OPTIONS] COMMAND [ARGS]
 Submit a new project for autonomous development.
 
 ```bash
-colette submit [--name NAME] [--description DESCRIPTION]
+colette submit [--name NAME] [--description DESCRIPTION] [--activity MODE]
 ```
 
 | Option | Default | Description |
 |--------|---------|-------------|
 | `-n, --name` | `Untitled` | Project name |
 | `-d, --description` | *(interactive)* | Project description in natural language |
+| `--activity` | `status` | Agent activity display mode (see [Agent Activity Display](#agent-activity-display)) |
 
 If `--description` is omitted, enters interactive mode where you type the description and press Ctrl+D/Ctrl+Z to submit.
+
+After submission, Colette automatically streams live progress inline -- no need for a second terminal. Press Ctrl+C to detach (the pipeline continues running; use `colette status <id> --follow` to reattach).
 
 #### `colette status`
 
 Check pipeline status for a project.
 
 ```bash
-colette status PROJECT_ID [--follow]
+colette status PROJECT_ID [--follow] [--activity MODE]
 ```
 
-| Option | Description |
-|--------|-------------|
-| `-f, --follow` | Stream real-time progress events via SSE |
+| Option | Default | Description |
+|--------|---------|-------------|
+| `-f, --follow` | -- | Stream real-time progress events via SSE |
+| `--activity` | `status` | Agent activity display mode (with `--follow`, see [Agent Activity Display](#agent-activity-display)) |
 
 #### `colette approve`
 
@@ -258,6 +263,24 @@ Reject a pending gate request.
 
 ```bash
 colette reject APPROVAL_ID [--reason REASON]
+```
+
+#### `colette resume`
+
+Resume an interrupted project (re-enables LLM calls).
+
+```bash
+colette resume PROJECT_ID
+```
+
+When a server restarts, running pipelines are marked as "interrupted" and LLM calls are blocked. Use `resume` to reactivate a project and restart from the last completed stage.
+
+#### `colette cancel`
+
+Cancel a project permanently (blocks LLM calls, cannot be resumed).
+
+```bash
+colette cancel PROJECT_ID
 ```
 
 #### `colette download`
@@ -313,6 +336,50 @@ colette serve [--host HOST] [--port PORT] [--workers N]
 | `--host` | `0.0.0.0` | Bind host |
 | `--port` | `8000` | Bind port |
 | `--workers` | `1` | Number of uvicorn workers |
+
+### Agent Activity Display
+
+The `--activity` flag controls how much agent detail is shown during live progress streaming (`colette submit` and `colette status --follow`).
+
+| Mode | Shows | Use case |
+|------|-------|----------|
+| `minimal` | Stage progress only (checkmarks, spinners) | CI/scripting |
+| `status` (default) | Stage progress + active agent panel | Normal use |
+| `conversation` | Stage progress + agent panel + message feed | Debugging/curiosity |
+| `verbose` | Full detail including agent interactions | Deep debugging |
+
+**Example: `--activity=status` (default)**
+
+```
+ [✓] Requirements (23s)
+ [>] Design — 2 agents active
+ [ ] Implementation
+ [ ] Testing
+ [ ] Deployment
+ [ ] Monitoring
+
+ Agent Activity
+ ● System Architect    thinking   Designing database schema for user auth...
+ ● API Designer        idle
+```
+
+**Example: `--activity=conversation`**
+
+Adds a scrolling conversation feed below the agent panel, showing agent-to-agent handoffs and messages:
+
+```
+ Conversation
+ 14:02:31  Design Supervisor → System Architect
+           "Generate system architecture for auth module."
+
+ 14:02:58  System Architect → API Designer
+           Handed off: system_architecture.yaml (3 services, 12 endpoints)
+
+ 14:03:01  API Designer
+           Generating OpenAPI spec from architecture...
+```
+
+The conversation feed is a ring buffer (last 50 messages) to keep memory bounded.
 
 ---
 
@@ -885,6 +952,8 @@ src/colette/
     pipeline.py         # LangGraph DAG construction
     state.py            # PipelineState definition
     progress.py         # Progress event tracking
+    event_bus.py        # In-process event bus for pipeline events
+    agent_presence.py   # Agent presence tracking (Slack-style activity feed)
   stages/
     requirements/       # Analyst + Researcher agents
     design/             # Architect + API Designer + UI/UX agents

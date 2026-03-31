@@ -87,6 +87,12 @@ class TestEventType:
             "agent_started",
             "agent_completed",
             "agent_error",
+            "agent_thinking",
+            "agent_tool_call",
+            "agent_reviewing",
+            "agent_handoff",
+            "agent_message",
+            "agent_state_changed",
             "pipeline_completed",
             "pipeline_failed",
         }

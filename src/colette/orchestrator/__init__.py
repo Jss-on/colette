@@ -6,6 +6,12 @@ from colette.orchestrator.agent_factory import (
     create_agent,
     invoke_agent,
 )
+from colette.orchestrator.agent_presence import (
+    AgentPresence,
+    AgentPresenceTracker,
+    AgentState,
+    ConversationEntry,
+)
 from colette.orchestrator.circuit_breaker import CircuitBreaker, CircuitState
 from colette.orchestrator.error_recovery import (
     ErrorRecoveryPolicy,
@@ -26,10 +32,14 @@ from colette.orchestrator.state import STAGE_ORDER, PipelineState, create_initia
 __all__ = [
     "STAGE_ORDER",
     "AgentInstance",
+    "AgentPresence",
+    "AgentPresenceTracker",
+    "AgentState",
     "CircuitBreaker",
     "CircuitBreakerOpenError",
     "CircuitState",
     "ConcurrencyLimitError",
+    "ConversationEntry",
     "ErrorRecoveryPolicy",
     "EscalationLevel",
     "EscalationResult",

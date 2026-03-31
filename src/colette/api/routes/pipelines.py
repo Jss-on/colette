@@ -108,6 +108,8 @@ async def _sse_event_generator(
                 timestamp=event.timestamp.isoformat(),
                 elapsed_seconds=event.elapsed_seconds,
                 tokens_used=event.tokens_used,
+                agent_state=event.detail.get("agent_state", ""),
+                target_agent=event.detail.get("target_agent", ""),
             )
             yield f"event: {event.event_type.value}\ndata: {payload.model_dump_json()}\n\n"
 
