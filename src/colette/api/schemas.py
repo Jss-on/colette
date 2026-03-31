@@ -70,6 +70,21 @@ class PipelineStatusResponse(BaseModel, frozen=True):
     state_snapshot: dict[str, Any] = Field(default_factory=dict)
 
 
+class PipelineSSEEvent(BaseModel, frozen=True):
+    """SSE event payload for real-time pipeline progress stream."""
+
+    event_type: str
+    project_id: str
+    stage: str = ""
+    agent: str = ""
+    model: str = ""
+    message: str = ""
+    detail: dict[str, Any] = Field(default_factory=dict)
+    timestamp: str
+    elapsed_seconds: float = 0.0
+    tokens_used: int = 0
+
+
 class PipelineResumeRequest(BaseModel, frozen=True):
     update_values: dict[str, Any] = Field(default_factory=dict)
 

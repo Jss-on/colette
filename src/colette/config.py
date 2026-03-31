@@ -152,6 +152,7 @@ class Settings(BaseSettings):
     api_admin_rate_limit_per_minute: int = 1000
     cors_origins: list[str] = Field(default_factory=lambda: ["*"])
     ws_heartbeat_seconds: float = 15.0
+    sse_heartbeat_seconds: float = 15.0
 
     # ── Server ────────────────────────────────────────────────────────
     host: str = "0.0.0.0"  # noqa: S104

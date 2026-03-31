@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import uuid
 from collections.abc import AsyncGenerator
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -13,13 +13,16 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from colette.api.deps import CurrentUser, get_db, get_pipeline_runner, get_settings, require_role
-from colette.api.schemas import PipelineStatusResponse
+from colette.api.schemas import PipelineSSEEvent, PipelineStatusResponse
 from colette.config import Settings
 from colette.db.repositories import PipelineRunRepository
+from colette.orchestrator.event_bus import EventType
 from colette.orchestrator.runner import PipelineRunner
 from colette.security.rbac import Permission
 
 router = APIRouter()
+
+_TERMINAL_EVENTS = frozenset({EventType.PIPELINE_COMPLETED, EventType.PIPELINE_FAILED})
 
 
 @router.get(
@@ -54,6 +57,66 @@ async def get_pipeline_status(
     )
 
 
+async def _sse_event_generator(
+    project_id: str,
+    runner: PipelineRunner,
+    heartbeat_seconds: float,
+) -> AsyncGenerator[str]:
+    """Yield SSE-formatted strings from the pipeline event bus.
+
+    Subscribes to the runner's event bus and streams events as they
+    arrive.  Sends a keepalive comment every *heartbeat_seconds* when
+    no events are available.
+    """
+    # Race condition guard: pipeline may have finished before SSE connects.
+    if not runner.is_active(project_id):
+        payload = PipelineSSEEvent(
+            event_type="complete",
+            project_id=project_id,
+            timestamp=datetime.now(UTC).isoformat(),
+        )
+        yield f"event: complete\ndata: {payload.model_dump_json()}\n\n"
+        return
+
+    queue = runner.event_bus.subscribe(project_id)
+    try:
+        while True:
+            try:
+                event = await asyncio.wait_for(
+                    queue.get(), timeout=heartbeat_seconds
+                )
+            except TimeoutError:
+                yield ": heartbeat\n\n"
+                if not runner.is_active(project_id):
+                    payload = PipelineSSEEvent(
+                        event_type="complete",
+                        project_id=project_id,
+                        timestamp=datetime.now(UTC).isoformat(),
+                    )
+                    yield f"event: complete\ndata: {payload.model_dump_json()}\n\n"
+                    break
+                continue
+
+            payload = PipelineSSEEvent(
+                event_type=event.event_type.value,
+                project_id=event.project_id,
+                stage=event.stage,
+                agent=event.agent,
+                model=event.model,
+                message=event.message,
+                detail=dict(event.detail),
+                timestamp=event.timestamp.isoformat(),
+                elapsed_seconds=event.elapsed_seconds,
+                tokens_used=event.tokens_used,
+            )
+            yield f"event: {event.event_type.value}\ndata: {payload.model_dump_json()}\n\n"
+
+            if event.event_type in _TERMINAL_EVENTS:
+                break
+    finally:
+        runner.event_bus.unsubscribe(project_id, queue)
+
+
 @router.get("/projects/{project_id}/pipeline/events")
 async def stream_pipeline_events(
     project_id: uuid.UUID,
@@ -61,37 +124,15 @@ async def stream_pipeline_events(
     runner: PipelineRunner = Depends(get_pipeline_runner),  # noqa: B008
     settings: Settings = Depends(get_settings),  # noqa: B008
 ) -> StreamingResponse:
-    """SSE endpoint for real-time pipeline progress."""
+    """SSE endpoint for real-time pipeline progress.
 
-    async def event_generator() -> AsyncGenerator[str]:
-        pid = str(project_id)
-        last_stage = ""
-        while True:
-            if not runner.is_active(pid):
-                yield f"data: {json.dumps({'event': 'complete', 'project_id': pid})}\n\n"
-                break
-            try:
-                progress = await runner.get_progress(pid)
-                event_data = {
-                    "event": "progress",
-                    "project_id": progress.project_id,
-                    "stage": progress.stage,
-                    "status": progress.status,
-                    "elapsed_seconds": progress.elapsed_seconds,
-                    "tokens_used": progress.tokens_used,
-                    "timestamp": progress.timestamp.isoformat(),
-                }
-                # Only emit when stage changes or periodically.
-                if progress.stage != last_stage:
-                    last_stage = progress.stage
-                yield f"data: {json.dumps(event_data)}\n\n"
-            except KeyError:
-                yield f"data: {json.dumps({'event': 'complete', 'project_id': pid})}\n\n"
-                break
-            await asyncio.sleep(settings.progress_stream_interval_seconds)
-
+    Consumes events from the in-process event bus instead of polling.
+    Sends a keepalive comment every ``sse_heartbeat_seconds``.
+    """
     return StreamingResponse(
-        event_generator(),
+        _sse_event_generator(
+            str(project_id), runner, settings.sse_heartbeat_seconds
+        ),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "Connection": "keep-alive"},
     )
