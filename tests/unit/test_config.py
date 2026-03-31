@@ -22,11 +22,11 @@ def test_settings_override(monkeypatch: object) -> None:
         del os.environ["COLETTE_AGENT_MAX_ITERATIONS"]
 
 
-def test_llm_fallback_defaults() -> None:
+def test_llm_fallback_defaults_empty() -> None:
     s = Settings()
-    assert len(s.planning_fallback_models) >= 1
-    assert len(s.execution_fallback_models) >= 1
-    assert len(s.validation_fallback_models) >= 1
+    assert s.planning_fallback_models == []
+    assert s.execution_fallback_models == []
+    assert s.validation_fallback_models == []
 
 
 def test_llm_model_defaults() -> None:

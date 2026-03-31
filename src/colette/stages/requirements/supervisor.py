@@ -44,7 +44,7 @@ def _compute_completeness(analysis: AnalysisResult) -> float:
         penalties += 0.1
 
     excess_questions = max(0, len(analysis.open_questions) - 5)
-    penalties += 0.05 * min(excess_questions, 4)
+    penalties += 0.02 * min(excess_questions, 4)
 
     stories_without_criteria = sum(1 for s in analysis.user_stories if not s.acceptance_criteria)
     if stories_without_criteria > 0:

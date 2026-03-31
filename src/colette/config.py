@@ -17,21 +17,23 @@ class Settings(BaseSettings):
 
     # ── LLM — primary models ────────────────────────────────────────
     litellm_base_url: str = ""
-    default_planning_model: str = "claude-opus-4-6-20250610"
-    default_execution_model: str = "claude-sonnet-4-6-20250514"
-    default_validation_model: str = "claude-haiku-4-5-20251001"
+    default_planning_model: str = "anthropic/claude-sonnet-4-6"
+    default_execution_model: str = "anthropic/claude-sonnet-4-6"
+    default_validation_model: str = "anthropic/claude-haiku-4-5"
 
     # ── LLM — fallback chains (FR-ORC-014) ──────────────────────────
+    # Defaults to empty — set these only if you have API keys for the
+    # fallback providers.  E.g.: COLETTE_PLANNING_FALLBACK_MODELS='["gpt-5.4","gemini/gemini-2.5-pro"]'
     planning_fallback_models: list[str] = Field(
-        default=["gpt-5.4", "gemini-2.5-pro"],
+        default_factory=list,
         description="Fallback chain for planning tier: tried in order on failure.",
     )
     execution_fallback_models: list[str] = Field(
-        default=["gpt-5.4-mini", "gemini-2.5-flash"],
+        default_factory=list,
         description="Fallback chain for execution tier.",
     )
     validation_fallback_models: list[str] = Field(
-        default=["gpt-5.4-mini", "gemini-2.5-flash"],
+        default_factory=list,
         description="Fallback chain for validation tier.",
     )
 
@@ -43,7 +45,7 @@ class Settings(BaseSettings):
     # ── LLM — cost & caching ────────────────────────────────────────
     prompt_caching_enabled: bool = True
     llm_timeout_seconds: int = 120
-    llm_max_retries: int = 2
+    llm_max_retries: int = 6
 
     # ── Database ──────────────────────────────────────────────────────
     database_url: str = "postgresql+asyncpg://colette:colette@localhost:5432/colette"

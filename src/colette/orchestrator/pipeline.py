@@ -17,6 +17,9 @@ from colette.orchestrator.event_bus import (
     PipelineEvent,
     PipelineEventBus,
     compute_elapsed,
+    event_bus_var,
+    project_id_var,
+    stage_var,
 )
 from colette.orchestrator.state import STAGE_ORDER, PipelineState
 from colette.schemas.common import StageName, StageStatus
@@ -129,6 +132,10 @@ def _make_stage_node(
         }
         running_state = {**state, "stage_statuses": updated_statuses}
 
+        # Set context vars so callbacks can emit agent-level events.
+        t1 = event_bus_var.set(event_bus)
+        t2 = project_id_var.set(project_id)
+        t3 = stage_var.set(stage_name)
         try:
             result: dict[str, Any] = await runner(running_state)
         except Exception as exc:
@@ -143,6 +150,10 @@ def _make_stage_node(
                     )
                 )
             raise
+        finally:
+            event_bus_var.reset(t1)
+            project_id_var.reset(t2)
+            stage_var.reset(t3)
 
         if event_bus is not None:
             event_bus.emit(

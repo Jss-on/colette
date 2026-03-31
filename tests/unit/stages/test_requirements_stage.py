@@ -124,8 +124,8 @@ class TestComputeCompleteness:
             open_questions=[f"Q{i}" for i in range(10)],
             score=0.95,
         )
-        # 5 excess questions * 0.05 = 0.20 penalty (capped at 4 * 0.05 = 0.20)
-        assert _compute_completeness(analysis) < 0.95
+        # 5 excess questions * 0.02 = 0.08 penalty (capped at 4 * 0.02 = 0.08)
+        assert _compute_completeness(analysis) == pytest.approx(0.87)
 
     def test_floor_at_zero(self) -> None:
         analysis = _make_analysis(stories=[], nfrs=[], score=0.1)

@@ -6,6 +6,7 @@ import asyncio
 import contextlib
 from collections import defaultdict
 from collections.abc import Mapping
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import StrEnum
@@ -15,7 +16,22 @@ import structlog
 
 logger = structlog.get_logger(__name__)
 
-__all__ = ["EventType", "PipelineEvent", "PipelineEventBus", "compute_elapsed"]
+__all__ = [
+    "EventType",
+    "PipelineEvent",
+    "PipelineEventBus",
+    "compute_elapsed",
+    "event_bus_var",
+    "project_id_var",
+    "stage_var",
+]
+
+# ── Async-safe context variables for event bus propagation ────────────
+# Set in pipeline stage nodes; read by callbacks and structured LLM calls
+# so agent-level events flow to the bus without changing every signature.
+event_bus_var: ContextVar[PipelineEventBus | None] = ContextVar("event_bus_var", default=None)
+project_id_var: ContextVar[str] = ContextVar("project_id_var", default="")
+stage_var: ContextVar[str] = ContextVar("stage_var", default="")
 
 MAX_QUEUE_SIZE = 1000
 

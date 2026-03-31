@@ -2,6 +2,8 @@
 
 Attach an instance of ``ColletteCallbackHandler`` to every agent invocation
 to automatically capture token counts, tool call metrics, and timing.
+Also emits agent-level events to the :class:`PipelineEventBus` via
+async-safe context variables (Phase 7).
 """
 
 from __future__ import annotations
@@ -19,12 +21,54 @@ from colette.observability.metrics import AgentInvocationRecord, Outcome, ToolCa
 logger = structlog.get_logger(__name__)
 
 
+def _emit_agent_event(
+    event_type: str,
+    *,
+    agent: str = "",
+    model: str = "",
+    message: str = "",
+    detail: dict[str, Any] | None = None,
+    tokens_used: int = 0,
+) -> None:
+    """Emit an agent-level event to the bus (if active in this context).
+
+    Imports are deferred to avoid a circular dependency with
+    ``colette.orchestrator``.
+    """
+    from colette.orchestrator.event_bus import (
+        EventType,
+        PipelineEvent,
+        event_bus_var,
+        project_id_var,
+        stage_var,
+    )
+
+    bus = event_bus_var.get()
+    if bus is None:
+        return
+    bus.emit(
+        PipelineEvent(
+            project_id=project_id_var.get(),
+            event_type=EventType(event_type),
+            stage=stage_var.get(),
+            agent=agent,
+            model=model,
+            message=message,
+            detail=detail or {},
+            tokens_used=tokens_used,
+        )
+    )
+
+
 class ColletteCallbackHandler(BaseCallbackHandler):
     """Tracks LLM tokens and tool calls for a single agent invocation.
 
     Attach one instance per :func:`invoke_agent` call.  After the agent
     finishes, call :meth:`build_record` to produce an immutable
     :class:`AgentInvocationRecord`.
+
+    When pipeline context variables are set (see :mod:`event_bus`),
+    callbacks also emit agent-level events to the SSE stream.
 
     Attributes:
         agent_id: Unique identifier of the agent invocation.
@@ -55,23 +99,38 @@ class ColletteCallbackHandler(BaseCallbackHandler):
         prompts: list[str],
         **kwargs: Any,
     ) -> None:
-        """Called when an LLM call begins.  Logged for traceability."""
+        """Called when an LLM call begins.  Emits AGENT_THINKING."""
         logger.debug("llm_call_started", agent_id=self.agent_id)
+        _emit_agent_event(
+            "agent_thinking",
+            agent=self.agent_role,
+            model=self.model,
+            message="Thinking...",
+        )
 
     def on_llm_end(self, response: LLMResult, **kwargs: Any) -> None:
-        """Called when an LLM call completes.  Extracts token usage."""
+        """Called when an LLM call completes.  Extracts token usage, emits AGENT_MESSAGE."""
+        tokens = 0
         if response.llm_output and "token_usage" in response.llm_output:
             usage = response.llm_output["token_usage"]
             prompt_tokens = usage.get("prompt_tokens", 0)
             completion_tokens = usage.get("completion_tokens", 0)
             self.input_tokens += prompt_tokens
             self.output_tokens += completion_tokens
+            tokens = prompt_tokens + completion_tokens
             logger.debug(
                 "llm_call_completed",
                 agent_id=self.agent_id,
                 prompt_tokens=prompt_tokens,
                 completion_tokens=completion_tokens,
             )
+        _emit_agent_event(
+            "agent_message",
+            agent=self.agent_role,
+            model=self.model,
+            message="Response received",
+            tokens_used=tokens,
+        )
 
     # ── Tool callbacks ──────────────────────────────────────────────
 
@@ -83,10 +142,16 @@ class ColletteCallbackHandler(BaseCallbackHandler):
         run_id: UUID,
         **kwargs: Any,
     ) -> None:
-        """Called when a tool invocation begins.  Starts the latency timer."""
+        """Called when a tool invocation begins.  Emits AGENT_TOOL_CALL."""
         tool_name = serialized.get("name", "unknown")
         self._tool_start_times[run_id] = (tool_name, time.monotonic())
         logger.debug("tool_started", agent_id=self.agent_id, tool_name=tool_name)
+        _emit_agent_event(
+            "agent_tool_call",
+            agent=self.agent_role,
+            message=f"Using tool: {tool_name}",
+            detail={"tool": tool_name},
+        )
 
     def on_tool_end(self, output: str, *, run_id: UUID, **kwargs: Any) -> None:
         """Called when a tool invocation succeeds.  Records latency."""

@@ -54,7 +54,7 @@ class TestTokenCounter:
 class TestModelRegistry:
     def test_default_registry(self) -> None:
         reg = ModelRegistry()
-        assert "opus" in reg.planning.primary
+        assert "sonnet" in reg.planning.primary
         assert "sonnet" in reg.execution.primary
 
     def test_from_settings(self) -> None:

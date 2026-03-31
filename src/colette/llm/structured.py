@@ -110,6 +110,10 @@ async def invoke_structured[T: BaseModel](
     User content is sanitized to strip prompt-injection markers before
     being sent to the LLM (FR-TL-004).
 
+    When pipeline context variables are set, a callback is attached to
+    emit agent-level events (AGENT_THINKING, AGENT_MESSAGE) to the SSE
+    stream.
+
     Raises
     ------
     ValueError
@@ -126,11 +130,21 @@ async def invoke_structured[T: BaseModel](
     full_prompt = _build_structured_prompt(system_prompt, output_type)
     model = create_chat_model_for_tier(model_tier, settings=settings)
 
+    # Attach callback for agent-level event bus emission (Phase 7).
+    from colette.observability.callbacks import ColletteCallbackHandler
+
+    callback = ColletteCallbackHandler(
+        agent_id=f"structured-{output_type.__name__}",
+        agent_role=output_type.__name__,
+        model=str(model_tier),
+    )
+
     response = await model.ainvoke(
         [
             SystemMessage(content=full_prompt),
             HumanMessage(content=safe_content),
-        ]
+        ],
+        config={"callbacks": [callback]},
     )
 
     return _parse_structured_response(str(response.content), output_type)

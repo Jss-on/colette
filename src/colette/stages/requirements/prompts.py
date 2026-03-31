@@ -66,8 +66,10 @@ regulations and security requirements based on the domain and data types:
 
 7. **Out of Scope**: What is explicitly NOT included.
 
-8. **Open Questions**: Anything unclear that needs clarification. \
-Each question should be specific enough to unblock a design decision.
+8. **Open Questions**: Only include questions that BLOCK design decisions. \
+Limit to the top 5 most critical unknowns. Each question must be specific \
+enough to unblock a concrete design decision. Do NOT list nice-to-have \
+clarifications — fold those into Assumptions with [ASSUMPTION] tags instead.
 
 9. **Completeness Score** (0.0-1.0):
    - 1.0: All requirements clear, no ambiguity, zero [NEEDS VALIDATION] items

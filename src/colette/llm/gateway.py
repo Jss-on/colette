@@ -71,12 +71,35 @@ class GuardedChatModel(BaseChatModel):
         return await self.inner._agenerate(messages, stop, run_manager, **kwargs)
 
 
+_litellm_configured = False
+
+
+def _ensure_litellm_retries(max_retries: int) -> None:
+    """Set LiteLLM-level retry config (once).
+
+    The deprecated ``ChatLiteLLM`` from langchain-community does NOT
+    retry on ``litellm.InternalServerError`` (which wraps HTTP 529
+    overloaded).  Setting ``litellm.num_retries`` ensures retries
+    happen at the LiteLLM layer with exponential backoff.
+    """
+    global _litellm_configured  # noqa: PLW0603
+    if _litellm_configured:
+        return
+
+    import litellm
+
+    litellm.num_retries = max_retries
+    litellm.request_timeout = 120
+    _litellm_configured = True
+    logger.info("litellm_retry_configured", num_retries=max_retries)
+
+
 def _build_chat_model(
     model_name: str,
     *,
     base_url: str | None = None,
     timeout: int = 120,
-    max_retries: int = 2,
+    max_retries: int = 6,
 ) -> BaseChatModel:
     """Instantiate a single ChatLiteLLM model.
 
@@ -84,7 +107,7 @@ def _build_chat_model(
     when ``langchain_community`` is not installed (e.g. during type-checking).
 
     Args:
-        model_name: LiteLLM model identifier (e.g. ``"claude-sonnet-4-6-20250514"``).
+        model_name: LiteLLM model identifier (e.g. ``"anthropic/claude-sonnet-4-6"``).
         base_url: Optional LiteLLM proxy base URL.
         timeout: Request timeout in seconds.
         max_retries: Number of retries on transient failures.
@@ -93,6 +116,8 @@ def _build_chat_model(
         A configured :class:`BaseChatModel` instance.
     """
     from langchain_community.chat_models import ChatLiteLLM
+
+    _ensure_litellm_retries(max_retries)
 
     kwargs: dict[str, Any] = {
         "model": model_name,
