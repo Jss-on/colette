@@ -12,6 +12,12 @@ from langgraph.graph.state import CompiledStateGraph
 
 from colette.config import Settings
 from colette.gates.base import GateRegistry, evaluate_gate
+from colette.orchestrator.event_bus import (
+    EventType,
+    PipelineEvent,
+    PipelineEventBus,
+    compute_elapsed,
+)
 from colette.orchestrator.state import STAGE_ORDER, PipelineState
 from colette.schemas.common import StageName, StageStatus
 from colette.stages.deployment.stage import run_stage as deployment_run
@@ -53,12 +59,31 @@ def _next_stage(current: str, skip_stages: list[str]) -> str | None:
     return None
 
 
-def _make_gate_node(gate_name: str, gate_registry: GateRegistry) -> Any:
+def _make_gate_node(
+    gate_name: str,
+    gate_registry: GateRegistry,
+    event_bus: PipelineEventBus | None = None,
+) -> Any:
     """Create an async gate-evaluation node function."""
 
     async def _gate_node(state: dict[str, Any]) -> dict[str, Any]:
+        project_id = state.get("project_id", "")
         gate = gate_registry.get(gate_name)
         result = await evaluate_gate(gate, state)
+
+        if event_bus is not None:
+            event_type = EventType.GATE_PASSED if result.passed else EventType.GATE_FAILED
+            event_bus.emit(
+                PipelineEvent(
+                    project_id=project_id,
+                    event_type=event_type,
+                    stage=gate_name,
+                    message="" if result.passed else "; ".join(result.failure_reasons),
+                    detail=result.model_dump(mode="json"),
+                    elapsed_seconds=compute_elapsed(state.get("started_at", "")),
+                )
+            )
+
         return {
             "quality_gate_results": {
                 **state.get("quality_gate_results", {}),
@@ -78,18 +103,57 @@ def _make_gate_node(gate_name: str, gate_registry: GateRegistry) -> Any:
     return _gate_node
 
 
-def _make_stage_node(stage_name: str) -> Any:
+def _make_stage_node(
+    stage_name: str, event_bus: PipelineEventBus | None = None
+) -> Any:
     """Wrap a stage runner to mark the stage as RUNNING before execution."""
     runner = _STAGE_RUNNERS[stage_name]
 
     async def _stage_node(state: dict[str, Any]) -> dict[str, Any]:
+        project_id = state.get("project_id", "")
+
+        if event_bus is not None:
+            event_bus.emit(
+                PipelineEvent(
+                    project_id=project_id,
+                    event_type=EventType.STAGE_STARTED,
+                    stage=stage_name,
+                    elapsed_seconds=compute_elapsed(state.get("started_at", "")),
+                )
+            )
+
         # Mark running
         updated_statuses = {
             **state.get("stage_statuses", {}),
             stage_name: StageStatus.RUNNING.value,
         }
         running_state = {**state, "stage_statuses": updated_statuses}
-        result: dict[str, Any] = await runner(running_state)
+
+        try:
+            result: dict[str, Any] = await runner(running_state)
+        except Exception as exc:
+            if event_bus is not None:
+                event_bus.emit(
+                    PipelineEvent(
+                        project_id=project_id,
+                        event_type=EventType.STAGE_FAILED,
+                        stage=stage_name,
+                        message=str(exc),
+                        elapsed_seconds=compute_elapsed(state.get("started_at", "")),
+                    )
+                )
+            raise
+
+        if event_bus is not None:
+            event_bus.emit(
+                PipelineEvent(
+                    project_id=project_id,
+                    event_type=EventType.STAGE_COMPLETED,
+                    stage=stage_name,
+                    elapsed_seconds=compute_elapsed(state.get("started_at", "")),
+                )
+            )
+
         return result
 
     _stage_node.__name__ = f"stage_{stage_name}"
@@ -117,6 +181,7 @@ def build_pipeline(
     settings: Settings,
     *,
     checkpointer: BaseCheckpointSaver[Any] | None = None,
+    event_bus: PipelineEventBus | None = None,
 ) -> CompiledStateGraph[Any]:
     """Build and compile the 6-stage SDLC pipeline.
 
@@ -128,6 +193,8 @@ def build_pipeline(
         Application settings.
     checkpointer:
         Optional LangGraph checkpoint saver for durable execution.
+    event_bus:
+        Optional event bus for emitting pipeline progress events.
 
     Returns
     -------
@@ -138,11 +205,14 @@ def build_pipeline(
 
     # ── Add stage nodes ──────────────────────────────────────────────
     for stage_name in STAGE_ORDER:
-        graph.add_node(f"stage_{stage_name}", _make_stage_node(stage_name))
+        graph.add_node(f"stage_{stage_name}", _make_stage_node(stage_name, event_bus))
 
     # ── Add gate nodes (after each stage except monitoring) ──────────
     for _stage_name, gate_name in _GATE_AFTER_STAGE.items():
-        graph.add_node(f"gate_{gate_name}", _make_gate_node(gate_name, gate_registry))
+        graph.add_node(
+            f"gate_{gate_name}",
+            _make_gate_node(gate_name, gate_registry, event_bus),
+        )
 
     # ── Gate-failed terminal node ────────────────────────────────────
     async def _gate_failed(state: dict[str, Any]) -> dict[str, Any]:

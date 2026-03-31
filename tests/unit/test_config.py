@@ -31,9 +31,9 @@ def test_llm_fallback_defaults() -> None:
 
 def test_llm_model_defaults() -> None:
     s = Settings()
-    assert "opus" in s.default_planning_model
-    assert "sonnet" in s.default_execution_model
-    assert "haiku" in s.default_validation_model
+    assert "claude" in s.default_planning_model
+    assert "claude" in s.default_execution_model
+    assert "claude" in s.default_validation_model
 
 
 def test_handoff_max_chars_default() -> None:

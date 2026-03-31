@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     model_config = {"env_prefix": "COLETTE_", "env_file": ".env", "extra": "ignore"}
 
     # ── LLM — primary models ────────────────────────────────────────
-    litellm_base_url: str = "http://localhost:4000"
+    litellm_base_url: str = ""
     default_planning_model: str = "claude-opus-4-6-20250610"
     default_execution_model: str = "claude-sonnet-4-6-20250514"
     default_validation_model: str = "claude-haiku-4-5-20251001"

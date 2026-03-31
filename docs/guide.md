@@ -1,6 +1,26 @@
 # Colette User Guide
 
-Colette is a multi-agent AI system that turns a natural language description into a fully built web application -- from requirements through deployment. This guide covers setup, usage, configuration, and how to work with the system.
+Colette is a multi-agent AI system that turns a natural language description into a fully built web application -- from requirements through deployment. You interact with it via a CLI (like Claude Code) or REST API.
+
+## Table of Contents
+
+- [How It Works](#how-it-works)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [CLI Reference](#cli-reference)
+- [API Reference](#api-reference)
+- [Programmatic Usage (Python)](#programmatic-usage-python)
+- [Configuration Reference](#configuration-reference)
+- [Pipeline Stages](#pipeline-stages)
+- [Human Oversight](#human-oversight)
+- [Quality Gates](#quality-gates)
+- [Extending Colette](#extending-colette)
+- [Troubleshooting](#troubleshooting)
+- [Development](#development)
+- [Current Status](#current-status)
+
+---
 
 ## How It Works
 
@@ -8,79 +28,365 @@ You provide a description of the app you want. Colette runs it through a six-sta
 
 ```
 Your Request
-    │
-    ▼
-1. Requirements ─── Analyst + Domain Researcher
-    │                Produces: PRD, user stories, NFRs
-    ▼
-2. Design ───────── System Architect + API Designer + UI/UX Designer
-    │                Produces: architecture, OpenAPI spec, DB schema, UI components
-    ▼
-3. Implementation ── Frontend Dev + Backend Dev + DB Engineer
-    │                Produces: React/Next.js code, API routes, migrations, seed data
-    ▼
-4. Testing ──────── Unit Tester + Integration Tester + Security Scanner
-    │                Produces: test suites, coverage report, security findings, readiness score
-    ▼
-5. Deployment ───── CI/CD Engineer + Infrastructure Engineer
-    │                Produces: GitHub Actions, Dockerfiles, K8s manifests, rollback config
-    ▼
-6. Monitoring ───── Observability Agent + Incident Response
+    |
+    v
+1. Requirements --- Analyst + Domain Researcher
+    |                Produces: PRD, user stories, NFRs
+    v
+2. Design --------- System Architect + API Designer + UI/UX Designer
+    |                Produces: architecture, OpenAPI spec, DB schema, UI components
+    v
+3. Implementation -- Frontend Dev + Backend Dev + DB Engineer
+    |                Produces: React/Next.js code, API routes, migrations, seed data
+    v
+4. Testing -------- Unit Tester + Integration Tester + Security Scanner
+    |                Produces: test suites, coverage report, security findings
+    v
+5. Deployment ----- CI/CD Engineer + Infrastructure Engineer
+    |                Produces: GitHub Actions, Dockerfiles, K8s manifests
+    v
+6. Monitoring ----- Observability Agent + Incident Response
                      Produces: dashboards, alerts, SLO tracking
 ```
 
-Each stage passes its output to the next via a **typed handoff schema** -- structured data, not free text. Quality gates between stages enforce minimum standards (coverage thresholds, no critical security findings, etc.).
+Each stage passes its output to the next via a **typed handoff schema** -- structured Pydantic models, not free text. Quality gates between stages enforce minimum standards (coverage thresholds, no critical security findings, etc.).
 
-## Setup
+---
 
-### Prerequisites
+## Prerequisites
 
-- Python 3.13+
-- [uv](https://docs.astral.sh/uv/) package manager
-- Docker and Docker Compose (for dev services)
-- An LLM API key (Anthropic, OpenAI, or Google)
+| Requirement | Version | Purpose |
+|-------------|---------|---------|
+| Python | 3.13+ | Runtime |
+| [uv](https://docs.astral.sh/uv/) | latest | Package manager |
+| Docker + Docker Compose | latest | Dev services (PostgreSQL, Redis, Neo4j) |
+| LLM API key | -- | At least one: Anthropic, OpenAI, or Google |
 
-### Installation
+---
+
+## Installation
+
+### 1. Clone and install
 
 ```bash
 git clone https://github.com/Jss-on/colette.git
 cd colette
 
-# Install dependencies
+# Install all dependencies (prod + dev)
 make install
 
-# Create .env from template
-make dev
+# Or equivalently:
+uv sync --all-extras
 ```
 
-### Configure API Keys
+### 2. Create environment file
+
+```bash
+make dev
+# This copies .env.example to .env if .env doesn't exist
+```
+
+### 3. Configure API keys
 
 Edit `.env` and add at least one LLM provider key:
 
 ```bash
-# Required: at least one
+# Required: at least one provider
 ANTHROPIC_API_KEY=sk-ant-...
 OPENAI_API_KEY=sk-...
 GOOGLE_API_KEY=AIza...
 ```
 
-### Start Services
+### 4. Start backing services
 
-Colette uses PostgreSQL (with pgvector), Redis, and optionally Neo4j:
+Colette uses PostgreSQL (with pgvector), Redis, and Neo4j:
 
 ```bash
 make docker-up
+# This runs: docker compose up -d
 ```
 
-### Verify
+Services started:
+
+| Service | Port | Purpose |
+|---------|------|---------|
+| PostgreSQL (pgvector) | 5432 | Project data, pipeline state, vector search |
+| Redis | 6379 | Caching, rate limiting |
+| Neo4j | 7474 (HTTP), 7687 (Bolt) | Knowledge graph |
+
+### 5. Verify installation
 
 ```bash
-make check   # lint + typecheck + test + security
+# Check CLI is installed
+uv run colette --version
+
+# Run all quality checks
+make check
 ```
 
-## Running a Pipeline
+---
 
-### Programmatic Usage (Python)
+## Quick Start
+
+### Example: Build a Todo App
+
+**Step 1 -- Start the API server**
+
+```bash
+uv run colette serve
+# Server starts at http://localhost:8000
+# API docs at http://localhost:8000/api/v1/docs
+```
+
+**Step 2 -- Submit a project via CLI**
+
+Open a new terminal:
+
+```bash
+uv run colette submit \
+  --name "my-todo-app" \
+  --description "Build a todo list web app with user registration and login (email + password), CRUD todos, mark as complete, filter by status (all/active/completed), PostgreSQL database, REST API with OpenAPI docs"
+```
+
+Or use interactive mode (type description, then press Ctrl+D / Ctrl+Z to submit):
+
+```bash
+uv run colette submit --name "my-todo-app"
+# Type your description...
+# Press Ctrl+D (Unix) or Ctrl+Z (Windows) to submit
+```
+
+**Step 3 -- Monitor progress**
+
+```bash
+# One-shot status check
+uv run colette status <project-id>
+
+# Stream real-time progress (SSE)
+uv run colette status <project-id> --follow
+```
+
+**Step 4 -- Handle approvals**
+
+When the pipeline hits a T0/T1 gate (e.g., production deployment), it pauses:
+
+```bash
+# Approve
+uv run colette approve <approval-id> --comment "LGTM"
+
+# Or reject
+uv run colette reject <approval-id> --reason "Needs security review"
+```
+
+**Step 5 -- Download artifacts**
+
+```bash
+uv run colette download <project-id>
+# Extracts generated files to colette-<id>/
+
+# Or specify output directory
+uv run colette download <project-id> --output ./my-todo-app
+```
+
+**Step 6 -- View logs**
+
+```bash
+# All logs
+uv run colette logs <project-id>
+
+# Filter by stage
+uv run colette logs <project-id> --stage testing
+```
+
+---
+
+## CLI Reference
+
+```
+colette [OPTIONS] COMMAND [ARGS]
+```
+
+### Global Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--version` | -- | Show version and exit |
+| `--log-level` | `INFO` | Logging level (DEBUG, INFO, WARNING, ERROR) |
+| `--log-format` | `json` | Log format: `json` or `console` |
+| `--api-url` | `http://localhost:8000` | API server URL (env: `COLETTE_API_URL`) |
+
+### Commands
+
+#### `colette submit`
+
+Submit a new project for autonomous development.
+
+```bash
+colette submit [--name NAME] [--description DESCRIPTION]
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `-n, --name` | `Untitled` | Project name |
+| `-d, --description` | *(interactive)* | Project description in natural language |
+
+If `--description` is omitted, enters interactive mode where you type the description and press Ctrl+D/Ctrl+Z to submit.
+
+#### `colette status`
+
+Check pipeline status for a project.
+
+```bash
+colette status PROJECT_ID [--follow]
+```
+
+| Option | Description |
+|--------|-------------|
+| `-f, --follow` | Stream real-time progress events via SSE |
+
+#### `colette approve`
+
+Approve a pending gate request.
+
+```bash
+colette approve APPROVAL_ID [--comment COMMENT]
+```
+
+#### `colette reject`
+
+Reject a pending gate request.
+
+```bash
+colette reject APPROVAL_ID [--reason REASON]
+```
+
+#### `colette download`
+
+Download generated artifacts for a project.
+
+```bash
+colette download PROJECT_ID [--output DIR]
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `-o, --output` | `colette-<id>` | Output directory |
+
+#### `colette logs`
+
+View pipeline logs and progress events.
+
+```bash
+colette logs PROJECT_ID [--stage STAGE]
+```
+
+| Option | Description |
+|--------|-------------|
+| `-s, --stage` | Filter by stage name (requirements, design, implementation, testing, deployment, monitoring) |
+
+#### `colette config show`
+
+Display current configuration with secrets redacted.
+
+```bash
+colette config show
+```
+
+#### `colette config validate`
+
+Validate that all required settings are present.
+
+```bash
+colette config validate
+```
+
+#### `colette serve`
+
+Start the Colette API server.
+
+```bash
+colette serve [--host HOST] [--port PORT] [--workers N]
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--host` | `0.0.0.0` | Bind host |
+| `--port` | `8000` | Bind port |
+| `--workers` | `1` | Number of uvicorn workers |
+
+---
+
+## API Reference
+
+The REST API is available when the server is running (`colette serve`). Interactive docs at `/api/v1/docs` (Swagger) and `/api/v1/redoc`.
+
+### Authentication
+
+All API requests require the `X-API-Key` header:
+
+```bash
+curl -H "X-API-Key: your-key" http://localhost:8000/api/v1/projects
+```
+
+### Endpoints
+
+#### Health
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/health` | Health check |
+| GET | `/health/ready` | Readiness check |
+
+#### Projects
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/v1/projects` | Create project and start pipeline |
+| GET | `/api/v1/projects` | List projects (paginated) |
+| GET | `/api/v1/projects/{id}` | Get project by ID |
+
+**Create project request:**
+
+```json
+{
+  "name": "my-todo-app",
+  "description": "A todo list web application",
+  "user_request": "Build a todo list web app with user auth, CRUD, filtering"
+}
+```
+
+#### Pipelines
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/v1/projects/{id}/pipeline` | Get pipeline status |
+| GET | `/api/v1/projects/{id}/pipeline/events` | SSE stream of progress events |
+| POST | `/api/v1/projects/{id}/pipeline/resume` | Resume paused pipeline |
+
+#### Approvals
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/v1/approvals/{id}/approve` | Approve gate request |
+| POST | `/api/v1/approvals/{id}/reject` | Reject gate request |
+
+#### Artifacts
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/v1/projects/{id}/artifacts/download` | Download artifacts as zip |
+
+#### WebSocket
+
+| Path | Description |
+|------|-------------|
+| `/api/v1/ws/{project_id}` | Real-time pipeline updates |
+
+---
+
+## Programmatic Usage (Python)
+
+### Run a pipeline directly
 
 ```python
 import asyncio
@@ -116,9 +422,7 @@ async def main():
 asyncio.run(main())
 ```
 
-### Skip Stages
-
-Skip stages you don't need:
+### Skip stages
 
 ```python
 result = await runner.run(
@@ -128,7 +432,7 @@ result = await runner.run(
 )
 ```
 
-### Monitor Progress
+### Monitor progress
 
 ```python
 # Check if a pipeline is running
@@ -139,13 +443,11 @@ progress = await runner.get_progress("my-app")
 print(progress.stage, progress.status)
 ```
 
-### Resume After Human Approval
+### Resume after human approval
 
 When a stage requires human approval (T0/T1 tier), the pipeline pauses:
 
 ```python
-# Pipeline pauses at deployment stage (production deploy = T0)
-# Review the proposed action, then resume:
 result = await runner.resume(
     "my-app",
     update_values={"approval_decisions": [
@@ -159,7 +461,123 @@ result = await runner.resume(
 )
 ```
 
-## What Each Stage Produces
+### Custom settings
+
+```python
+from colette.config import Settings
+
+settings = Settings(
+    default_execution_model="gpt-5.4-mini",
+    agent_timeout_seconds=300,
+    supervisor_context_budget=80_000,
+)
+runner = PipelineRunner(settings=settings)
+```
+
+---
+
+## Configuration Reference
+
+All settings use the `COLETTE_` prefix and load from `.env` or environment variables.
+
+### LLM Models
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `COLETTE_DEFAULT_PLANNING_MODEL` | Planning/architecture (Opus) | `claude-opus-4-6-20250610` |
+| `COLETTE_DEFAULT_EXECUTION_MODEL` | Code generation (Sonnet) | `claude-sonnet-4-6-20250514` |
+| `COLETTE_DEFAULT_VALIDATION_MODEL` | Scanning/validation (Haiku) | `claude-haiku-4-5-20251001` |
+| `COLETTE_LITELLM_BASE_URL` | LiteLLM proxy URL | `http://localhost:4000` |
+
+**Fallback chains** (tried in order on primary model failure):
+
+| Tier | Primary | Fallback 1 | Fallback 2 |
+|------|---------|-----------|-----------|
+| Planning | Claude Opus | GPT-5.4 | Gemini 2.5 Pro |
+| Execution | Claude Sonnet | GPT-5.4 Mini | Gemini 2.5 Flash |
+| Validation | Claude Haiku | GPT-5.4 Mini | Gemini 2.5 Flash |
+
+### Infrastructure
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `COLETTE_DATABASE_URL` | PostgreSQL connection | `postgresql+asyncpg://colette:colette@localhost:5432/colette` |
+| `COLETTE_REDIS_URL` | Redis connection | `redis://localhost:6379/0` |
+| `COLETTE_NEO4J_URI` | Neo4j URI | `bolt://localhost:7687` |
+| `COLETTE_NEO4J_USER` | Neo4j user | `neo4j` |
+| `COLETTE_NEO4J_PASSWORD` | Neo4j password | `colette-dev` |
+
+### Agent Behavior
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `COLETTE_AGENT_MAX_ITERATIONS` | Max reasoning loops per agent | `25` |
+| `COLETTE_AGENT_TIMEOUT_SECONDS` | Agent timeout (seconds) | `600` |
+| `COLETTE_SUPERVISOR_CONTEXT_BUDGET` | Supervisor token budget | `100000` |
+| `COLETTE_SPECIALIST_CONTEXT_BUDGET` | Specialist token budget | `60000` |
+| `COLETTE_VALIDATOR_CONTEXT_BUDGET` | Validator token budget | `30000` |
+| `COLETTE_MAX_CONCURRENT_PIPELINES` | Parallel pipeline limit | `5` |
+
+### Memory & RAG
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `COLETTE_COMPACTION_THRESHOLD` | Context compaction trigger | `0.70` |
+| `COLETTE_RAG_CHUNK_SIZE` | Chunk size for retrieval | `512` |
+| `COLETTE_RAG_FAITHFULNESS_THRESHOLD` | RAG quality threshold | `0.85` |
+| `COLETTE_KNOWLEDGE_GRAPH_ENABLED` | Enable Neo4j knowledge graph | `true` |
+| `COLETTE_COHERE_API_KEY` | Cohere reranker API key | *(empty)* |
+| `COLETTE_MEMORY_DECAY_ENABLED` | Enable memory decay | `false` |
+
+### Human-in-the-Loop
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `COLETTE_HIL_CONFIDENCE_THRESHOLD` | Below this triggers escalation | `0.60` |
+| `COLETTE_HIL_CONFIDENCE_FLAG_THRESHOLD` | Below this flags for review, above auto-approves | `0.85` |
+| `COLETTE_HIL_T0_SLA_SECONDS` | T0 approval SLA | `3600` (1h) |
+| `COLETTE_HIL_T1_SLA_SECONDS` | T1 approval SLA | `14400` (4h) |
+
+### Pipeline
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `COLETTE_CHECKPOINT_BACKEND` | `memory` (dev) or `postgres` (prod) | `memory` |
+| `COLETTE_CHECKPOINT_DB_URL` | Checkpoint DB (falls back to DATABASE_URL) | *(empty)* |
+| `COLETTE_HANDOFF_MAX_CHARS` | Max handoff size | `32000` |
+
+### Security
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `COLETTE_RBAC_ENABLED` | Enable role-based access control | `true` |
+| `COLETTE_RBAC_DEFAULT_ROLE` | Default user role | `observer` |
+| `COLETTE_SECRET_FILTER_ENABLED` | Filter secrets from LLM output | `true` |
+| `COLETTE_PROMPT_INJECTION_DEFENSE_ENABLED` | Enable prompt injection defense | `true` |
+| `COLETTE_MCP_ALLOW_UNVERIFIED` | Allow unverified MCP servers | `false` |
+
+### API Server
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `COLETTE_HOST` | Bind host | `0.0.0.0` |
+| `COLETTE_PORT` | Bind port | `8000` |
+| `COLETTE_WORKERS` | Number of workers | `1` |
+| `COLETTE_API_RATE_LIMIT_PER_MINUTE` | Rate limit (requests/min) | `100` |
+| `COLETTE_CORS_ORIGINS` | CORS allowed origins | `["*"]` |
+
+### Observability
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `COLETTE_LOG_LEVEL` | Logging level | `INFO` |
+| `COLETTE_LOG_FORMAT` | Log format | `json` |
+| `COLETTE_OTEL_SERVICE_NAME` | OpenTelemetry service name | `colette` |
+| `COLETTE_OTEL_EXPORTER_ENDPOINT` | OTEL exporter endpoint | `http://localhost:4318` |
+
+---
+
+## Pipeline Stages
 
 ### 1. Requirements Stage
 
@@ -170,7 +588,7 @@ result = await runner.resume(
 - User stories with acceptance criteria
 - Non-functional requirements (performance, security, scalability)
 - Technology constraints
-- Domain research findings (when relevant)
+- Domain research findings
 
 ### 2. Design Stage
 
@@ -196,7 +614,7 @@ result = await runner.resume(
 - Implemented endpoint list
 - Cross-review findings (API contract mismatches between frontend/backend)
 
-**Agents run in parallel:** Frontend, Backend, and DB Engineer generate code simultaneously. A cross-review step then checks for integration issues.
+Agents run in parallel: Frontend, Backend, and DB Engineer generate code simultaneously. A cross-review step checks for integration issues.
 
 ### 4. Testing Stage
 
@@ -209,14 +627,6 @@ result = await runner.resume(
 - Security scan findings (SAST, dependency CVEs, accessibility)
 - Deploy readiness score (0-100)
 - Blocking issues list
-
-**Quality gate criteria:**
-- Line coverage >= 80%
-- Branch coverage >= 70%
-- No CRITICAL security findings
-- Contract tests pass (API matches OpenAPI spec)
-
-**Agent execution:** Unit Tester and Integration Tester run in parallel. Security Scanner runs after (needs test context). Security scanner failure is non-blocking.
 
 ### 5. Deployment Stage
 
@@ -231,20 +641,13 @@ result = await runner.resume(
 - SLO targets
 - Deployment targets with health check URLs
 
-**Quality gate criteria:**
-- Pipeline files generated
-- Docker images defined
-- Rollback configured
-- Staging auto-deploy configured
-- Production gate (manual approval) configured
-
-**Agent execution:** CI/CD Engineer and Infrastructure Engineer run in parallel. Both are required -- failure in either stops the pipeline.
-
 ### 6. Monitoring Stage
 
 **Input:** Deployment handoff
 
-**Output:** Dashboard configs, alert rules, SLO tracking setup. *(Currently a stub -- Phase 7 will implement this stage.)*
+**Output:** Dashboard configs, alert rules, SLO tracking setup.
+
+---
 
 ## Human Oversight
 
@@ -260,104 +663,54 @@ Colette uses a four-tier approval model:
 ### Confidence Gating (T2)
 
 For T2 actions, agents report a confidence score:
-- **>= 0.85**: Auto-approved, no human intervention
+- **>= 0.85**: Auto-approved
 - **0.60 - 0.84**: Flagged for review, pipeline pauses
 - **< 0.60**: Escalated, pipeline pauses
 
-Configure thresholds in `.env`:
+### Responding to Approvals
+
+**Via CLI:**
 
 ```bash
-COLETTE_HIL_CONFIDENCE_THRESHOLD=0.60
-COLETTE_HIL_CONFIDENCE_FLAG_THRESHOLD=0.85
+# Approve
+uv run colette approve <approval-id> --comment "Looks good"
+
+# Reject
+uv run colette reject <approval-id> --reason "Add input validation first"
 ```
 
-## Configuration Reference
+**Via API:**
 
-All settings use the `COLETTE_` prefix and load from `.env`:
+```bash
+# Approve
+curl -X POST http://localhost:8000/api/v1/approvals/<id>/approve \
+  -H "X-API-Key: your-key" \
+  -H "Content-Type: application/json" \
+  -d '{"reviewer_id": "you@example.com", "comments": "LGTM"}'
 
-### LLM Models
+# Reject
+curl -X POST http://localhost:8000/api/v1/approvals/<id>/reject \
+  -H "X-API-Key: your-key" \
+  -H "Content-Type: application/json" \
+  -d '{"reviewer_id": "you@example.com", "reason": "Needs security review"}'
+```
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `COLETTE_DEFAULT_PLANNING_MODEL` | Planning/architecture (Opus) | `claude-opus-4-6-20250610` |
-| `COLETTE_DEFAULT_EXECUTION_MODEL` | Code generation (Sonnet) | `claude-sonnet-4-6-20250514` |
-| `COLETTE_DEFAULT_VALIDATION_MODEL` | Scanning/validation (Haiku) | `claude-haiku-4-5-20251001` |
-| `COLETTE_LITELLM_BASE_URL` | LiteLLM proxy URL | `http://localhost:4000` |
-
-### Infrastructure
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `COLETTE_DATABASE_URL` | PostgreSQL connection | `postgresql+asyncpg://colette:colette@localhost:5432/colette` |
-| `COLETTE_REDIS_URL` | Redis connection | `redis://localhost:6379/0` |
-| `COLETTE_NEO4J_URI` | Neo4j (knowledge graph) | `bolt://localhost:7687` |
-
-### Agent Behavior
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `COLETTE_AGENT_MAX_ITERATIONS` | Max reasoning loops per agent | `25` |
-| `COLETTE_AGENT_TIMEOUT_SECONDS` | Agent timeout | `600` |
-| `COLETTE_SUPERVISOR_CONTEXT_BUDGET` | Supervisor token budget | `100000` |
-| `COLETTE_SPECIALIST_CONTEXT_BUDGET` | Specialist token budget | `60000` |
-| `COLETTE_MAX_CONCURRENT_PIPELINES` | Parallel pipeline limit | `5` |
-
-### Memory & RAG
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `COLETTE_COMPACTION_THRESHOLD` | Context compaction trigger | `0.70` |
-| `COLETTE_RAG_CHUNK_SIZE` | Chunk size for retrieval | `512` |
-| `COLETTE_RAG_FAITHFULNESS_THRESHOLD` | RAG quality threshold | `0.85` |
-| `COLETTE_KNOWLEDGE_GRAPH_ENABLED` | Enable Neo4j knowledge graph | `true` |
-| `COLETTE_COHERE_API_KEY` | Cohere reranker API key | *(empty)* |
-
-See `src/colette/config.py` for the complete schema.
+---
 
 ## Quality Gates
 
-Quality gates run between stages to enforce minimum standards. If a gate fails, the pipeline can pause or retry:
+Quality gates run between stages to enforce minimum standards. If a gate fails, the pipeline can pause or retry.
 
 | Gate | Between | Key Criteria |
 |------|---------|-------------|
-| Requirements Gate | Requirements -> Design | User stories present, NFRs defined |
-| Design Gate | Design -> Implementation | Architecture specified, OpenAPI spec present |
-| Implementation Gate | Implementation -> Testing | Files generated, no CRITICAL review findings |
-| Testing Gate | Testing -> Deployment | Coverage >= 80%, no CRITICAL security, contracts pass |
-| Staging Gate | Deployment -> Monitoring | Targets defined, health checks configured, rollback ready |
-| Production Gate | Before production deploy | Human T0 approval required |
+| Requirements | Requirements -> Design | User stories present, NFRs defined |
+| Design | Design -> Implementation | Architecture specified, OpenAPI spec present |
+| Implementation | Implementation -> Testing | Files generated, no CRITICAL review findings |
+| Testing | Testing -> Deployment | Coverage >= 80%, no CRITICAL security, contracts pass |
+| Staging | Deployment -> Monitoring | Targets defined, health checks configured, rollback ready |
+| Production | Before production deploy | Human T0 approval required |
 
-## Project Structure
-
-```
-src/colette/
-  cli.py              # CLI entry point
-  config.py           # Settings (env vars)
-  schemas/            # Typed handoff schemas between stages
-    requirements.py   # RequirementsToDesignHandoff
-    design.py         # DesignToImplementationHandoff
-    implementation.py # ImplementationToTestingHandoff
-    testing.py        # TestingToDeploymentHandoff
-    deployment.py     # DeploymentToMonitoringHandoff
-    common.py         # Shared models (SecurityFinding, SuiteResult, etc.)
-  orchestrator/
-    runner.py         # PipelineRunner — main entry point
-    pipeline.py       # LangGraph DAG construction
-    state.py          # PipelineState definition
-  stages/
-    requirements/     # Analyst + Researcher agents
-    design/           # Architect + API Designer + UI/UX agents
-    implementation/   # Frontend + Backend + DB Engineer agents
-    testing/          # Unit Tester + Integration Tester + Security Scanner
-    deployment/       # CI/CD Engineer + Infrastructure Engineer
-    monitoring/       # Observability + Incident Response (stub)
-  memory/             # Hot/warm/cold memory tiers, RAG pipeline
-  gates/              # Quality gate implementations
-  human/              # Approval routing, confidence scoring, SLA tracking
-  tools/              # MCP tool wrappers (git, filesystem, terminal)
-  llm/                # LiteLLM gateway, structured output parsing
-  observability/      # OpenTelemetry tracing, metrics, callbacks
-```
+---
 
 ## Extending Colette
 
@@ -373,7 +726,7 @@ from colette.llm.structured import invoke_structured
 from colette.schemas.agent_config import ModelTier
 
 class MyAgentResult(BaseModel, frozen=True):
-    """Structured output — frozen for immutability."""
+    """Structured output -- frozen for immutability."""
     files: list[GeneratedFile] = Field(default_factory=list)
     notes: str = ""
 
@@ -414,6 +767,8 @@ class MyGate(QualityGate):
 
 Register it in `src/colette/gates/__init__.py`.
 
+---
+
 ## Troubleshooting
 
 ### Pipeline fails at a stage
@@ -423,6 +778,12 @@ Check the error log in the pipeline result:
 ```python
 for error in result.get("error_log", []):
     print(error)
+```
+
+Via CLI:
+
+```bash
+uv run colette logs <project-id> --stage <failed-stage>
 ```
 
 ### Quality gate blocks progression
@@ -438,24 +799,131 @@ for gate_name, gate_result in gate_results.items():
 
 ### LLM calls fail
 
-Colette has automatic fallback chains. If the primary model fails, it tries fallbacks in order:
+Colette has automatic fallback chains. If the primary model fails, it tries fallbacks in order. Check that at least one provider API key is configured in `.env`.
 
-- Planning: Claude Opus -> GPT-5.4 -> Gemini 2.5 Pro
-- Execution: Claude Sonnet -> GPT-5.4 Mini -> Gemini 2.5 Flash
-- Validation: Claude Haiku -> GPT-5.4 Mini -> Gemini 2.5 Flash
+Verify your config:
 
-Check that at least one provider API key is configured in `.env`.
+```bash
+uv run colette config validate
+```
+
+### Server won't start
+
+1. Check services are running: `docker compose ps`
+2. Check database connectivity: `docker compose logs postgres`
+3. Validate config: `uv run colette config validate`
+4. Check port conflicts: ensure 8000 is free
 
 ### Tests fail locally
 
 ```bash
-# Run just unit tests (no services needed)
+# Unit tests (no services needed)
 make test-unit
 
 # Integration tests require Docker services
 make docker-up
 make test-integration
 ```
+
+### Docker services won't start
+
+```bash
+# Check status
+docker compose ps
+
+# View logs
+docker compose logs postgres
+docker compose logs redis
+docker compose logs neo4j
+
+# Restart
+make docker-down
+make docker-up
+```
+
+---
+
+## Development
+
+### Make targets
+
+```bash
+make install          # Install all dependencies
+make dev              # Install + create .env from template
+make lint             # Run ruff linter
+make format           # Auto-format with ruff
+make typecheck        # Run mypy strict mode
+make test             # Run all tests with coverage (80% min)
+make test-unit        # Unit tests only
+make security         # bandit + pip-audit
+make check            # lint + typecheck + test + security
+make docker-up        # Start postgres, redis, neo4j
+make docker-down      # Stop services
+make docker-build     # Build colette container image
+make clean            # Remove build artifacts
+make docs-serve       # Serve docs locally (mkdocs)
+make docs-build       # Build static docs site
+```
+
+### Project structure
+
+```
+src/colette/
+  __init__.py           # Package root, __version__
+  cli.py                # CLI entry point (Click)
+  cli_ui.py             # Rich terminal rendering
+  config.py             # Settings via pydantic-settings
+  schemas/              # Typed handoff schemas between stages
+    requirements.py     # RequirementsToDesignHandoff
+    design.py           # DesignToImplementationHandoff
+    implementation.py   # ImplementationToTestingHandoff
+    testing.py          # TestingToDeploymentHandoff
+    deployment.py       # DeploymentToMonitoringHandoff
+    common.py           # Shared models
+  orchestrator/
+    runner.py           # PipelineRunner -- main entry point
+    pipeline.py         # LangGraph DAG construction
+    state.py            # PipelineState definition
+    progress.py         # Progress event tracking
+  stages/
+    requirements/       # Analyst + Researcher agents
+    design/             # Architect + API Designer + UI/UX agents
+    implementation/     # Frontend + Backend + DB Engineer agents
+    testing/            # Unit Tester + Integration Tester + Security Scanner
+    deployment/         # CI/CD Engineer + Infrastructure Engineer
+    monitoring/         # Observability + Incident Response
+  api/                  # FastAPI REST API
+    app.py              # Application factory
+    routes/             # Endpoint handlers
+    middleware.py       # Rate limiting, request IDs, graceful degradation
+    schemas.py          # API request/response models
+    deps.py             # Dependency injection
+  db/                   # Database models and repositories
+  memory/               # Hot/warm/cold memory tiers, RAG pipeline
+  gates/                # Quality gate implementations
+  human/                # Approval routing, confidence scoring
+  tools/                # MCP tool wrappers
+  llm/                  # LiteLLM gateway, structured output
+  security/             # RBAC, audit, secret filtering
+  observability/        # Logging, OpenTelemetry tracing
+tests/
+  conftest.py           # Shared fixtures
+  unit/                 # Fast, no external deps
+  integration/          # Requires services
+  e2e/                  # Full pipeline tests
+```
+
+### Running with Docker
+
+```bash
+# Build the image
+make docker-build
+
+# Run (requires backing services)
+docker run -p 8000:8000 --env-file .env colette:latest
+```
+
+---
 
 ## Current Status
 
@@ -464,9 +932,9 @@ make test-integration
 | 1. Scaffolding | Done | Project structure, CI, Docker |
 | 2. Core Schemas | Done | Pydantic handoff schemas, pipeline state |
 | 3. Orchestration | Done | LangGraph DAG, quality gates, human-in-the-loop |
-| 4. Requirements + Design | Done | First real agents |
+| 4. Requirements + Design | Done | Requirements and Design agents |
 | 5. Implementation | Done | Frontend, Backend, DB Engineer agents |
-| 6. Testing + Deployment | Done | Unit/Integration/Security testing, CI/CD + Infra agents |
+| 6. Testing + Deployment | Done | Testing and Deployment agents |
 | 7. Monitoring | Planned | Observability and incident response agents |
-| 8. Memory | Planned | Warm/cold memory tiers, RAG pipeline |
+| 8. REST API + CLI | Done | FastAPI server, Click CLI, Rich UI |
 | 9. Hardening | Planned | Performance, security audit, documentation |

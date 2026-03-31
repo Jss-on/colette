@@ -13,6 +13,12 @@ from langgraph.checkpoint.memory import MemorySaver
 from colette.config import Settings
 from colette.gates import create_default_registry
 from colette.llm.registry import project_status_registry
+from colette.orchestrator.event_bus import (
+    EventType,
+    PipelineEvent,
+    PipelineEventBus,
+    compute_elapsed,
+)
 from colette.orchestrator.pipeline import build_pipeline
 from colette.orchestrator.progress import ProgressEvent, state_to_progress_event
 from colette.orchestrator.state import create_initial_state
@@ -41,8 +47,13 @@ class PipelineRunner:
         Application settings controlling checkpointer backend and concurrency.
     """
 
-    def __init__(self, settings: Settings | None = None) -> None:
+    def __init__(
+        self,
+        settings: Settings | None = None,
+        event_bus: PipelineEventBus | None = None,
+    ) -> None:
         self._settings = settings or Settings()
+        self._event_bus = event_bus or PipelineEventBus()
 
         # Checkpointer — MemorySaver for dev; PostgresSaver for prod.
         self._checkpointer = self._create_checkpointer()
@@ -53,6 +64,7 @@ class PipelineRunner:
             self._gate_registry,
             self._settings,
             checkpointer=self._checkpointer,
+            event_bus=self._event_bus,
         )
 
         # Track active pipeline runs (project_id -> thread_id).
@@ -80,6 +92,11 @@ class PipelineRunner:
                     "langgraph-checkpoint-postgres not installed; falling back to MemorySaver"
                 )
         return MemorySaver()
+
+    @property
+    def event_bus(self) -> PipelineEventBus:
+        """The event bus used by this runner for pipeline progress events."""
+        return self._event_bus
 
     # ── Public API ───────────────────────────────────────────────────
 
@@ -137,9 +154,24 @@ class PipelineRunner:
         try:
             result = await self._graph.ainvoke(dict(initial), config)
             project_status_registry.mark(project_id, "completed")
+            self._event_bus.emit(
+                PipelineEvent(
+                    project_id=project_id,
+                    event_type=EventType.PIPELINE_COMPLETED,
+                    elapsed_seconds=compute_elapsed(initial["started_at"]),
+                )
+            )
             return dict(result)
-        except Exception:
+        except Exception as exc:
             project_status_registry.mark(project_id, "failed")
+            self._event_bus.emit(
+                PipelineEvent(
+                    project_id=project_id,
+                    event_type=EventType.PIPELINE_FAILED,
+                    message=str(exc),
+                    elapsed_seconds=compute_elapsed(initial["started_at"]),
+                )
+            )
             raise
         finally:
             self._active.pop(project_id, None)

@@ -9,13 +9,14 @@ All LLM access in Colette goes through `create_chat_model()`.  This ensures:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any
 
 import structlog
 from langchain_core.callbacks import CallbackManagerForLLMRun
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage
 from langchain_core.outputs import ChatResult
+from pydantic import ConfigDict
 
 from colette.llm.models import ModelChain, ModelRegistry
 from colette.llm.registry import project_status_registry
@@ -40,7 +41,7 @@ class GuardedChatModel(BaseChatModel):
     **before** any API request is made.
     """
 
-    model_config: ClassVar[dict[str, bool]] = {"arbitrary_types_allowed": True}
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     inner: BaseChatModel
     project_id: str
@@ -93,7 +94,7 @@ def _build_chat_model(
     """
     from langchain_community.chat_models import ChatLiteLLM
 
-    kwargs: dict[str, object] = {
+    kwargs: dict[str, Any] = {
         "model": model_name,
         "max_retries": max_retries,
         "request_timeout": timeout,

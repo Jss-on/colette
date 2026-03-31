@@ -40,7 +40,7 @@ class CohereReranker:
 
     def __init__(self, settings: MemorySettings | None = None) -> None:
         self._settings = settings or MemorySettings()
-        self._client = None
+        self._client: Any = None
 
     def _ensure_client(self) -> Any:
         if self._client is None:

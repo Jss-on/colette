@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from colette.config import Settings
 from colette.gates import create_default_registry
+from colette.orchestrator.event_bus import PipelineEventBus
 from colette.orchestrator.pipeline import build_pipeline
 
 
@@ -12,6 +13,13 @@ class TestBuildPipeline:
         registry = create_default_registry()
         settings = Settings()
         graph = build_pipeline(registry, settings)
+        assert graph is not None
+
+    def test_compiles_with_event_bus(self) -> None:
+        registry = create_default_registry()
+        settings = Settings()
+        bus = PipelineEventBus()
+        graph = build_pipeline(registry, settings, event_bus=bus)
         assert graph is not None
 
     def test_has_stage_nodes(self) -> None:

@@ -13,6 +13,11 @@ from colette.orchestrator.error_recovery import (
     EscalationResult,
     execute_with_recovery,
 )
+from colette.orchestrator.event_bus import (
+    EventType,
+    PipelineEvent,
+    PipelineEventBus,
+)
 from colette.orchestrator.pipeline import build_pipeline
 from colette.orchestrator.progress import ProgressEvent, state_to_progress_event
 from colette.orchestrator.runner import ConcurrencyLimitError, PipelineRunner
@@ -28,6 +33,9 @@ __all__ = [
     "ErrorRecoveryPolicy",
     "EscalationLevel",
     "EscalationResult",
+    "EventType",
+    "PipelineEvent",
+    "PipelineEventBus",
     "PipelineRunner",
     "PipelineState",
     "ProgressEvent",
