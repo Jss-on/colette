@@ -1,12 +1,14 @@
 # CLAUDE.md
 
-> **Version:** 3.0 | **Last updated:** 2026-03-29 | **Status:** Scaffolded — dev environment ready
+> **Version:** 4.0 | **Last updated:** 2026-03-30 | **Status:** Scaffolded — dev environment ready
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
 
 **Colette** is a multi-agent AI system that autonomously performs end-to-end software development for web applications. It handles the full SDLC from natural language requirements through production deployment and monitoring, using a hybrid oversight model where routine tasks execute autonomously while critical decisions require human approval.
+
+**Colette is a standalone CLI tool**, similar to Claude Code. Users interact via the command line. It is NOT a framework, library, or SDK — it should not be imported, embedded, or extended by other projects.
 
 **Current status:** Scaffolded. Project structure, build system, CI, and dev tooling are in place. Core implementation has not started.
 
@@ -97,8 +99,8 @@ All planning documents are in `docs/`. Markdown versions are authoritative; .doc
 
 | Document | Version | Updated | Notes |
 |---|---|---|---|
-| `CLAUDE.md` | 3.0 | 2026-03-29 | Added project structure, dev commands, versioning scheme |
-| `Colette_Software_Requirements_Specification.md` | 3.0 | 2026-03-29 | 164 requirements, MoSCoW, IEEE 830; v3.0 adds LangGraph/LangChain implementation notes |
+| `CLAUDE.md` | 4.0 | 2026-03-30 | CLI-first interface, not a framework |
+| `Colette_Software_Requirements_Specification.md` | 4.0 | 2026-03-30 | CLI as primary UI (MUST), Web UI deferred to v1.5 (WON'T), Colette is not a framework |
 | `MultiAgent_SDLC_System_Architecture.md` | 1.0 | 2026-03-29 | Full architecture doc |
 | `Complete_Guide_to_Building_AI_Agent_Systems.md` | 1.0 | 2026-03-29 | Implementation guide |
 | `requirements_traceability_matrix.md` | 1.0 | 2026-03-29 | Req → arch → test mapping |
@@ -152,6 +154,12 @@ colette/
 - **Changelog:** `CHANGELOG.md` in Keep-a-Changelog format
 
 ## Changelog
+
+### v4.0 — 2026-03-30
+- CLI is now the primary (and only v1.0) user interface — modeled after Claude Code
+- Web UI deferred to v1.5 (WNT-013)
+- Colette is explicitly a standalone CLI tool, not a framework/library (WNT-014)
+- Updated SRS to v4.0, development phase plan Phase 8 updated
 
 ### v3.0 — 2026-03-29
 - Added project structure, directory layout, source packages

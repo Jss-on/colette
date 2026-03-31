@@ -65,3 +65,9 @@ logs/
 
 # Everything Claude Code (local config)
 everything-claude-code/
+.claude
+docs/internal
+CLAUDE.md
+.claude/settings.local.json
+.understand-anything/knowledge-graph.json
+.understand-anything/meta.json
