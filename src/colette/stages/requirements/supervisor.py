@@ -79,7 +79,7 @@ def assemble_handoff(
         out_of_scope=analysis.out_of_scope,
         completeness_score=completeness,
         open_questions=analysis.open_questions,
-        quality_gate_passed=completeness >= 0.85,
+        quality_gate_passed=completeness >= 0.80,
     )
 
 

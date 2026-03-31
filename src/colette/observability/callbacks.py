@@ -60,6 +60,70 @@ def _emit_agent_event(
     )
 
 
+def _extract_input_preview(prompts: list[str], max_len: int = 120) -> str:
+    """Extract a meaningful preview from LLM input prompts.
+
+    Looks for the user content (typically the last prompt) and returns
+    a truncated snippet, stripping JSON schema boilerplate.
+    """
+    if not prompts:
+        return ""
+    # The user message is typically the last prompt
+    text = prompts[-1] if len(prompts) > 1 else prompts[0]
+    # Skip JSON schema instructions — find the actual user content
+    for marker in ("Project Description:", "Given a project description,"):
+        idx = text.find(marker)
+        if idx >= 0:
+            text = text[idx:]
+            break
+    text = text.strip()
+    if len(text) > max_len:
+        return text[:max_len] + "..."
+    return text
+
+
+def _extract_response_preview(response: LLMResult, max_len: int = 150) -> str:
+    """Extract a content preview from the LLM response.
+
+    Tries to pull the ``project_overview`` field from JSON output,
+    falling back to a truncated raw text preview.
+    """
+    if not response.generations or not response.generations[0]:
+        return ""
+    gen = response.generations[0][0]
+    text = gen.text if hasattr(gen, "text") and gen.text else ""
+    if not text and hasattr(gen, "message"):
+        text = str(gen.message.content) if gen.message.content else ""
+    if not text:
+        return ""
+    # Try to extract a key field for a meaningful summary
+    import json as _json
+
+    try:
+        data = _json.loads(text) if text.lstrip().startswith("{") else None
+    except (ValueError, TypeError):
+        data = None
+    if isinstance(data, dict):
+        # Show key stats if available
+        parts: list[str] = []
+        if "project_overview" in data:
+            overview = str(data["project_overview"])
+            parts.append(overview[:80] + ("..." if len(overview) > 80 else ""))
+        if "user_stories" in data:
+            parts.append(f"{len(data['user_stories'])} stories")
+        if "nfrs" in data:
+            parts.append(f"{len(data['nfrs'])} NFRs")
+        if "completeness_score" in data:
+            parts.append(f"completeness={data['completeness_score']}")
+        if parts:
+            return " | ".join(parts)
+    # Fallback: truncated raw text
+    text = text.strip()
+    if len(text) > max_len:
+        return text[:max_len] + "..."
+    return text
+
+
 class ColletteCallbackHandler(BaseCallbackHandler):
     """Tracks LLM tokens and tool calls for a single agent invocation.
 
@@ -99,13 +163,16 @@ class ColletteCallbackHandler(BaseCallbackHandler):
         prompts: list[str],
         **kwargs: Any,
     ) -> None:
-        """Called when an LLM call begins.  Emits AGENT_THINKING."""
+        """Called when an LLM call begins.  Emits AGENT_THINKING with input preview."""
         logger.debug("llm_call_started", agent_id=self.agent_id)
+        # Extract a meaningful preview from the input prompts
+        preview = _extract_input_preview(prompts)
         _emit_agent_event(
             "agent_thinking",
             agent=self.agent_role,
             model=self.model,
-            message="Thinking...",
+            message=f"Analyzing: {preview}" if preview else "Thinking...",
+            detail={"input_preview": preview} if preview else {},
         )
 
     def on_llm_end(self, response: LLMResult, **kwargs: Any) -> None:
@@ -124,11 +191,14 @@ class ColletteCallbackHandler(BaseCallbackHandler):
                 prompt_tokens=prompt_tokens,
                 completion_tokens=completion_tokens,
             )
+        # Extract a preview of the response content
+        preview = _extract_response_preview(response)
         _emit_agent_event(
             "agent_message",
             agent=self.agent_role,
             model=self.model,
-            message="Response received",
+            message=preview or "Response received",
+            detail={"output_preview": preview, "tokens": tokens} if preview else {},
             tokens_used=tokens,
         )
 

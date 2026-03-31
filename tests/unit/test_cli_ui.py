@@ -509,7 +509,7 @@ class TestPipelineProgressDisplay:
         d.process_event({
             "event_type": "gate_failed",
             "stage": "requirements",
-            "message": "Completeness score 0.62 < 0.85",
+            "message": "Completeness score 0.62 < 0.80",
         })
         terminal = d.process_event({"event_type": "pipeline_completed"})
         assert terminal is True

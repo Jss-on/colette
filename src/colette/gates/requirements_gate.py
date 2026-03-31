@@ -9,7 +9,7 @@ from colette.schemas.common import QualityGateResult, StageName
 
 
 class RequirementsGate:
-    """PRD completeness >= 0.85, all stories have acceptance criteria."""
+    """PRD completeness >= 0.80, all stories have acceptance criteria."""
 
     @property
     def name(self) -> str:
@@ -20,11 +20,11 @@ class RequirementsGate:
         criteria: dict[str, bool] = {}
         failures: list[str] = []
 
-        # Completeness score >= 0.85
+        # Completeness score >= 0.80
         score = handoff.get("completeness_score", 0.0)
-        criteria["completeness_score_ge_085"] = score >= 0.85
-        if not criteria["completeness_score_ge_085"]:
-            failures.append(f"Completeness score {score:.2f} < 0.85")
+        criteria["completeness_score_ge_080"] = score >= 0.80
+        if not criteria["completeness_score_ge_080"]:
+            failures.append(f"Completeness score {score:.2f} < 0.80")
 
         # At least one functional requirement
         reqs = handoff.get("functional_requirements", [])
@@ -45,7 +45,7 @@ class RequirementsGate:
         passed = all(
             criteria[k]
             for k in [
-                "completeness_score_ge_085",
+                "completeness_score_ge_080",
                 "has_functional_requirements",
                 "all_stories_have_acceptance_criteria",
             ]
