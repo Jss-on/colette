@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 from typing import Any
 
@@ -11,6 +12,7 @@ from langgraph.checkpoint.memory import MemorySaver
 
 from colette.config import Settings
 from colette.gates import create_default_registry
+from colette.llm.registry import project_status_registry
 from colette.orchestrator.pipeline import build_pipeline
 from colette.orchestrator.progress import ProgressEvent, state_to_progress_event
 from colette.orchestrator.state import create_initial_state
@@ -55,6 +57,9 @@ class PipelineRunner:
 
         # Track active pipeline runs (project_id -> thread_id).
         self._active: dict[str, str] = {}
+
+        # Track asyncio tasks for hard cancellation.
+        self._tasks: dict[str, asyncio.Task[Any]] = {}
 
     def _create_checkpointer(self) -> MemorySaver:
         """Create the checkpoint backend.
@@ -113,6 +118,9 @@ class PipelineRunner:
         thread_id = f"{project_id}-{uuid.uuid4().hex[:8]}"
         self._active[project_id] = thread_id
 
+        # Register as running — enables LLM API calls for this project.
+        project_status_registry.mark(project_id, "running")
+
         initial = create_initial_state(
             project_id,
             pipeline_run_id=thread_id,
@@ -128,9 +136,14 @@ class PipelineRunner:
 
         try:
             result = await self._graph.ainvoke(dict(initial), config)
+            project_status_registry.mark(project_id, "completed")
             return dict(result)
+        except Exception:
+            project_status_registry.mark(project_id, "failed")
+            raise
         finally:
             self._active.pop(project_id, None)
+            self._tasks.pop(project_id, None)
 
     async def resume(
         self,
@@ -157,6 +170,29 @@ class PipelineRunner:
         config: RunnableConfig = {"configurable": {"thread_id": thread_id}}
         snapshot = await self._graph.aget_state(config)
         return state_to_progress_event(dict(snapshot.values))
+
+    def register_task(self, project_id: str, task: asyncio.Task[Any]) -> None:
+        """Register an asyncio task for *project_id* (enables hard cancellation)."""
+        self._tasks[project_id] = task
+
+    def cancel_project(self, project_id: str, *, status: str = "interrupted") -> bool:
+        """Hard-cancel a running pipeline and block its LLM calls.
+
+        Returns ``True`` if a task was cancelled, ``False`` if no active task
+        was found for *project_id*.
+        """
+        project_status_registry.mark(project_id, status)
+
+        task = self._tasks.pop(project_id, None)
+        self._active.pop(project_id, None)
+
+        if task is not None and not task.done():
+            task.cancel()
+            logger.warning("pipeline.cancelled", project_id=project_id, status=status)
+            return True
+
+        logger.info("pipeline.cancel_no_task", project_id=project_id, status=status)
+        return False
 
     def active_pipeline_count(self) -> int:
         """Return the number of currently active pipelines."""

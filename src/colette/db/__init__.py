@@ -1,6 +1,7 @@
 """Database layer — SQLAlchemy models, async sessions, repositories."""
 
 from colette.db.base import Base
+from colette.db.cleanup import cleanup_stale_runs
 from colette.db.models import (
     ApprovalRecord,
     Artifact,
@@ -20,6 +21,7 @@ __all__ = [
     "StageExecution",
     "User",
     "async_session",
+    "cleanup_stale_runs",
     "create_async_engine_from_settings",
     "get_db",
 ]

@@ -39,6 +39,8 @@ def render_progress_table(events: list[dict[str, Any]]) -> Table:
             "running": "yellow",
             "failed": "red",
             "pending": "dim",
+            "interrupted": "magenta",
+            "cancelled": "dim red",
         }.get(status, "")
         table.add_row(
             ev.get("stage", "?"),
@@ -64,7 +66,13 @@ def render_approval_prompt(approval: dict[str, Any]) -> Panel:
 def render_pipeline_summary(data: dict[str, Any]) -> Panel:
     """Render a final pipeline summary."""
     status = data.get("status", "unknown")
-    color = {"completed": "green", "running": "yellow", "failed": "red"}.get(status, "white")
+    color = {
+        "completed": "green",
+        "running": "yellow",
+        "failed": "red",
+        "interrupted": "magenta",
+        "cancelled": "dim red",
+    }.get(status, "white")
     content = (
         f"[bold]Project:[/bold] {data.get('project_id', '?')}\n"
         f"[bold]Status:[/bold] [{color}]{status}[/{color}]\n"
@@ -104,6 +112,19 @@ def render_config_table(settings: dict[str, Any], *, redact_secrets: bool = True
             display = "***"
         table.add_row(key, display)
     return table
+
+
+def render_status_notice(status: str, project_id: str) -> None:
+    """Print a notice when a project is in a non-active state."""
+    if status == "interrupted":
+        console.print(
+            f"[magenta bold]Status: interrupted (LLM calls blocked)[/magenta bold]\n"
+            f"  Use [bold]colette resume {project_id}[/bold] to reactivate."
+        )
+    elif status == "cancelled":
+        console.print(
+            "[dim red bold]Status: cancelled (LLM calls blocked, cannot resume)[/dim red bold]"
+        )
 
 
 def render_error(message: str) -> None:

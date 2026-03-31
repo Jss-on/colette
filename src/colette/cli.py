@@ -121,7 +121,15 @@ def status(ctx: click.Context, project_id: str, follow: bool) -> None:
                     headers=headers,
                 )
                 resp.raise_for_status()
-                console.print(render_pipeline_summary(resp.json()))
+                data = resp.json()
+                console.print(render_pipeline_summary(data))
+
+                # Show LLM-blocked notice for interrupted/cancelled projects.
+                proj_status = data.get("status", "")
+                if proj_status in ("interrupted", "cancelled"):
+                    from colette.cli_ui import render_status_notice
+
+                    render_status_notice(proj_status, project_id)
         except httpx.HTTPError as exc:
             render_error(f"API request failed: {exc}")
             raise SystemExit(1) from exc
@@ -202,6 +210,76 @@ def reject(ctx: click.Context, approval_id: str, reason: str) -> None:
             )
             resp.raise_for_status()
             render_success(f"Approval {approval_id} rejected.")
+    except httpx.HTTPError as exc:
+        render_error(f"API request failed: {exc}")
+        raise SystemExit(1) from exc
+
+
+# ── Resume ─────────────────────────────────────────────────────────────
+
+
+@main.command()
+@click.argument("project_id")
+@click.pass_context
+def resume(ctx: click.Context, project_id: str) -> None:
+    """Resume an interrupted project (re-enables LLM calls)."""
+    import httpx
+
+    from colette.cli_ui import render_error, render_success
+
+    api_url = ctx.obj["api_url"]
+    try:
+        with httpx.Client(timeout=30) as client:
+            resp = client.post(
+                f"{api_url}/api/v1/projects/{project_id}/resume",
+                headers={"X-API-Key": "default"},
+            )
+            resp.raise_for_status()
+            render_success(
+                f"Project {project_id} resumed — LLM calls re-enabled.\n"
+                f"  Monitor: colette status {project_id} --follow"
+            )
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 404:
+            render_error(f"Project {project_id} not found.")
+        elif exc.response.status_code == 409:
+            detail = exc.response.json().get("detail", "Cannot resume.")
+            render_error(detail)
+        else:
+            render_error(f"API request failed: {exc}")
+        raise SystemExit(1) from exc
+    except httpx.HTTPError as exc:
+        render_error(f"API request failed: {exc}")
+        raise SystemExit(1) from exc
+
+
+# ── Cancel ─────────────────────────────────────────────────────────────
+
+
+@main.command()
+@click.argument("project_id")
+@click.pass_context
+def cancel(ctx: click.Context, project_id: str) -> None:
+    """Cancel a project permanently (blocks LLM calls, cannot resume)."""
+    import httpx
+
+    from colette.cli_ui import render_error, render_success
+
+    api_url = ctx.obj["api_url"]
+    try:
+        with httpx.Client(timeout=30) as client:
+            resp = client.post(
+                f"{api_url}/api/v1/projects/{project_id}/cancel",
+                headers={"X-API-Key": "default"},
+            )
+            resp.raise_for_status()
+            render_success(f"Project {project_id} cancelled — LLM calls permanently blocked.")
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 404:
+            render_error(f"Project {project_id} not found.")
+        else:
+            render_error(f"API request failed: {exc}")
+        raise SystemExit(1) from exc
     except httpx.HTTPError as exc:
         render_error(f"API request failed: {exc}")
         raise SystemExit(1) from exc

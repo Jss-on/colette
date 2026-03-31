@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
+import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -16,7 +17,10 @@ from colette.api.middleware import (
 )
 from colette.api.routes import api_router, health_router
 from colette.config import Settings
-from colette.db.session import close_engine, init_engine
+from colette.db.cleanup import cleanup_stale_runs
+from colette.db.session import async_session, close_engine, init_engine
+
+logger = structlog.get_logger(__name__)
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -27,6 +31,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         # Startup: initialise DB engine.
         init_engine(settings)
+
+        # Clean up orphaned pipeline runs from previous server lifetime.
+        try:
+            async with async_session() as session:
+                cleaned = await cleanup_stale_runs(session)
+                if cleaned:
+                    logger.warning("startup.stale_runs_cleaned", count=cleaned)
+        except Exception as exc:
+            # Non-fatal: the server can still start even if cleanup fails
+            # (e.g. DB tables don't exist yet on first run).
+            logger.error("startup.cleanup_failed", error=str(exc))
+
         yield
         # Shutdown: dispose engine.
         await close_engine()
