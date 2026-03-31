@@ -57,6 +57,70 @@ async def get_pipeline_status(
     )
 
 
+def _make_sse_payload(
+    event_type: str, project_id: str, **kwargs: object
+) -> str:
+    """Build a single SSE frame from the given fields."""
+    payload = PipelineSSEEvent(
+        event_type=event_type,
+        project_id=project_id,
+        timestamp=kwargs.pop("timestamp", datetime.now(UTC).isoformat()),  # type: ignore[arg-type]
+        **kwargs,  # type: ignore[arg-type]
+    )
+    return f"event: {event_type}\ndata: {payload.model_dump_json()}\n\n"
+
+
+async def _emit_catchup_events(
+    project_id: str, runner: PipelineRunner
+) -> AsyncGenerator[str]:
+    """Emit synthetic events for stages that already progressed.
+
+    Solves the race where events fire before the SSE client subscribes.
+    """
+    from colette.orchestrator.state import STAGE_ORDER
+
+    try:
+        progress = await runner.get_progress(project_id)
+    except Exception:  # best-effort catch-up
+        return
+
+    stage_statuses: dict[str, str] = {}
+    # get_progress only tells us the *current* stage; infer completed stages.
+    try:
+        current_idx = STAGE_ORDER.index(progress.stage)
+    except ValueError:
+        return
+
+    for i, stage_name in enumerate(STAGE_ORDER):
+        if i < current_idx:
+            stage_statuses[stage_name] = "completed"
+        elif i == current_idx:
+            stage_statuses[stage_name] = progress.status
+
+    ts = datetime.now(UTC).isoformat()
+    for stage_name, st in stage_statuses.items():
+        if st == "completed":
+            yield _make_sse_payload(
+                "stage_completed", project_id,
+                stage=stage_name, timestamp=ts,
+                elapsed_seconds=progress.elapsed_seconds,
+            )
+        elif st in ("running", "in_progress"):
+            yield _make_sse_payload(
+                "stage_started", project_id,
+                stage=stage_name, timestamp=ts,
+            )
+        elif st in ("failed", "blocked_by_gate"):
+            yield _make_sse_payload(
+                "stage_started", project_id,
+                stage=stage_name, timestamp=ts,
+            )
+            yield _make_sse_payload(
+                "stage_failed", project_id,
+                stage=stage_name, timestamp=ts,
+            )
+
+
 async def _sse_event_generator(
     project_id: str,
     runner: PipelineRunner,
@@ -64,22 +128,24 @@ async def _sse_event_generator(
 ) -> AsyncGenerator[str]:
     """Yield SSE-formatted strings from the pipeline event bus.
 
-    Subscribes to the runner's event bus and streams events as they
-    arrive.  Sends a keepalive comment every *heartbeat_seconds* when
-    no events are available.
+    Subscribes to the runner's event bus FIRST, then emits catch-up
+    events for stages that already progressed (solves the race where
+    events fire before the SSE client subscribes).  Then streams live
+    events as they arrive.  Sends a keepalive comment every
+    *heartbeat_seconds* when no events are available.
     """
     # Race condition guard: pipeline may have finished before SSE connects.
     if not runner.is_active(project_id):
-        payload = PipelineSSEEvent(
-            event_type="complete",
-            project_id=project_id,
-            timestamp=datetime.now(UTC).isoformat(),
-        )
-        yield f"event: complete\ndata: {payload.model_dump_json()}\n\n"
+        yield _make_sse_payload("complete", project_id)
         return
 
+    # Subscribe FIRST so events emitted after this point are queued.
     queue = runner.event_bus.subscribe(project_id)
     try:
+        # Emit catch-up events for stages that already progressed.
+        async for frame in _emit_catchup_events(project_id, runner):
+            yield frame
+
         while True:
             try:
                 event = await asyncio.wait_for(
@@ -88,12 +154,7 @@ async def _sse_event_generator(
             except TimeoutError:
                 yield ": heartbeat\n\n"
                 if not runner.is_active(project_id):
-                    payload = PipelineSSEEvent(
-                        event_type="complete",
-                        project_id=project_id,
-                        timestamp=datetime.now(UTC).isoformat(),
-                    )
-                    yield f"event: complete\ndata: {payload.model_dump_json()}\n\n"
+                    yield _make_sse_payload("complete", project_id)
                     break
                 continue
 

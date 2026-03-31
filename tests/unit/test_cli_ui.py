@@ -503,6 +503,19 @@ class TestPipelineProgressDisplay:
         assert d.is_done
         assert d.final_status == "completed"
 
+    def test_pipeline_completed_after_gate_failure_shows_failed(self) -> None:
+        """When a gate fails but the graph exits normally, status should be 'failed'."""
+        d = PipelineProgressDisplay("p")
+        d.process_event({
+            "event_type": "gate_failed",
+            "stage": "requirements",
+            "message": "Completeness score 0.62 < 0.85",
+        })
+        terminal = d.process_event({"event_type": "pipeline_completed"})
+        assert terminal is True
+        assert d.final_status == "failed"
+        assert "Completeness" in d.error_message
+
     def test_pipeline_failed(self) -> None:
         d = PipelineProgressDisplay("p")
         terminal = d.process_event({

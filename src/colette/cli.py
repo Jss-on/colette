@@ -98,14 +98,14 @@ def _stream_progress(
                         continue
                     event = json.loads(line[6:])
                     is_terminal = display.process_event(event)
-                    live.update(display.render())
                     if is_terminal:
                         break
+                    live.update(display.render())
     except httpx.HTTPError as exc:
         target_console.print(f"[red bold]Error:[/red bold] Stream failed: {exc}")
         return
 
-    # Print final summary after Live context exits.
+    # Print final summary after Live context exits (once only).
     if display.is_done:
         target_console.print(display.render())
 

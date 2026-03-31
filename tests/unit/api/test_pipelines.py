@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from pydantic import ValidationError
@@ -89,6 +89,8 @@ def _make_runner(
     runner = MagicMock()
     runner.event_bus = bus
     runner.is_active.return_value = is_active
+    # get_progress is async and raises KeyError when no state yet.
+    runner.get_progress = AsyncMock(side_effect=KeyError("no state"))
     return runner
 
 

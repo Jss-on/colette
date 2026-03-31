@@ -434,7 +434,8 @@ class PipelineProgressDisplay:
             self._error = event.get("message", "Gate failed")
 
         elif etype in ("pipeline_completed", "complete"):
-            self._final_status = "completed"
+            # If a gate already failed, this is not a true success.
+            self._final_status = "failed" if self._error else "completed"
             return True
 
         elif etype == "pipeline_failed":
