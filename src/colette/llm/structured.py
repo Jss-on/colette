@@ -69,6 +69,49 @@ def _build_structured_prompt(system_prompt: str, output_type: type[BaseModel]) -
     )
 
 
+def _repair_truncated_json(json_str: str) -> str:
+    """Attempt to repair truncated JSON by closing open brackets/braces.
+
+    Handles common LLM truncation patterns: output cut off mid-array
+    or mid-object, trailing commas before a missing closing bracket.
+    """
+    # Strip trailing whitespace
+    repaired = json_str.rstrip()
+
+    # Remove trailing comma (invalid before a closing bracket)
+    repaired = re.sub(r",\s*$", "", repaired)
+
+    # Count open vs close brackets/braces
+    open_braces = repaired.count("{") - repaired.count("}")
+    open_brackets = repaired.count("[") - repaired.count("]")
+
+    # If we're inside a string literal that was truncated, close it
+    # by checking if quote count is odd.
+    in_string = False
+    escape = False
+    for ch in repaired:
+        if escape:
+            escape = False
+            continue
+        if ch == "\\":
+            escape = True
+            continue
+        if ch == '"':
+            in_string = not in_string
+
+    if in_string:
+        repaired += '"'
+
+    # Remove any trailing comma after string repair
+    repaired = re.sub(r",\s*$", "", repaired)
+
+    # Close open brackets/braces in reverse order of nesting
+    repaired += "]" * max(0, open_brackets)
+    repaired += "}" * max(0, open_braces)
+
+    return repaired
+
+
 def _parse_structured_response[T: BaseModel](
     raw_text: str,
     output_type: type[T],
@@ -76,7 +119,8 @@ def _parse_structured_response[T: BaseModel](
     """Parse an LLM text response into *output_type* via JSON extraction.
 
     Tries ``model_validate_json`` first, then falls back to ``model_validate``
-    with ``json.loads`` for looser parsing.
+    with ``json.loads`` for looser parsing.  As a last resort, attempts to
+    repair truncated JSON (unclosed brackets/braces).
 
     Raises
     ------
@@ -92,6 +136,25 @@ def _parse_structured_response[T: BaseModel](
         try:
             data: object = json.loads(json_str)
             return output_type.model_validate(data)
+        except Exception as second_exc:
+            logger.debug("structured_output_second_parse_failed", error=str(second_exc))
+
+        # Attempt to repair truncated JSON before giving up.
+        try:
+            repaired = _repair_truncated_json(json_str)
+            logger.warning(
+                "structured_output_repair_attempt",
+                output_type=output_type.__name__,
+                original_len=len(json_str),
+                repaired_len=len(repaired),
+            )
+            data = json.loads(repaired)
+            result = output_type.model_validate(data)
+            logger.info(
+                "structured_output_repair_success",
+                output_type=output_type.__name__,
+            )
+            return result
         except Exception as exc:
             logger.error(
                 "structured_output_parse_error",
@@ -169,21 +232,44 @@ async def invoke_structured[T: BaseModel](
     messages = [sys_msg, HumanMessage(content=safe_content)]
     config = RunnableConfig(callbacks=[callback])
 
-    async with _llm_semaphore:
-        logger.debug(
-            "llm_semaphore_acquired",
-            output_type=output_type.__name__,
-            tier=str(model_tier),
-            streaming=stream_enabled,
-        )
-        if stream_enabled:
-            # Stream tokens for real-time display; accumulate full text.
-            chunks: list[str] = []
-            async for chunk in model.astream(messages, config=config):
-                chunks.append(str(chunk.content))
-            full_text = "".join(chunks)
-        else:
-            response = await model.ainvoke(messages, config=config)
-            full_text = str(response.content)
+    max_parse_retries = settings.llm_max_retries
+    last_exc: Exception | None = None
 
-    return _parse_structured_response(full_text, output_type)
+    for attempt in range(1 + max_parse_retries):
+        async with _llm_semaphore:
+            logger.debug(
+                "llm_semaphore_acquired",
+                output_type=output_type.__name__,
+                tier=str(model_tier),
+                streaming=stream_enabled,
+                attempt=attempt + 1,
+            )
+            if stream_enabled:
+                # Stream tokens for real-time display; accumulate full text.
+                chunks: list[str] = []
+                async for chunk in model.astream(messages, config=config):
+                    chunks.append(str(chunk.content))
+                full_text = "".join(chunks)
+            else:
+                response = await model.ainvoke(messages, config=config)
+                full_text = str(response.content)
+
+        try:
+            return _parse_structured_response(full_text, output_type)
+        except ValueError as exc:
+            last_exc = exc
+            if attempt < max_parse_retries:
+                logger.warning(
+                    "structured_output_retry",
+                    output_type=output_type.__name__,
+                    attempt=attempt + 1,
+                    max_retries=max_parse_retries,
+                    error=str(exc)[:200],
+                )
+                # Continue to next attempt — the LLM may produce valid JSON on retry.
+            else:
+                raise
+
+    # Should be unreachable, but satisfy type checker.
+    assert last_exc is not None
+    raise last_exc

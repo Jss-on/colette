@@ -7,7 +7,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from pydantic import BaseModel, Field
 
-from colette.llm.structured import extract_json_block, invoke_structured
+from colette.llm.structured import (
+    _repair_truncated_json,
+    extract_json_block,
+    invoke_structured,
+)
 
 # ── extract_json_block ──────────────────────────────────────────────────
 
@@ -110,3 +114,76 @@ class TestInvokeStructured:
                 user_content="Test input",
                 output_type=SimpleModel,
             )
+
+    @pytest.mark.asyncio
+    async def test_retries_on_parse_failure_then_succeeds(self) -> None:
+        """Second LLM call returns valid JSON after first returns truncated."""
+        bad_response = MagicMock()
+        bad_response.content = '{"name": "trunc'  # truncated, unrepairable for SimpleModel
+
+        good_response = MagicMock()
+        good_response.content = '{"name": "ok", "count": 1}'
+
+        mock_model = AsyncMock()
+        mock_model.ainvoke = AsyncMock(side_effect=[bad_response, good_response])
+
+        with patch(
+            "colette.llm.structured.create_chat_model_for_tier",
+            return_value=mock_model,
+        ):
+            result = await invoke_structured(
+                system_prompt="Test",
+                user_content="Test input",
+                output_type=SimpleModel,
+            )
+
+        assert result.name == "ok"
+        assert result.count == 1
+
+    @pytest.mark.asyncio
+    async def test_repairs_truncated_json(self) -> None:
+        """Truncated JSON with missing closing braces gets repaired."""
+        mock_response = MagicMock()
+        # Simulate truncated output: missing closing brace
+        mock_response.content = '{"name": "repaired", "count": 7'
+
+        mock_model = AsyncMock()
+        mock_model.ainvoke = AsyncMock(return_value=mock_response)
+
+        with patch(
+            "colette.llm.structured.create_chat_model_for_tier",
+            return_value=mock_model,
+        ):
+            result = await invoke_structured(
+                system_prompt="Test",
+                user_content="Test input",
+                output_type=SimpleModel,
+            )
+
+        assert result.name == "repaired"
+        assert result.count == 7
+
+
+# ── _repair_truncated_json ─────────────────────────────────────────────
+
+
+class TestRepairTruncatedJson:
+    def test_closes_missing_brace(self) -> None:
+        result = _repair_truncated_json('{"a": 1')
+        assert result == '{"a": 1}'
+
+    def test_closes_missing_bracket_and_brace(self) -> None:
+        result = _repair_truncated_json('{"items": [1, 2')
+        assert result == '{"items": [1, 2]}'
+
+    def test_removes_trailing_comma(self) -> None:
+        result = _repair_truncated_json('{"items": [1, 2,')
+        assert result == '{"items": [1, 2]}'
+
+    def test_closes_truncated_string(self) -> None:
+        result = _repair_truncated_json('{"name": "hello')
+        assert result == '{"name": "hello"}'
+
+    def test_valid_json_unchanged(self) -> None:
+        valid = '{"a": 1}'
+        assert _repair_truncated_json(valid) == valid
