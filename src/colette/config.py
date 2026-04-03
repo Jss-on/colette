@@ -23,7 +23,8 @@ class Settings(BaseSettings):
 
     # ── LLM — fallback chains (FR-ORC-014) ──────────────────────────
     # Defaults to empty — set these only if you have API keys for the
-    # fallback providers.  E.g.: COLETTE_PLANNING_FALLBACK_MODELS='["gpt-5.4","gemini/gemini-2.5-pro"]'
+    # fallback providers.  E.g.:
+    # COLETTE_PLANNING_FALLBACK_MODELS='["gpt-5.4","gemini/gemini-2.5-pro"]'
     planning_fallback_models: list[str] = Field(
         default_factory=list,
         description="Fallback chain for planning tier: tried in order on failure.",

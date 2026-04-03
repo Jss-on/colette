@@ -273,7 +273,11 @@ async def supervise_testing(
         test_context = _format_test_context(unit, integration)
         security = await run_security_scanner(impl_context, test_context, settings=settings)
     except Exception as exc:
-        logger.warning("security_scanner.failed", error_type=type(exc).__name__, error=str(exc)[:200])
+        logger.warning(
+            "security_scanner.failed",
+            error_type=type(exc).__name__,
+            error=str(exc)[:200],
+        )
 
     handoff = assemble_handoff(project_id, unit, integration, security)
 

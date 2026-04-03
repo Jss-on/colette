@@ -37,9 +37,15 @@ class ModelRegistry:
         validation: Model chain for validation-tier agents (scanners, validators).
     """
 
-    planning: ModelChain = field(default_factory=lambda: ModelChain("anthropic/claude-sonnet-4-6"))
-    execution: ModelChain = field(default_factory=lambda: ModelChain("anthropic/claude-sonnet-4-6"))
-    validation: ModelChain = field(default_factory=lambda: ModelChain("anthropic/claude-haiku-4-5"))
+    planning: ModelChain = field(
+        default_factory=lambda: ModelChain("anthropic/claude-sonnet-4-6"),
+    )
+    execution: ModelChain = field(
+        default_factory=lambda: ModelChain("anthropic/claude-sonnet-4-6"),
+    )
+    validation: ModelChain = field(
+        default_factory=lambda: ModelChain("anthropic/claude-haiku-4-5"),
+    )
 
     @classmethod
     def from_settings(cls, settings: Settings) -> ModelRegistry:
