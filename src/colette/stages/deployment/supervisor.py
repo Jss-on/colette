@@ -174,6 +174,8 @@ async def supervise_deployment(
 
     handoff = assemble_handoff(project_id, testing_handoff, cicd, infra)
 
+    all_deploy_files = [*cicd.pipeline_files, *infra.files]
+
     logger.info(
         "deployment_supervisor.complete",
         project_id=project_id,
@@ -182,4 +184,4 @@ async def supervise_deployment(
         images=len(handoff.docker_images),
         gate_passed=handoff.quality_gate_passed,
     )
-    return handoff
+    return handoff, all_deploy_files

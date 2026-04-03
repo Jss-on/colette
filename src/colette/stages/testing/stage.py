@@ -35,7 +35,7 @@ async def run_stage(state: dict[str, Any]) -> dict[str, Any]:
         impl_handoff = ImplementationToTestingHandoff.model_validate(impl_handoff_data)
 
         settings = Settings()
-        handoff = await supervise_testing(
+        handoff, test_files = await supervise_testing(
             project_id=project_id,
             impl_handoff=impl_handoff,
             settings=settings,
@@ -44,6 +44,9 @@ async def run_stage(state: dict[str, Any]) -> dict[str, Any]:
         logger.info("stage.complete", readiness_score=handoff.deploy_readiness_score)
     finally:
         structlog.contextvars.unbind_contextvars("stage", "project_id")
+
+    existing_gen = state.get("metadata", {}).get("generated_files", {})
+    generated_files_serialized = [f.model_dump(mode="json") for f in test_files]
 
     return {
         "current_stage": StageName.TESTING.value,
@@ -54,6 +57,13 @@ async def run_stage(state: dict[str, Any]) -> dict[str, Any]:
         "handoffs": {
             **state.get("handoffs", {}),
             StageName.TESTING.value: handoff.to_dict(),
+        },
+        "metadata": {
+            **state.get("metadata", {}),
+            "generated_files": {
+                **existing_gen,
+                StageName.TESTING.value: generated_files_serialized,
+            },
         },
         "progress_events": [
             {

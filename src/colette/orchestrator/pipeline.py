@@ -109,17 +109,25 @@ def _summarize_handoff_for_review(gate_name: str, state: dict[str, Any]) -> dict
 
     elif stage == "design":
         summary["tech_stack"] = handoff.get("tech_stack", {})
-        summary["endpoints"] = handoff.get("endpoints", [])  # full EndpointSpec dicts
-        summary["db_entities"] = handoff.get("db_entities", [])  # full EntitySpec dicts
-        summary["ui_components"] = handoff.get("ui_components", [])  # full ComponentSpec dicts
-        summary["adrs"] = handoff.get("adrs", [])  # full ADRRecord dicts
-        summary["architecture_preview"] = handoff.get("architecture_summary", "")[:2000]
+        summary["endpoints"] = handoff.get("endpoints", [])
+        summary["db_entities"] = handoff.get("db_entities", [])
+        summary["ui_components"] = handoff.get("ui_components", [])
+        summary["adrs"] = handoff.get("adrs", [])
+        # Full document artifacts for review
+        summary["openapi_spec"] = handoff.get("openapi_spec", "")
+        summary["architecture_summary"] = handoff.get("architecture_summary", "")
+        summary["security_design"] = handoff.get("security_design", "")
 
     elif stage == "implementation":
-        files = handoff.get("files", [])
-        summary["files"] = files[:50]  # full FileDiff dicts
+        files = handoff.get("files_changed", handoff.get("files", []))
+        summary["files"] = files[:50]
         summary["file_count"] = len(files)
         summary["packages"] = handoff.get("packages", [])
+
+    # ── Attach generated file contents from state metadata ───────────
+    generated = state.get("metadata", {}).get("generated_files", {}).get(stage, [])
+    if generated:
+        summary["generated_files"] = generated
 
     elif stage == "testing":
         summary["test_files"] = handoff.get("test_files", [])[:30]

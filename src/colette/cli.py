@@ -179,6 +179,11 @@ def _handle_interactive_approval(
         if data_key is not None:
             target_console.print()
             target_console.print(render_detail_view(data_key, summary))  # type: ignore[arg-type]
+
+            # Sub-menu for source code files — lets user browse individual files
+            if data_key == "generated_files":
+                _browse_source_files(summary.get("generated_files", []), target_console)  # type: ignore[arg-type]
+
             target_console.print()
             target_console.print(build_review_menu(summary))  # type: ignore[arg-type]
             target_console.print()
@@ -187,6 +192,44 @@ def _handle_interactive_approval(
         target_console.print(
             "[dim]Enter a number to inspect, [A] to approve, or [R] to reject.[/dim]"
         )
+
+
+def _browse_source_files(
+    files: list[dict[str, object]],
+    target_console: Console,
+) -> None:
+    """Interactive sub-menu to browse individual source code files."""
+    from colette.cli_ui import render_source_file
+
+    if not files:
+        return
+
+    target_console.print(
+        "\n[dim]Enter a file number to view, or [B]ack to return.[/dim]"
+    )
+
+    while True:
+        file_choice = click.prompt(
+            "File #", type=str, default="B",
+        ).strip().upper()
+
+        if file_choice in ("B", "BACK", ""):
+            return
+
+        try:
+            idx = int(file_choice) - 1
+        except ValueError:
+            target_console.print("[dim]Enter a file number or B to go back.[/dim]")
+            continue
+
+        if 0 <= idx < len(files):
+            target_console.print()
+            target_console.print(render_source_file(files[idx]))  # type: ignore[arg-type]
+            target_console.print(
+                "\n[dim]Enter another file number, or [B]ack.[/dim]"
+            )
+        else:
+            target_console.print(f"[dim]Valid range: 1-{len(files)}[/dim]")
 
 
 def _stream_progress(

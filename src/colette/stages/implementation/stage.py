@@ -35,15 +35,22 @@ async def run_stage(state: dict[str, Any]) -> dict[str, Any]:
         design_handoff = DesignToImplementationHandoff.model_validate(design_handoff_data)
 
         settings = Settings()
-        handoff = await supervise_implementation(
+        result = await supervise_implementation(
             project_id=project_id,
             design_handoff=design_handoff,
             settings=settings,
         )
 
-        logger.info("stage.complete", files=len(handoff.files_changed))
+        logger.info("stage.complete", files=len(result.handoff.files_changed))
     finally:
         structlog.contextvars.unbind_contextvars("stage", "project_id")
+
+    # Persist generated file contents in metadata so gate reviews can
+    # show actual source code to the user.
+    existing_gen = state.get("metadata", {}).get("generated_files", {})
+    generated_files_serialized = [
+        f.model_dump(mode="json") for f in result.generated_files
+    ]
 
     return {
         "current_stage": StageName.IMPLEMENTATION.value,
@@ -53,7 +60,14 @@ async def run_stage(state: dict[str, Any]) -> dict[str, Any]:
         },
         "handoffs": {
             **state.get("handoffs", {}),
-            StageName.IMPLEMENTATION.value: handoff.to_dict(),
+            StageName.IMPLEMENTATION.value: result.handoff.to_dict(),
+        },
+        "metadata": {
+            **state.get("metadata", {}),
+            "generated_files": {
+                **existing_gen,
+                StageName.IMPLEMENTATION.value: generated_files_serialized,
+            },
         },
         "progress_events": [
             {

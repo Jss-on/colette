@@ -364,7 +364,7 @@ class TestSuperviseTestingStage:
                 return_value=_make_security_result(),
             ),
         ):
-            handoff = await supervise_testing(
+            handoff, test_files = await supervise_testing(
                 "proj-1",
                 impl,
                 settings=settings,  # type: ignore[arg-type]
@@ -373,6 +373,7 @@ class TestSuperviseTestingStage:
         assert handoff.project_id == "proj-1"
         assert handoff.quality_gate_passed is True
         assert handoff.deploy_readiness_score > 0
+        assert isinstance(test_files, list)
 
     @pytest.mark.asyncio
     async def test_continues_when_security_scanner_fails(self, settings: object) -> None:
@@ -395,7 +396,7 @@ class TestSuperviseTestingStage:
                 side_effect=RuntimeError("LLM timeout"),
             ),
         ):
-            handoff = await supervise_testing(
+            handoff, test_files = await supervise_testing(
                 "proj-1",
                 impl,
                 settings=settings,  # type: ignore[arg-type]
@@ -404,6 +405,7 @@ class TestSuperviseTestingStage:
         # Security scanner is SHOULD — failure doesn't block
         assert handoff.quality_gate_passed is True
         assert handoff.security_findings == []
+        assert isinstance(test_files, list)
 
 
 # ── run_stage ─────────────────────────────────────────────────────────

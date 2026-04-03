@@ -196,21 +196,26 @@ def _review_menu_items(stage: str) -> list[tuple[str, str]]:
             ("ui_components", "UI Components"),
             ("tech_stack", "Tech Stack"),
             ("adrs", "Architecture Decisions"),
-            ("architecture_preview", "Architecture Summary"),
+            ("openapi_spec", "OpenAPI Spec"),
+            ("architecture_summary", "Architecture Document"),
+            ("security_design", "Security Design"),
         ]
     if stage == "implementation":
         return [
-            ("files", "Generated Files"),
+            ("generated_files", "Source Code Files"),
+            ("files", "File Change Summary"),
             ("packages", "Packages"),
         ]
     if stage == "testing":
         return [
-            ("test_files", "Test Files"),
+            ("generated_files", "Test Source Files"),
+            ("test_files", "Test Results Summary"),
             ("security_findings", "Security Findings"),
         ]
     if stage == "deployment":
         return [
-            ("deployment_configs", "Deployment Configs"),
+            ("generated_files", "Deploy Config Files"),
+            ("deployment_configs", "Deployment Targets"),
         ]
     return []
 
@@ -246,8 +251,6 @@ def render_detail_view(key: str, summary: dict[str, Any]) -> Panel | Table:
         return _render_adrs_panel(data or [])
     if key == "tech_stack":
         return _render_tech_stack_table(data or {})
-    if key == "architecture_preview":
-        return Panel(escape(str(data or "")), title="Architecture Summary", border_style="blue")
     if key == "user_stories":
         return _render_user_stories_table(data or [])
     if key == "nfrs":
@@ -264,8 +267,14 @@ def render_detail_view(key: str, summary: dict[str, Any]) -> Panel | Table:
         return _render_files_table(data or [])
     if key == "packages":
         return _render_simple_list(label, data or [])
+    # Document artifacts (full text)
+    if key in ("openapi_spec", "architecture_summary", "security_design"):
+        return _render_document(label, str(data or ""), key)
+    # Source code files (GeneratedFile dicts with content)
+    if key == "generated_files":
+        return _render_generated_files_index(data or [])
 
-    return Panel(str(data), title=label, border_style="blue")
+    return Panel(escape(str(data or "")), title=label, border_style="blue")
 
 
 # ── Detail renderers ─────────────────────────────────────────────────
@@ -441,6 +450,93 @@ def _render_security_findings_table(findings: list[dict[str, Any]]) -> Table:
 def _render_simple_list(title: str, items: list[Any]) -> Panel:
     lines = [f"  - {escape(str(item))}" for item in items]
     return Panel("\n".join(lines) or "[dim]None[/dim]", title=title, border_style="blue")
+
+
+# ── Document artifact viewers ────────────────────────────────────────
+
+
+def _render_document(title: str, text: str, key: str) -> Panel:
+    """Render a full text artifact with optional syntax highlighting."""
+    from rich.syntax import Syntax
+
+    if not text.strip():
+        return Panel("[dim]Empty[/dim]", title=title, border_style="blue")
+
+    if key == "openapi_spec":
+        try:
+            content: Any = Syntax(text, "json", theme="monokai", word_wrap=True)
+        except Exception:
+            content = escape(text)
+    else:
+        content = escape(text)
+
+    return Panel(content, title=title, border_style="blue")
+
+
+# ── Generated source code viewers ────────────────────────────────────
+
+
+def _render_generated_files_index(files: list[dict[str, Any]]) -> Table:
+    """Render a navigable index of generated source code files."""
+    table = Table(title="Source Code Files", show_lines=True)
+    table.add_column("#", style="dim", width=3)
+    table.add_column("Path", style="green")
+    table.add_column("Language", style="cyan", width=12)
+    table.add_column("Lines", justify="right", width=6)
+    table.add_column("Preview", style="dim")
+
+    for i, f in enumerate(files, 1):
+        content = f.get("content", "")
+        line_count = content.count("\n") + 1 if content else 0
+        first_line = content.split("\n", 1)[0][:60] if content else ""
+        table.add_row(
+            str(i),
+            escape(f.get("path", "?")),
+            f.get("language", ""),
+            str(line_count),
+            escape(first_line),
+        )
+
+    return table
+
+
+def render_source_file(file_data: dict[str, Any]) -> Panel:
+    """Render a single source code file with syntax highlighting."""
+    from rich.syntax import Syntax
+
+    path = file_data.get("path", "unknown")
+    content = file_data.get("content", "")
+    lang = file_data.get("language", "")
+
+    if not content.strip():
+        return Panel("[dim]Empty file[/dim]", title=path, border_style="green")
+
+    # Map common language names to Pygments lexer names.
+    lexer_map = {
+        "typescript": "typescript",
+        "javascript": "javascript",
+        "python": "python",
+        "sql": "sql",
+        "yaml": "yaml",
+        "json": "json",
+        "html": "html",
+        "css": "css",
+        "dockerfile": "dockerfile",
+        "bash": "bash",
+        "shell": "bash",
+        "markdown": "markdown",
+    }
+    lexer = lexer_map.get(lang.lower(), lang.lower()) or "text"
+
+    try:
+        syntax = Syntax(
+            content, lexer, theme="monokai",
+            line_numbers=True, word_wrap=True,
+        )
+    except Exception:
+        syntax = Syntax(content, "text", line_numbers=True, word_wrap=True)
+
+    return Panel(syntax, title=path, border_style="green")
 
 
 def render_pipeline_summary(data: dict[str, Any]) -> Panel:

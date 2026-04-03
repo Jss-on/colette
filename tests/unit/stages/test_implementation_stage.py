@@ -425,15 +425,16 @@ class TestSuperviseImplementation:
                 return_value=_make_review_result(),
             ),
         ):
-            handoff = await supervise_implementation(
+            result = await supervise_implementation(
                 "proj-1",
                 design,
                 settings=settings,  # type: ignore[arg-type]
             )
 
-        assert handoff.project_id == "proj-1"
-        assert len(handoff.files_changed) == 6
-        assert handoff.quality_gate_passed is True
+        assert result.handoff.project_id == "proj-1"
+        assert len(result.handoff.files_changed) == 6
+        assert result.handoff.quality_gate_passed is True
+        assert len(result.generated_files) == 6
 
     @pytest.mark.asyncio
     async def test_handles_cross_review_failure(self, settings: object) -> None:
@@ -461,15 +462,15 @@ class TestSuperviseImplementation:
                 side_effect=RuntimeError("LLM timeout"),
             ),
         ):
-            handoff = await supervise_implementation(
+            result = await supervise_implementation(
                 "proj-1",
                 design,
                 settings=settings,  # type: ignore[arg-type]
             )
 
         # Cross-review is SHOULD, so failure doesn't block
-        assert handoff.quality_gate_passed is True
-        assert handoff.test_hints == []
+        assert result.handoff.quality_gate_passed is True
+        assert result.handoff.test_hints == []
 
 
 # ── run_stage ───────────────────────────────────────────────────────────

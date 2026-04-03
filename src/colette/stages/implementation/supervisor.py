@@ -257,16 +257,32 @@ def assemble_handoff(
 # ── Main supervisor ─────────────────────────────────────────────────────
 
 
+class ImplementationStageResult:
+    """Bundle the handoff with generated file contents for state persistence."""
+
+    __slots__ = ("generated_files", "handoff")
+
+    def __init__(
+        self,
+        handoff: ImplementationToTestingHandoff,
+        generated_files: list[GeneratedFile],
+    ) -> None:
+        self.handoff = handoff
+        self.generated_files = generated_files
+
+
 async def supervise_implementation(
     project_id: str,
     design_handoff: DesignToImplementationHandoff,
     *,
     settings: Settings,
-) -> ImplementationToTestingHandoff:
+) -> ImplementationStageResult:
     """Orchestrate the Implementation stage (FR-IMP-*).
 
     Runs frontend, backend, and database agents, performs cross-review,
-    then assembles the handoff to the Testing stage.
+    then assembles the handoff to the Testing stage.  Returns both the
+    handoff and the full ``GeneratedFile`` list so the stage runner can
+    persist file contents for human review.
     """
     logger.info("implementation_supervisor.start", project_id=project_id)
 
@@ -295,6 +311,8 @@ async def supervise_implementation(
         review,
     )
 
+    all_files = [*frontend.files, *backend.files, *database.files]
+
     logger.info(
         "implementation_supervisor.complete",
         project_id=project_id,
@@ -302,4 +320,4 @@ async def supervise_implementation(
         endpoints=len(handoff.implemented_endpoints),
         gate_passed=handoff.quality_gate_passed,
     )
-    return handoff
+    return ImplementationStageResult(handoff=handoff, generated_files=all_files)

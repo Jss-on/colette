@@ -277,6 +277,8 @@ async def supervise_testing(
 
     handoff = assemble_handoff(project_id, unit, integration, security)
 
+    all_test_files = [*unit.test_files, *integration.test_files]
+
     logger.info(
         "testing_supervisor.complete",
         project_id=project_id,
@@ -284,4 +286,4 @@ async def supervise_testing(
         readiness_score=handoff.deploy_readiness_score,
         gate_passed=handoff.quality_gate_passed,
     )
-    return handoff
+    return handoff, all_test_files

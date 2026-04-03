@@ -279,7 +279,7 @@ class TestSuperviseDeployment:
                 return_value=_make_infra_result(),
             ),
         ):
-            handoff = await supervise_deployment(
+            handoff, deploy_files = await supervise_deployment(
                 "proj-1",
                 testing,
                 settings=settings,  # type: ignore[arg-type]
@@ -288,6 +288,7 @@ class TestSuperviseDeployment:
         assert handoff.project_id == "proj-1"
         assert handoff.quality_gate_passed is True
         assert len(handoff.targets) >= 1
+        assert isinstance(deploy_files, list)
 
     @pytest.mark.asyncio
     async def test_both_agents_required(self, settings: object) -> None:
