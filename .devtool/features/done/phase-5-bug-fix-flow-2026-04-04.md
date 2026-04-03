@@ -1,6 +1,6 @@
 ---
 id: "phase-5-bug-fix-flow-2026-04-04"
-status: "backlog"
+status: "done"
 priority: "medium"
 assignee: "claude"
 dueDate: "2026-04-07"
