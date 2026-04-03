@@ -109,6 +109,9 @@ validation error (422), rate limited (429).
    - Test seed data loading.
    - Test cascading deletes and soft-delete behavior.
 
+IMPORTANT: Set `contract_tests_passed` to `true` when `contract_deviations` is \
+empty. Only set to `false` when you list specific deviations.
+
 Output each test file as a JSON object with path and content. \
 List all endpoints tested and any contract deviations found.\
 """
@@ -155,6 +158,9 @@ parameterized queries
    - Identify color contrast issues where detectable.
 
 Rate each finding with severity: CRITICAL, HIGH, MEDIUM, LOW, or INFO.
+For each finding, set a numeric `confidence` field (0.0-1.0) indicating \
+your certainty this is a real, exploitable issue in the provided code. \
+Findings below 0.8 confidence will be automatically filtered.
 
 ## Self-Critique (Reflexion)
 

@@ -15,6 +15,7 @@ from colette.schemas.common import (
     StageName,
 )
 from colette.schemas.implementation import ImplementationToTestingHandoff
+from colette.stages.testing.finding_filter import deduplicate_findings, filter_by_confidence
 from colette.stages.testing.integration_tester import IntegrationTestResult
 from colette.stages.testing.security_scanner import SecurityScanResult
 from colette.stages.testing.stage import run_stage
@@ -22,6 +23,7 @@ from colette.stages.testing.supervisor import (
     _collect_blocking_issues,
     _compute_coverage,
     _compute_readiness_score,
+    _derive_contract_passed,
     _evaluate_quality,
     _implementation_to_context,
     assemble_handoff,
@@ -263,8 +265,27 @@ class TestEvaluateQuality:
             is False
         )
 
+    def test_fails_high_security(self) -> None:
+        security = SecurityScanResult(
+            findings=[
+                SecurityFinding(
+                    id="SEC-H1",
+                    severity=Severity.HIGH,
+                    category="missing-rate-limit",
+                    description="No rate limiting on login endpoint.",
+                ),
+            ],
+        )
+        assert (
+            _evaluate_quality(_make_unit_result(), _make_integration_result(), security) is False
+        )
+
     def test_fails_contract_tests(self) -> None:
-        integration = IntegrationTestResult(total_tests=5, contract_tests_passed=False)
+        integration = IntegrationTestResult(
+            total_tests=5,
+            contract_tests_passed=False,
+            contract_deviations=["Missing field: id"],
+        )
         assert _evaluate_quality(_make_unit_result(), integration, None) is False
 
     def test_passes_without_security_scan(self) -> None:
@@ -459,3 +480,97 @@ class TestRunStage:
         handoff = result["handoffs"]["testing"]
         assert handoff["source_stage"] == "testing"
         assert len(result["progress_events"]) == 1
+
+
+# ── _derive_contract_passed ──────────────────────────────────────────
+
+
+class TestDeriveContractPassed:
+    def test_true_when_explicitly_passed(self) -> None:
+        integration = IntegrationTestResult(total_tests=5, contract_tests_passed=True)
+        assert _derive_contract_passed(integration) is True
+
+    def test_true_when_false_but_no_deviations(self) -> None:
+        integration = IntegrationTestResult(
+            total_tests=5, contract_tests_passed=False, contract_deviations=[]
+        )
+        assert _derive_contract_passed(integration) is True
+
+    def test_false_when_deviations_exist(self) -> None:
+        integration = IntegrationTestResult(
+            total_tests=5,
+            contract_tests_passed=False,
+            contract_deviations=["Missing field: id"],
+        )
+        assert _derive_contract_passed(integration) is False
+
+
+# ── filter_by_confidence ─────────────────────────────────────────────
+
+
+class TestFilterByConfidence:
+    def test_keeps_high_confidence(self) -> None:
+        findings = [
+            SecurityFinding(
+                id="F1", severity=Severity.HIGH, category="xss", description="d1", confidence=0.95
+            ),
+            SecurityFinding(
+                id="F2",
+                severity=Severity.MEDIUM,
+                category="info",
+                description="d2",
+                confidence=0.5,
+            ),
+        ]
+        result = filter_by_confidence(findings)
+        assert len(result) == 1
+        assert result[0].id == "F1"
+
+    def test_default_keeps_all_unset(self) -> None:
+        findings = [
+            SecurityFinding(id="F1", severity=Severity.LOW, category="c", description="d"),
+        ]
+        result = filter_by_confidence(findings)
+        assert len(result) == 1  # default confidence=1.0
+
+    def test_empty_input(self) -> None:
+        assert filter_by_confidence([]) == []
+
+
+# ── deduplicate_findings ─────────────────────────────────────────────
+
+
+class TestDeduplicateFindings:
+    def test_merges_same_category_severity(self) -> None:
+        findings = [
+            SecurityFinding(
+                id="F1", severity=Severity.HIGH, category="xss", description="d1", location="a.py"
+            ),
+            SecurityFinding(
+                id="F2", severity=Severity.HIGH, category="xss", description="d2", location="b.py"
+            ),
+        ]
+        result = deduplicate_findings(findings)
+        assert len(result) == 1
+        assert "a.py" in result[0].location
+        assert "b.py" in result[0].location
+
+    def test_different_severity_not_merged(self) -> None:
+        findings = [
+            SecurityFinding(id="F1", severity=Severity.HIGH, category="xss", description="d1"),
+            SecurityFinding(id="F2", severity=Severity.MEDIUM, category="xss", description="d2"),
+        ]
+        result = deduplicate_findings(findings)
+        assert len(result) == 2
+
+
+# ── assemble_handoff contract override ───────────────────────────────
+
+
+class TestAssembleHandoffContractOverride:
+    def test_contract_override_when_no_deviations(self) -> None:
+        integration = IntegrationTestResult(
+            total_tests=5, contract_tests_passed=False, contract_deviations=[]
+        )
+        handoff = assemble_handoff("proj-1", _make_unit_result(), integration, None)
+        assert handoff.contract_tests_passed is True

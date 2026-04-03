@@ -183,6 +183,12 @@ class SecurityFinding(BaseModel):
     description: str
     location: str = ""
     recommendation: str = ""
+    confidence: float = Field(
+        default=1.0,
+        ge=0.0,
+        le=1.0,
+        description="Scanner confidence 0-1. Findings below 0.8 are filtered.",
+    )
 
 
 class SuiteResult(BaseModel):

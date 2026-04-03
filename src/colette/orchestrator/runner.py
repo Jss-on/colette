@@ -135,7 +135,7 @@ class PipelineRunner:
         self._pg_pool: Any | None = None  # ConnectionPool, set by asetup()
 
         # Build the compiled pipeline graph once (re-built after asetup if needed).
-        self._gate_registry = create_default_registry()
+        self._gate_registry = create_default_registry(self._settings)
         self._graph = build_pipeline(
             self._gate_registry,
             self._settings,

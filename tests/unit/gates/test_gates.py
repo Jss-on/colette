@@ -192,6 +192,30 @@ class TestTestingGate:
         result = await TestingGate().evaluate(state)
         assert result.passed is False
 
+    @pytest.mark.asyncio
+    async def test_configurable_thresholds_relax_gate(self) -> None:
+        """A settings object with relaxed thresholds should let borderline data pass."""
+        from unittest.mock import MagicMock
+
+        settings = MagicMock()
+        settings.gate_min_line_coverage = 50.0
+        settings.gate_min_branch_coverage = 40.0
+        settings.gate_max_blocking_security_findings = 2
+        settings.gate_min_deploy_readiness = 60
+
+        state = _state_with_handoff(
+            "testing",
+            {
+                "overall_line_coverage": 55.0,
+                "overall_branch_coverage": 45.0,
+                "security_findings": [{"severity": "HIGH", "id": "H1"}],
+                "contract_tests_passed": True,
+                "deploy_readiness_score": 65,
+            },
+        )
+        result = await TestingGate(settings=settings).evaluate(state)
+        assert result.passed is True
+
 
 class TestStagingGate:
     @pytest.mark.asyncio

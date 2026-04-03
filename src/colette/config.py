@@ -111,6 +111,24 @@ class Settings(BaseSettings):
     cold_storage_bucket: str = "colette-cold"
     memory_decay_enabled: bool = False
 
+    # ── Quality gate thresholds (Section 12) ──────────────────────────
+    gate_min_line_coverage: float = Field(
+        default=80.0,
+        description="Testing gate: minimum line coverage %.",
+    )
+    gate_min_branch_coverage: float = Field(
+        default=70.0,
+        description="Testing gate: minimum branch coverage %.",
+    )
+    gate_max_blocking_security_findings: int = Field(
+        default=0,
+        description="Testing gate: max HIGH/CRITICAL findings allowed.",
+    )
+    gate_min_deploy_readiness: int = Field(
+        default=75,
+        description="Testing gate: minimum deploy readiness score.",
+    )
+
     # ── Implementation verify-and-fix (FR-IMP-012) ────────────────────
     impl_verify_max_retries: int = Field(
         default=3,

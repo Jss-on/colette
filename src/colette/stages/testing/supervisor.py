@@ -10,6 +10,7 @@ import structlog
 from colette.schemas.common import GeneratedFile, SecurityFinding, Severity, SuiteResult
 from colette.schemas.implementation import ImplementationToTestingHandoff
 from colette.schemas.testing import TestingToDeploymentHandoff
+from colette.stages.testing.finding_filter import deduplicate_findings, filter_by_confidence
 from colette.stages.testing.integration_tester import (
     IntegrationTestResult,
     run_integration_tester,
@@ -125,12 +126,27 @@ def _compute_readiness_score(
         security_score = max(0.0, 20.0 - critical * 10.0 - high * 5.0)
 
     # Contract conformance component (10%)
-    contract_score = 10.0 if integration.contract_tests_passed else 0.0
+    contract_score = 10.0 if _derive_contract_passed(integration) else 0.0
 
     return max(0, min(100, int(coverage_score + test_score + security_score + contract_score)))
 
 
 # ── Quality evaluation ────────────────────────────────────────────────
+
+
+def _derive_contract_passed(integration: IntegrationTestResult) -> bool:
+    """Derive contract pass status, falling back to deviations list.
+
+    The LLM sometimes leaves ``contract_tests_passed`` as its default
+    (``False``) even when zero deviations are reported.  Use the
+    deviations list as a deterministic fallback.
+    """
+    if integration.contract_tests_passed:
+        return True
+    if len(integration.contract_deviations) == 0:
+        logger.info("supervisor.contract_override", reason="no deviations reported")
+        return True
+    return False
 
 
 def _evaluate_quality(
@@ -143,7 +159,7 @@ def _evaluate_quality(
     Passes when:
     - Line coverage >= 80% (FR-TST-002)
     - Branch coverage >= 70% (FR-TST-002)
-    - No CRITICAL security findings
+    - No HIGH or CRITICAL security findings
     - Contract tests passed
     """
     line_cov, branch_cov = _compute_coverage(unit, integration)
@@ -155,10 +171,10 @@ def _evaluate_quality(
 
     if security:
         all_findings = [*security.findings, *security.dependency_vulnerabilities]
-        if any(f.severity == Severity.CRITICAL for f in all_findings):
+        if any(f.severity in (Severity.CRITICAL, Severity.HIGH) for f in all_findings):
             return False
 
-    return integration.contract_tests_passed
+    return _derive_contract_passed(integration)
 
 
 def _collect_blocking_issues(
@@ -174,14 +190,16 @@ def _collect_blocking_issues(
         issues.append(f"Line coverage {line_cov:.1f}% below 80% threshold")
     if branch_cov < 70.0:
         issues.append(f"Branch coverage {branch_cov:.1f}% below 70% threshold")
-    if not integration.contract_tests_passed:
+    if not _derive_contract_passed(integration):
         issues.append("Contract tests failed — API responses deviate from OpenAPI spec")
 
     if security:
         all_findings = [*security.findings, *security.dependency_vulnerabilities]
-        critical = [f for f in all_findings if f.severity == Severity.CRITICAL]
-        for finding in critical:
-            issues.append(f"CRITICAL: {finding.category} — {finding.description}")
+        for finding in all_findings:
+            if finding.severity == Severity.CRITICAL:
+                issues.append(f"CRITICAL: {finding.category} — {finding.description}")
+            elif finding.severity == Severity.HIGH:
+                issues.append(f"HIGH: {finding.category} — {finding.description}")
 
     return issues
 
@@ -190,10 +208,12 @@ def _collect_blocking_issues(
 
 
 def _map_security_findings(security: SecurityScanResult | None) -> list[SecurityFinding]:
-    """Collect all security findings from scanner result."""
+    """Collect, filter, and deduplicate security findings from scanner result."""
     if not security:
         return []
-    return [*security.findings, *security.dependency_vulnerabilities]
+    raw = [*security.findings, *security.dependency_vulnerabilities]
+    filtered = filter_by_confidence(raw)
+    return deduplicate_findings(filtered)
 
 
 def assemble_handoff(
@@ -233,7 +253,7 @@ def assemble_handoff(
         overall_branch_coverage=branch_cov,
         security_findings=all_security,
         dependency_vulnerabilities=dep_vulns,
-        contract_tests_passed=integration.contract_tests_passed,
+        contract_tests_passed=_derive_contract_passed(integration),
         contract_deviations=list(integration.contract_deviations),
         deploy_readiness_score=readiness,
         blocking_issues=blocking,
