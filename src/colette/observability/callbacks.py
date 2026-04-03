@@ -60,7 +60,7 @@ def _emit_agent_event(
     )
 
 
-def _extract_input_preview(prompts: list[str], max_len: int = 120) -> str:
+def _extract_input_preview(prompts: list[str], max_len: int = 300) -> str:
     """Extract a meaningful preview from LLM input prompts.
 
     Looks for the user content (typically the last prompt) and returns
@@ -82,7 +82,7 @@ def _extract_input_preview(prompts: list[str], max_len: int = 120) -> str:
     return text
 
 
-def _extract_response_preview(response: LLMResult, max_len: int = 150) -> str:
+def _extract_response_preview(response: LLMResult, max_len: int = 300) -> str:
     """Extract a content preview from the LLM response.
 
     Tries to pull the ``project_overview`` field from JSON output,
@@ -151,6 +151,8 @@ class ColletteCallbackHandler(BaseCallbackHandler):
 
         self.input_tokens: int = 0
         self.output_tokens: int = 0
+        self.cache_read_tokens: int = 0
+        self.cache_creation_tokens: int = 0
 
         self.tool_call_records: list[ToolCallRecord] = []
         self._tool_start_times: dict[UUID, tuple[str, float]] = {}
@@ -178,27 +180,42 @@ class ColletteCallbackHandler(BaseCallbackHandler):
     def on_llm_end(self, response: LLMResult, **kwargs: Any) -> None:
         """Called when an LLM call completes.  Extracts token usage, emits AGENT_MESSAGE."""
         tokens = 0
+        cache_read = 0
+        cache_write = 0
         if response.llm_output and "token_usage" in response.llm_output:
             usage = response.llm_output["token_usage"]
             prompt_tokens = usage.get("prompt_tokens", 0)
             completion_tokens = usage.get("completion_tokens", 0)
+            cache_read = usage.get("cache_read_input_tokens", 0)
+            cache_write = usage.get("cache_creation_input_tokens", 0)
             self.input_tokens += prompt_tokens
             self.output_tokens += completion_tokens
+            self.cache_read_tokens += cache_read
+            self.cache_creation_tokens += cache_write
             tokens = prompt_tokens + completion_tokens
             logger.debug(
                 "llm_call_completed",
                 agent_id=self.agent_id,
                 prompt_tokens=prompt_tokens,
                 completion_tokens=completion_tokens,
+                cache_read=cache_read,
+                cache_write=cache_write,
             )
         # Extract a preview of the response content
         preview = _extract_response_preview(response)
+        detail: dict[str, Any] = {}
+        if preview:
+            detail["output_preview"] = preview
+            detail["tokens"] = tokens
+        if cache_read or cache_write:
+            detail["cache_read_tokens"] = cache_read
+            detail["cache_creation_tokens"] = cache_write
         _emit_agent_event(
             "agent_message",
             agent=self.agent_role,
             model=self.model,
             message=preview or "Response received",
-            detail={"output_preview": preview, "tokens": tokens} if preview else {},
+            detail=detail,
             tokens_used=tokens,
         )
 
@@ -277,6 +294,8 @@ class ColletteCallbackHandler(BaseCallbackHandler):
             model=self.model,
             input_tokens=self.input_tokens,
             output_tokens=self.output_tokens,
+            cache_read_tokens=self.cache_read_tokens,
+            cache_creation_tokens=self.cache_creation_tokens,
             tool_calls=tuple(self.tool_call_records),
             duration_ms=duration_ms,
             outcome=outcome,

@@ -63,11 +63,20 @@ class AgentInvocationRecord:
     model: str
     input_tokens: int
     output_tokens: int
-    tool_calls: tuple[ToolCallRecord, ...]
-    duration_ms: float
-    outcome: Outcome
+    cache_read_tokens: int = 0
+    cache_creation_tokens: int = 0
+    tool_calls: tuple[ToolCallRecord, ...] = ()
+    duration_ms: float = 0.0
+    outcome: Outcome = Outcome.SUCCESS
 
     @property
     def total_tokens(self) -> int:
         """Sum of input and output tokens."""
         return self.input_tokens + self.output_tokens
+
+    @property
+    def cache_savings_pct(self) -> float:
+        """Percentage of input tokens served from cache."""
+        if self.input_tokens == 0:
+            return 0.0
+        return (self.cache_read_tokens / self.input_tokens) * 100

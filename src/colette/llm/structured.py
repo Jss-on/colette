@@ -15,6 +15,7 @@ import structlog
 from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel
 
+from colette.llm.cache import build_cached_system_message
 from colette.llm.gateway import create_chat_model_for_tier
 from colette.schemas.agent_config import ModelTier
 from colette.tools.base import sanitize_output
@@ -151,6 +152,12 @@ async def invoke_structured[T: BaseModel](
         model=str(model_tier),
     )
 
+    # Build system message with Anthropic prompt caching when enabled.
+    if settings.prompt_caching_enabled:
+        sys_msg = build_cached_system_message(full_prompt)
+    else:
+        sys_msg = SystemMessage(content=full_prompt)
+
     async with _llm_semaphore:
         logger.debug(
             "llm_semaphore_acquired",
@@ -158,10 +165,7 @@ async def invoke_structured[T: BaseModel](
             tier=str(model_tier),
         )
         response = await model.ainvoke(
-            [
-                SystemMessage(content=full_prompt),
-                HumanMessage(content=safe_content),
-            ],
+            [sys_msg, HumanMessage(content=safe_content)],
             config={"callbacks": [callback]},
         )
 

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 
@@ -706,6 +706,73 @@ def build_conversation_feed(
     return table
 
 
+@dataclass(frozen=True)
+class StreamLogEntry:
+    """A single log line for the verbose streaming panel."""
+
+    timestamp: datetime
+    agent: str
+    event_type: str
+    message: str
+    tokens: int = 0
+    cache_read: int = 0
+    cache_write: int = 0
+
+
+_MAX_STREAM_LOG = 30
+_EVENT_STYLE: dict[str, str] = {
+    "agent_thinking": "cyan",
+    "agent_message": "green",
+    "agent_tool_call": "yellow",
+    "agent_handoff": "magenta",
+    "agent_error": "red",
+    "stage_started": "bold blue",
+    "stage_completed": "bold green",
+    "stage_failed": "bold red",
+}
+
+
+def build_streaming_log(
+    entries: tuple[StreamLogEntry, ...],
+    max_lines: int = 20,
+) -> Panel:
+    """Build a scrollable log panel showing real-time agent output."""
+    table = Table(
+        show_header=True,
+        box=None,
+        padding=(0, 1),
+        expand=True,
+    )
+    table.add_column("Time", width=10, style="dim")
+    table.add_column("Agent", width=22, no_wrap=True)
+    table.add_column("Event", width=12, no_wrap=True)
+    table.add_column("Output", ratio=1)
+
+    visible = entries[-max_lines:] if len(entries) > max_lines else entries
+    for entry in visible:
+        ts = _format_time(entry.timestamp)
+        style = _EVENT_STYLE.get(entry.event_type, "")
+        label = entry.event_type.replace("agent_", "").replace("_", " ")
+        msg = escape(entry.message[:200]) if entry.message else ""
+
+        # Show cache/token info inline
+        suffix = ""
+        if entry.tokens:
+            suffix = f" [dim]({entry.tokens:,}tok"
+            if entry.cache_read:
+                suffix += f", cache:{entry.cache_read:,}"
+            suffix += ")[/dim]"
+
+        table.add_row(
+            ts,
+            escape(entry.agent),
+            f"[{style}]{label}[/{style}]" if style else label,
+            msg + suffix,
+        )
+
+    return Panel(table, title="Agent Stream", border_style="dim")
+
+
 def _format_time(dt: datetime) -> str:
     """Format a datetime as HH:MM:SS for the conversation feed."""
     return dt.strftime("%H:%M:%S")
@@ -790,6 +857,7 @@ class PipelineProgressDisplay:
         self._presence = AgentPresenceTracker()
         self._project_id_for_presence = project_id
         self._pending_approval: dict[str, Any] | None = None
+        self._stream_log: tuple[StreamLogEntry, ...] = ()
 
     # ── Read-only properties ──────────────────────────────────────────
 
@@ -835,6 +903,23 @@ class PipelineProgressDisplay:
         """Immutably rebuild the stages tuple with one replacement."""
         updated = replace(self._stages[idx], **kwargs)
         self._stages = (*self._stages[:idx], updated, *self._stages[idx + 1 :])
+
+    def _append_log(self, event: dict[str, Any]) -> None:
+        """Append a stream log entry from an event dict."""
+        detail = event.get("detail", {})
+        entry = StreamLogEntry(
+            timestamp=datetime.now(tz=UTC),
+            agent=event.get("agent", ""),
+            event_type=event.get("event_type", ""),
+            message=event.get("message", ""),
+            tokens=event.get("tokens_used", 0) or detail.get("tokens", 0),
+            cache_read=detail.get("cache_read_tokens", 0),
+            cache_write=detail.get("cache_creation_tokens", 0),
+        )
+        log = (*self._stream_log, entry)
+        if len(log) > _MAX_STREAM_LOG:
+            log = log[len(log) - _MAX_STREAM_LOG :]
+        self._stream_log = log
 
     def process_event(self, event: dict[str, Any]) -> bool:
         """Process an SSE event dict. Returns True on terminal event."""
@@ -900,6 +985,10 @@ class PipelineProgressDisplay:
 
         elif etype == "agent_message":
             self._handle_message_event(event)
+
+        # Append to streaming log for verbose/conversation modes.
+        if etype.startswith("agent_") or etype.startswith("stage_"):
+            self._append_log(event)
 
         return False
 
@@ -969,6 +1058,11 @@ class PipelineProgressDisplay:
 
     # ── Rendering ─────────────────────────────────────────────────────
 
+    @property
+    def stream_log(self) -> tuple[StreamLogEntry, ...]:
+        """Return the stream log entries."""
+        return self._stream_log
+
     def render(self) -> Table | Panel | Group:
         """Return the current renderable based on activity mode."""
         if self.is_done:
@@ -982,9 +1076,11 @@ class PipelineProgressDisplay:
         panel = build_agent_activity_panel(agents)
         if self._activity_mode == ActivityMode.STATUS:
             return Group(progress, panel)
+        # CONVERSATION: progress + agents + streaming log
+        stream = build_streaming_log(self._stream_log)
+        if self._activity_mode == ActivityMode.CONVERSATION:
+            return Group(progress, panel, stream)
+        # VERBOSE: progress + agents + stream log + conversation feed
         entries = self._presence.get_conversation(self._project_id_for_presence)
         feed = build_conversation_feed(entries)
-        if self._activity_mode == ActivityMode.CONVERSATION:
-            return Group(progress, panel, feed)
-        # VERBOSE
-        return Group(progress, panel, feed)
+        return Group(progress, panel, stream, feed)
