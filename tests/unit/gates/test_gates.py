@@ -112,7 +112,8 @@ class TestImplementationGate:
         assert result.passed is True
 
     @pytest.mark.asyncio
-    async def test_fails_lint(self) -> None:
+    async def test_lint_advisory_still_passes(self) -> None:
+        """LLM-based verification flags are advisory — gate passes if files exist."""
         state = _state_with_handoff(
             "implementation",
             {
@@ -120,6 +121,24 @@ class TestImplementationGate:
                 "type_check_passed": True,
                 "build_passed": True,
                 "files_changed": [{"path": "app.py"}],
+                "git_ref": "main",
+            },
+        )
+        result = await ImplementationGate().evaluate(state)
+        assert result.passed is True
+        assert result.score < 1.0  # advisory flags lower the score
+        assert any("advisory" in r for r in result.failure_reasons)
+
+    @pytest.mark.asyncio
+    async def test_fails_no_files(self) -> None:
+        """Gate fails when no files were generated."""
+        state = _state_with_handoff(
+            "implementation",
+            {
+                "lint_passed": True,
+                "type_check_passed": True,
+                "build_passed": True,
+                "files_changed": [],
                 "git_ref": "main",
             },
         )

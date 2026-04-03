@@ -47,6 +47,9 @@ class Settings(BaseSettings):
     default_execution_model: str = "anthropic/claude-sonnet-4-6"
     default_validation_model: str = "anthropic/claude-haiku-4-5"
 
+    # ── LLM — reasoning model (bug-fixing / iteration) ───────────────
+    default_reasoning_model: str = "anthropic/claude-opus-4-6"
+
     # ── LLM — fallback chains (FR-ORC-014) ──────────────────────────
     # Defaults to empty — set these only if you have API keys for the
     # fallback providers.  E.g.:
@@ -54,6 +57,10 @@ class Settings(BaseSettings):
     planning_fallback_models: list[str] = Field(
         default_factory=list,
         description="Fallback chain for planning tier: tried in order on failure.",
+    )
+    reasoning_fallback_models: list[str] = Field(
+        default_factory=list,
+        description="Fallback chain for reasoning tier (bug-fixing, iteration).",
     )
     execution_fallback_models: list[str] = Field(
         default_factory=list,

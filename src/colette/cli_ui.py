@@ -168,7 +168,7 @@ def build_review_menu(summary: dict[str, Any]) -> str:
 
     for key, label in _review_menu_items(stage):
         data = summary.get(key, [] if key != "tech_stack" else {})
-        count = len(data) if isinstance(data, (list, dict)) else 0
+        count = len(data) if isinstance(data, list | dict) else 0
         if count or key == "architecture_preview":
             if count:
                 items.append(f"  [bold cyan][{idx}][/bold cyan] {label} ({count})")
@@ -227,7 +227,7 @@ def resolve_menu_choice(choice: str, summary: dict[str, Any]) -> str | None:
     visible: list[str] = []
     for key, _label in items:
         data = summary.get(key, [] if key != "tech_stack" else {})
-        if isinstance(data, str) or (isinstance(data, (list, dict)) and data):
+        if isinstance(data, str) or (isinstance(data, list | dict) and data):
             visible.append(key)
     try:
         idx = int(choice) - 1
@@ -435,8 +435,10 @@ def _render_security_findings_table(findings: list[dict[str, Any]]) -> Table:
     for f in findings:
         sev = f.get("severity", "?")
         severity_styles = {
-            "critical": "red bold", "high": "red",
-            "medium": "yellow", "low": "dim",
+            "critical": "red bold",
+            "high": "red",
+            "medium": "yellow",
+            "low": "dim",
         }
         sev_style = severity_styles.get(sev.lower(), "")
         table.add_row(
@@ -530,8 +532,11 @@ def render_source_file(file_data: dict[str, Any]) -> Panel:
 
     try:
         syntax = Syntax(
-            content, lexer, theme="monokai",
-            line_numbers=True, word_wrap=True,
+            content,
+            lexer,
+            theme="monokai",
+            line_numbers=True,
+            word_wrap=True,
         )
     except Exception:
         syntax = Syntax(content, "text", line_numbers=True, word_wrap=True)
@@ -755,10 +760,7 @@ def build_live_output_panel(
         # Truncate very long last lines.
         if len(content) > 600:
             content = content[-600:]
-        parts.append(
-            f"[bold cyan]{escape(agent)}[/bold cyan]\n"
-            f"{escape(content)}"
-        )
+        parts.append(f"[bold cyan]{escape(agent)}[/bold cyan]\n{escape(content)}")
 
     return Panel(
         "\n\n".join(parts),
@@ -958,6 +960,18 @@ class PipelineProgressDisplay:
             log = log[len(log) - _MAX_STREAM_LOG :]
         self._stream_log = log
 
+    def _auto_advance_stages(self, target_idx: int) -> None:
+        """Mark all prior stages as completed and target as running.
+
+        Handles the race condition where the CLI reconnects after an
+        approval gate and misses STAGE_STARTED / STAGE_COMPLETED events.
+        """
+        for i in range(target_idx):
+            if self._stages[i].status in ("pending", "running"):
+                self._replace_stage(i, status="completed", agent="", message="")
+        if self._stages[target_idx].status == "pending":
+            self._replace_stage(target_idx, status="running", agent="", message="")
+
     def process_event(self, event: dict[str, Any]) -> bool:
         """Process an SSE event dict. Returns True on terminal event."""
         etype = event.get("event_type", "")
@@ -965,7 +979,7 @@ class PipelineProgressDisplay:
         idx = self._stage_index(stage) if stage else None
 
         if etype == "stage_started" and idx is not None:
-            self._replace_stage(idx, status="running", agent="", message="")
+            self._auto_advance_stages(idx)
 
         elif etype == "stage_completed" and idx is not None:
             self._replace_stage(
@@ -982,6 +996,7 @@ class PipelineProgressDisplay:
             self._error = event.get("message", "Unknown error")
 
         elif etype == "agent_started" and idx is not None:
+            self._auto_advance_stages(idx)
             self._replace_stage(
                 idx,
                 agent=event.get("agent", ""),

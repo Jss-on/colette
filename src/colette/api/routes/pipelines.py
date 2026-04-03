@@ -8,7 +8,7 @@ from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -57,9 +57,7 @@ async def get_pipeline_status(
     )
 
 
-def _make_sse_payload(
-    event_type: str, project_id: str, **kwargs: object
-) -> str:
+def _make_sse_payload(event_type: str, project_id: str, **kwargs: object) -> str:
     """Build a single SSE frame from the given fields."""
     payload = PipelineSSEEvent(
         event_type=event_type,
@@ -70,9 +68,7 @@ def _make_sse_payload(
     return f"event: {event_type}\ndata: {payload.model_dump_json()}\n\n"
 
 
-async def _emit_catchup_events(
-    project_id: str, runner: PipelineRunner
-) -> AsyncGenerator[str]:
+async def _emit_catchup_events(project_id: str, runner: PipelineRunner) -> AsyncGenerator[str]:
     """Emit synthetic events for stages that already progressed.
 
     Since LangGraph only checkpoints AFTER a node completes, the
@@ -97,16 +93,24 @@ async def _emit_catchup_events(
     for i, stage_name in enumerate(STAGE_ORDER):
         if i < current_idx:
             yield _make_sse_payload(
-                "stage_started", project_id, stage=stage_name, timestamp=ts,
+                "stage_started",
+                project_id,
+                stage=stage_name,
+                timestamp=ts,
             )
             yield _make_sse_payload(
-                "stage_completed", project_id,
-                stage=stage_name, timestamp=ts,
+                "stage_completed",
+                project_id,
+                stage=stage_name,
+                timestamp=ts,
                 elapsed_seconds=progress.elapsed_seconds,
             )
         elif i == current_idx:
             yield _make_sse_payload(
-                "stage_started", project_id, stage=stage_name, timestamp=ts,
+                "stage_started",
+                project_id,
+                stage=stage_name,
+                timestamp=ts,
             )
 
 
@@ -137,9 +141,7 @@ async def _sse_event_generator(
 
         while True:
             try:
-                event = await asyncio.wait_for(
-                    queue.get(), timeout=heartbeat_seconds
-                )
+                event = await asyncio.wait_for(queue.get(), timeout=heartbeat_seconds)
             except TimeoutError:
                 yield ": heartbeat\n\n"
                 if not runner.is_active(project_id):
@@ -182,9 +184,7 @@ async def stream_pipeline_events(
     Sends a keepalive comment every ``sse_heartbeat_seconds``.
     """
     return StreamingResponse(
-        _sse_event_generator(
-            str(project_id), runner, settings.sse_heartbeat_seconds
-        ),
+        _sse_event_generator(str(project_id), runner, settings.sse_heartbeat_seconds),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "Connection": "keep-alive"},
     )
@@ -193,12 +193,19 @@ async def stream_pipeline_events(
 @router.post("/projects/{project_id}/pipeline/resume")
 async def resume_pipeline(
     project_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
     user: Annotated[CurrentUser, Depends(require_role(Permission.APPROVE_DECISION))],
     runner: PipelineRunner = Depends(get_pipeline_runner),  # noqa: B008
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> dict[str, str]:
-    """Resume a paused pipeline (after approval)."""
+    """Resume a paused pipeline (after approval).
+
+    Runs the actual pipeline resumption as a background task so
+    the HTTP response returns immediately (the implementation stage
+    can take 10+ minutes).  Progress is streamed via SSE/WebSocket.
+    """
     pid = str(project_id)
+    thread_id: str | None = None
 
     if not runner.is_active(pid):
         # Fallback: check DB for a paused pipeline (handles server restart).
@@ -206,8 +213,13 @@ async def resume_pipeline(
         runs = await run_repo.list_for_project(project_id, limit=1)
         if runs and runs[0].status == "awaiting_approval" and runs[0].thread_id:
             runner.rehydrate(pid, runs[0].thread_id)
+            thread_id = runs[0].thread_id
         else:
             raise HTTPException(status_code=404, detail="No active pipeline to resume")
+    else:
+        thread_id = runner.get_thread_id(pid) or ""
 
-    await runner.resume(pid)
+    from colette.api.routes.approvals import _resume_pipeline_bg
+
+    background_tasks.add_task(_resume_pipeline_bg, runner, pid, thread_id or "")
     return {"status": "resumed", "project_id": pid}

@@ -110,17 +110,14 @@ async def fix_files(
         for f in report.findings
     )
 
-    user_content = (
-        f"# Errors to Fix\n\n{errors_text}\n\n"
-        f"# Source Files\n\n{code_context}"
-    )
+    user_content = f"# Errors to Fix\n\n{errors_text}\n\n# Source Files\n\n{code_context}"
 
     result = await invoke_structured(
         system_prompt=FIX_SYSTEM_PROMPT,
         user_content=user_content,
         output_type=FixResult,
         settings=settings,
-        model_tier=ModelTier.EXECUTION,
+        model_tier=ModelTier.REASONING,
     )
     return result.files
 
@@ -140,11 +137,21 @@ def _classify_file_owner(
         return "database"
     # Heuristic fallback based on common patterns.
     lower = path.lower()
-    if any(k in lower for k in ("src/app", "src/component", "src/page", "src/hook",
-                                 "frontend/", "client/", ".tsx", ".jsx")):
+    if any(
+        k in lower
+        for k in (
+            "src/app",
+            "src/component",
+            "src/page",
+            "src/hook",
+            "frontend/",
+            "client/",
+            ".tsx",
+            ".jsx",
+        )
+    ):
         return "frontend"
-    if any(k in lower for k in ("migration", "schema", "seed", "models/",
-                                 "alembic", "prisma")):
+    if any(k in lower for k in ("migration", "schema", "seed", "models/", "alembic", "prisma")):
         return "database"
     return "backend"
 
@@ -159,9 +166,7 @@ def _agents_with_errors(
     agents: set[str] = set()
     for finding in report.findings:
         agents.add(
-            _classify_file_owner(
-                finding.file_path, frontend_paths, backend_paths, database_paths
-            )
+            _classify_file_owner(finding.file_path, frontend_paths, backend_paths, database_paths)
         )
     return agents
 
@@ -215,9 +220,7 @@ async def verify_and_fix_loop(
         return frontend, backend, database, report
 
     for attempt in range(1, max_retries + 1):
-        failing = _agents_with_errors(
-            report, frontend_paths, backend_paths, database_paths
-        )
+        failing = _agents_with_errors(report, frontend_paths, backend_paths, database_paths)
         logger.info(
             "verify_and_fix.attempt",
             attempt=attempt,
@@ -229,9 +232,7 @@ async def verify_and_fix_loop(
         # Fix files for each failing agent.
         for agent_name in failing:
             if agent_name == "frontend":
-                fixed = await fix_files(
-                    frontend.files, report, settings=settings
-                )
+                fixed = await fix_files(frontend.files, report, settings=settings)
                 merged = _replace_files(frontend.files, fixed)
                 frontend = _FrontendResult(
                     files=merged,
@@ -240,9 +241,7 @@ async def verify_and_fix_loop(
                 )
                 frontend_paths = {f.path for f in frontend.files}
             elif agent_name == "backend":
-                fixed = await fix_files(
-                    backend.files, report, settings=settings
-                )
+                fixed = await fix_files(backend.files, report, settings=settings)
                 merged = _replace_files(backend.files, fixed)
                 backend = _BackendResult(
                     files=merged,
@@ -252,9 +251,7 @@ async def verify_and_fix_loop(
                 )
                 backend_paths = {f.path for f in backend.files}
             elif agent_name == "database":
-                fixed = await fix_files(
-                    database.files, report, settings=settings
-                )
+                fixed = await fix_files(database.files, report, settings=settings)
                 merged = _replace_files(database.files, fixed)
                 database = _DatabaseResult(
                     files=merged,

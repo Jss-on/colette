@@ -64,7 +64,11 @@ class _AsyncWrappedPostgresSaver(MemorySaver):
         return self._inner.put(config, checkpoint, metadata, new_versions)
 
     def put_writes(
-        self, config: Any, writes: Any, task_id: Any, task_path: str = "",
+        self,
+        config: Any,
+        writes: Any,
+        task_id: Any,
+        task_path: str = "",
     ) -> None:
         self._inner.put_writes(config, writes, task_id, task_path)
 
@@ -79,17 +83,17 @@ class _AsyncWrappedPostgresSaver(MemorySaver):
         return await self._run("put", config, checkpoint, metadata, new_versions)
 
     async def aput_writes(
-        self, config: Any, writes: Any, task_id: Any, task_path: str = "",
+        self,
+        config: Any,
+        writes: Any,
+        task_id: Any,
+        task_path: str = "",
     ) -> None:
         await self._run("put_writes", config, writes, task_id, task_path)
 
-    async def alist(
-        self, config: Any, **kwargs: Any
-    ) -> Any:
+    async def alist(self, config: Any, **kwargs: Any) -> Any:
         loop = asyncio.get_running_loop()
-        items = await loop.run_in_executor(
-            None, lambda: list(self._inner.list(config, **kwargs))
-        )
+        items = await loop.run_in_executor(None, lambda: list(self._inner.list(config, **kwargs)))
         for item in items:
             yield item
 
@@ -166,22 +170,20 @@ class PipelineRunner:
             from psycopg_pool import ConnectionPool
         except ImportError:
             logger.warning(
-                "langgraph-checkpoint-postgres not installed; "
-                "falling back to MemorySaver"
+                "langgraph-checkpoint-postgres not installed; falling back to MemorySaver"
             )
             return
 
-        db_url = (
-            self._settings.checkpoint_db_url
-            or self._settings.database_url
-        )
+        db_url = self._settings.checkpoint_db_url or self._settings.database_url
         # psycopg needs a plain postgresql:// URL, not asyncpg.
         conn_str = db_url.replace("+asyncpg", "")
 
         # Create tables with an autocommit connection (required for
         # CREATE INDEX CONCURRENTLY in the migration).
         setup_conn = Connection.connect(
-            conn_str, autocommit=True, row_factory=dict_row,
+            conn_str,
+            autocommit=True,
+            row_factory=dict_row,
         )
         try:
             PostgresSaver(setup_conn).setup()
@@ -211,6 +213,25 @@ class PipelineRunner:
     def event_bus(self) -> PipelineEventBus:
         """The event bus used by this runner for pipeline progress events."""
         return self._event_bus
+
+    @staticmethod
+    def _extract_interrupt_approval(snapshot: Any) -> list[dict[str, Any]]:
+        """Extract approval requests from the LangGraph interrupt payload.
+
+        When a gate node calls ``interrupt(approval_req)``, the payload
+        is stored in the checkpoint but the node's return dict (which
+        would contain ``approval_requests``) is never applied to the
+        pipeline state.  This helper recovers the approval data from
+        ``snapshot.tasks[*].interrupts[*].value`` so callers can persist
+        it to the database.
+        """
+        approval_requests: list[dict[str, Any]] = []
+        for task in getattr(snapshot, "tasks", ()):
+            for intr in getattr(task, "interrupts", ()):
+                val = getattr(intr, "value", None)
+                if isinstance(val, dict) and "request_id" in val:
+                    approval_requests.append(val)
+        return approval_requests
 
     # ── Public API ───────────────────────────────────────────────────
 
@@ -275,7 +296,13 @@ class PipelineRunner:
             if snapshot.next:
                 project_status_registry.mark(project_id, "awaiting_approval")
                 logger.info("pipeline.awaiting_approval", project_id=project_id)
-                return dict(snapshot.values)
+                state = dict(snapshot.values)
+                # Inject interrupt-payload approvals into state so
+                # callers can persist them (gate node never returns).
+                interrupt_approvals = self._extract_interrupt_approval(snapshot)
+                if interrupt_approvals:
+                    state["approval_requests"] = interrupt_approvals
+                return state
 
             project_status_registry.mark(project_id, "completed")
             self._event_bus.emit(
@@ -291,7 +318,11 @@ class PipelineRunner:
             project_status_registry.mark(project_id, "awaiting_approval")
             logger.info("pipeline.awaiting_approval", project_id=project_id)
             snapshot = await self._graph.aget_state(config)
-            return dict(snapshot.values)
+            state = dict(snapshot.values)
+            interrupt_approvals = self._extract_interrupt_approval(snapshot)
+            if interrupt_approvals:
+                state["approval_requests"] = interrupt_approvals
+            return state
         except Exception as exc:
             logger.error(
                 "pipeline.ainvoke_failed",
@@ -340,25 +371,25 @@ class PipelineRunner:
         logger.info("pipeline.resume", project_id=project_id)
 
         try:
-            result = await self._graph.ainvoke(
-                Command(resume=approval_value), config
-            )
+            result = await self._graph.ainvoke(Command(resume=approval_value), config)
 
             # Check if the graph hit another interrupt.
             snapshot = await self._graph.aget_state(config)
             if snapshot.next:
                 project_status_registry.mark(project_id, "awaiting_approval")
                 logger.info("pipeline.awaiting_approval", project_id=project_id)
-                return dict(snapshot.values)
+                state = dict(snapshot.values)
+                interrupt_approvals = self._extract_interrupt_approval(snapshot)
+                if interrupt_approvals:
+                    state["approval_requests"] = interrupt_approvals
+                return state
 
             project_status_registry.mark(project_id, "completed")
             self._event_bus.emit(
                 PipelineEvent(
                     project_id=project_id,
                     event_type=EventType.PIPELINE_COMPLETED,
-                    elapsed_seconds=compute_elapsed(
-                        result.get("started_at", "")
-                    ),
+                    elapsed_seconds=compute_elapsed(result.get("started_at", "")),
                 )
             )
             return dict(result)
@@ -367,7 +398,11 @@ class PipelineRunner:
             project_status_registry.mark(project_id, "awaiting_approval")
             logger.info("pipeline.awaiting_approval", project_id=project_id)
             snapshot = await self._graph.aget_state(config)
-            return dict(snapshot.values)
+            state = dict(snapshot.values)
+            interrupt_approvals = self._extract_interrupt_approval(snapshot)
+            if interrupt_approvals:
+                state["approval_requests"] = interrupt_approvals
+            return state
         except Exception:
             project_status_registry.mark(project_id, "failed")
             self._active.pop(project_id, None)

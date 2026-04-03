@@ -54,19 +54,26 @@ class TestTokenCounter:
 class TestModelRegistry:
     def test_default_registry(self) -> None:
         reg = ModelRegistry()
-        assert "sonnet" in reg.planning.primary
+        assert "opus" in reg.planning.primary
+        assert "opus" in reg.reasoning.primary
         assert "sonnet" in reg.execution.primary
 
     def test_from_settings(self) -> None:
         settings = Settings()
         reg = ModelRegistry.from_settings(settings)
         assert reg.planning.primary == settings.default_planning_model
+        assert reg.reasoning.primary == settings.default_reasoning_model
         assert len(reg.planning.fallbacks) == len(settings.planning_fallback_models)
 
     def test_get_chain_planning(self) -> None:
         reg = ModelRegistry()
         chain = reg.get_chain(ModelTier.PLANNING)
         assert chain is reg.planning
+
+    def test_get_chain_reasoning(self) -> None:
+        reg = ModelRegistry()
+        chain = reg.get_chain(ModelTier.REASONING)
+        assert chain is reg.reasoning
 
     def test_get_chain_execution(self) -> None:
         reg = ModelRegistry()

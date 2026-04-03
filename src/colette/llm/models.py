@@ -33,12 +33,16 @@ class ModelRegistry:
 
     Attributes:
         planning: Model chain for planning-tier agents (Orchestrator, Design Supervisor).
+        reasoning: Model chain for reasoning-tier agents (bug-fixing, iteration loops).
         execution: Model chain for execution-tier agents (most specialists).
         validation: Model chain for validation-tier agents (scanners, validators).
     """
 
     planning: ModelChain = field(
-        default_factory=lambda: ModelChain("anthropic/claude-sonnet-4-6"),
+        default_factory=lambda: ModelChain("anthropic/claude-opus-4-6"),
+    )
+    reasoning: ModelChain = field(
+        default_factory=lambda: ModelChain("anthropic/claude-opus-4-6"),
     )
     execution: ModelChain = field(
         default_factory=lambda: ModelChain("anthropic/claude-sonnet-4-6"),
@@ -62,6 +66,10 @@ class ModelRegistry:
                 primary=settings.default_planning_model,
                 fallbacks=tuple(settings.planning_fallback_models),
             ),
+            reasoning=ModelChain(
+                primary=settings.default_reasoning_model,
+                fallbacks=tuple(settings.reasoning_fallback_models),
+            ),
             execution=ModelChain(
                 primary=settings.default_execution_model,
                 fallbacks=tuple(settings.execution_fallback_models),
@@ -74,6 +82,7 @@ class ModelRegistry:
         logger.info(
             "model_registry_created",
             planning=registry.planning.primary,
+            reasoning=registry.reasoning.primary,
             execution=registry.execution.primary,
             validation=registry.validation.primary,
         )
@@ -83,13 +92,14 @@ class ModelRegistry:
         """Return the model chain for a given tier.
 
         Args:
-            tier: One of ``PLANNING``, ``EXECUTION``, or ``VALIDATION``.
+            tier: One of ``PLANNING``, ``REASONING``, ``EXECUTION``, or ``VALIDATION``.
 
         Returns:
             The :class:`ModelChain` assigned to *tier*.
         """
         mapping = {
             ModelTier.PLANNING: self.planning,
+            ModelTier.REASONING: self.reasoning,
             ModelTier.EXECUTION: self.execution,
             ModelTier.VALIDATION: self.validation,
         }

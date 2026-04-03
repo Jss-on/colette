@@ -48,6 +48,7 @@ class ModelTier(StrEnum):
     """Model assignment tiers matching the architecture spec."""
 
     PLANNING = "planning"  # Opus — orchestrator, design supervisor, architect
+    REASONING = "reasoning"  # Opus — bug-fixing, iteration loops, error diagnosis
     EXECUTION = "execution"  # Sonnet — all other agents
     VALIDATION = "validation"  # Haiku — scanners, validators
 

@@ -9,7 +9,7 @@ from colette.schemas.common import QualityGateResult, StageName
 
 
 class ImplementationGate:
-    """Lint, type-check, and build must pass; files changed; git ref present."""
+    """Files changed must be non-empty; LLM verification is advisory."""
 
     @property
     def name(self) -> str:
@@ -19,28 +19,37 @@ class ImplementationGate:
         handoff = state.get("handoffs", {}).get(StageName.IMPLEMENTATION.value, {})
         criteria: dict[str, bool] = {}
         failures: list[str] = []
+        warnings: list[str] = []
 
-        for check in ("lint_passed", "type_check_passed", "build_passed"):
-            criteria[check] = bool(handoff.get(check, False))
-            if not criteria[check]:
-                failures.append(f"{check} is False")
-
+        # Hard requirements: files must exist.
         files = handoff.get("files_changed", [])
         criteria["files_changed_non_empty"] = len(files) > 0
         if not criteria["files_changed_non_empty"]:
             failures.append("No files changed")
 
+        # Advisory: LLM-based verification flags are informational —
+        # no actual linter/type-checker/build tool was run, so these
+        # reflect an LLM opinion and should not block the gate.
+        for check in ("lint_passed", "type_check_passed", "build_passed"):
+            val = bool(handoff.get(check, False))
+            criteria[check] = val
+            if not val:
+                warnings.append(f"{check} is False (advisory)")
+
         git_ref = handoff.get("git_ref", "")
         criteria["git_ref_present"] = bool(git_ref)
         if not criteria["git_ref_present"]:
-            failures.append("Git ref missing")
+            # Not a hard failure — generated code may not have a git ref.
+            warnings.append("Git ref missing (advisory)")
 
-        passed = all(criteria.values())
+        # Gate passes if files were generated (hard requirement).
+        passed = criteria["files_changed_non_empty"]
+        advisory_score = sum(criteria.values()) / max(len(criteria), 1)
         return QualityGateResult(
             gate_name=self.name,
             passed=passed,
-            score=1.0 if passed else sum(criteria.values()) / max(len(criteria), 1),
+            score=advisory_score,
             criteria_results=criteria,
-            failure_reasons=failures,
+            failure_reasons=failures + warnings,
             evaluated_at=datetime.now(UTC),
         )

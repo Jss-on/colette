@@ -127,7 +127,7 @@ def _run_ws_loop(
 
         return bool(display.is_done)
 
-    return asyncio.get_event_loop().run_until_complete(_ws_stream())
+    return asyncio.run(_ws_stream())
 
 
 # ── SSE progress streaming ───────────────────────────────────────────
@@ -198,18 +198,14 @@ def _handle_interactive_approval(
         headers = {"X-API-Key": "default"}
         try:
             with httpx.Client(timeout=30) as client:
-                client.post(
+                resp = client.post(
                     f"{api_url}/api/v1/approvals/{request_id}/approve",
                     json={"reviewer_id": "cli-user", "comments": ""},
                     headers=headers,
                 )
-                resp = client.post(
-                    f"{api_url}/api/v1/projects/{project_id}/pipeline/resume",
-                    headers=headers,
-                )
                 resp.raise_for_status()
         except httpx.HTTPError as exc:
-            target_console.print(f"[red bold]Error:[/red bold] Resume failed: {exc}")
+            target_console.print(f"[red bold]Error:[/red bold] Approve failed: {exc}")
             return False
 
         target_console.print("[green]Approved — pipeline resuming...[/green]\n")
