@@ -7,7 +7,7 @@ configuration, logs, and server management.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import click
 import structlog
@@ -61,7 +61,7 @@ def main(ctx: click.Context, log_level: str, log_format: str, api_url: str) -> N
 def _run_sse_loop(
     api_url: str,
     project_id: str,
-    display: object,  # PipelineProgressDisplay (deferred import)
+    display: Any,  # PipelineProgressDisplay (deferred import)
     target_console: Console,
     headers: dict[str, str],
 ) -> bool:
@@ -79,7 +79,7 @@ def _run_sse_loop(
         ) as resp:
             resp.raise_for_status()
             with Live(
-                display.render(),  # type: ignore[union-attr]
+                display.render(),
                 console=target_console,
                 refresh_per_second=4,
             ) as live:
@@ -87,15 +87,15 @@ def _run_sse_loop(
                     if not line.startswith("data: "):
                         continue
                     event = json.loads(line[6:])
-                    is_terminal = display.process_event(event)  # type: ignore[union-attr]
+                    is_terminal = display.process_event(event)
                     if is_terminal:
                         break
-                    live.update(display.render())  # type: ignore[union-attr]
+                    live.update(display.render())
     except httpx.HTTPError as exc:
         target_console.print(f"[red bold]Error:[/red bold] Stream failed: {exc}")
         return True  # stop retrying on connection errors
 
-    return display.is_done  # type: ignore[union-attr]
+    return bool(display.is_done)
 
 
 def _handle_interactive_approval(
@@ -112,7 +112,7 @@ def _handle_interactive_approval(
 
     from colette.cli_review import ApprovalReviewApp
 
-    app = ApprovalReviewApp(approval_data)  # type: ignore[arg-type]
+    app = ApprovalReviewApp(approval_data)
     decision = app.run()  # blocks until user decides
 
     if decision == "approved":

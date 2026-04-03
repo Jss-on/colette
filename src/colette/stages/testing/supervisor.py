@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 import structlog
 
-from colette.schemas.common import SecurityFinding, Severity, SuiteResult
+from colette.schemas.common import GeneratedFile, SecurityFinding, Severity, SuiteResult
 from colette.schemas.implementation import ImplementationToTestingHandoff
 from colette.schemas.testing import TestingToDeploymentHandoff
 from colette.stages.testing.integration_tester import (
@@ -250,7 +250,7 @@ async def supervise_testing(
     impl_handoff: ImplementationToTestingHandoff,
     *,
     settings: Settings,
-) -> TestingToDeploymentHandoff:
+) -> tuple[TestingToDeploymentHandoff, list[GeneratedFile]]:
     """Orchestrate the Testing stage (FR-TST-*).
 
     Runs unit tester and integration tester in parallel, then the

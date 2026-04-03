@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 import structlog
 
-from colette.schemas.common import DeploymentTarget
+from colette.schemas.common import DeploymentTarget, GeneratedFile
 from colette.schemas.deployment import DeploymentToMonitoringHandoff
 from colette.schemas.testing import TestingToDeploymentHandoff
 from colette.stages.deployment.cicd_engineer import CICDResult, run_cicd_engineer
@@ -156,7 +156,7 @@ async def supervise_deployment(
     testing_handoff: TestingToDeploymentHandoff,
     *,
     settings: Settings,
-) -> DeploymentToMonitoringHandoff:
+) -> tuple[DeploymentToMonitoringHandoff, list[GeneratedFile]]:
     """Orchestrate the Deployment stage (FR-DEP-*).
 
     Runs CI/CD engineer and infra engineer in parallel. Both are

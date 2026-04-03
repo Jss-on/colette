@@ -88,7 +88,7 @@ class ApprovalReviewApp(App[str]):
     }
     """
 
-    BINDINGS: ClassVar[list[Binding]] = [
+    BINDINGS: ClassVar[list[Binding | tuple[str, str] | tuple[str, str, str]]] = [
         Binding("a", "approve", "Approve", show=True),
         Binding("r", "reject", "Reject", show=True),
         Binding("q", "quit_app", "Quit / Reject", show=True),
@@ -292,7 +292,7 @@ class ApprovalReviewApp(App[str]):
         columns: list[str],
         rows: list[tuple[str, ...]],
     ) -> TabPane:
-        table = DataTable(id=f"dt-{pane_id}", zebra_stripes=True)
+        table: DataTable[Any] = DataTable(id=f"dt-{pane_id}", zebra_stripes=True)
         pane = TabPane(title, table, id=pane_id)
         # Columns and rows are added in on_mount via _populate_tables.
         table._meta = {"columns": columns, "rows": rows}  # type: ignore[attr-defined]
@@ -320,7 +320,7 @@ class ApprovalReviewApp(App[str]):
 
         When the user selects a row, the file content is shown below.
         """
-        table = DataTable(id=f"dt-{pane_id}", zebra_stripes=True)
+        table: DataTable[Any] = DataTable(id=f"dt-{pane_id}", zebra_stripes=True)
         viewer = RichLog(id=f"fv-{pane_id}", wrap=False)
         table._meta = {  # type: ignore[attr-defined]
             "columns": ["#", "Path", "Language", "Lines"],

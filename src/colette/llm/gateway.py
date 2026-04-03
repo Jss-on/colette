@@ -89,7 +89,7 @@ def _ensure_litellm_configured() -> None:
     import litellm
 
     litellm.num_retries = 0  # prevent double-retry with ChatLiteLLM
-    litellm.request_timeout = 120
+    litellm.request_timeout = 120  # type: ignore[attr-defined]
     litellm.drop_params = True
     _litellm_configured = True
     logger.info("litellm_configured", num_retries=0)
