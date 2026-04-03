@@ -65,6 +65,11 @@ class PipelineState(TypedDict, total=False):
     current_sprint: dict[str, Any] | None
     work_items: list[dict[str, Any]]
 
+    # ── Sprint lifecycle (Phase 4) ──────────────────────────────────
+    sprint_context: dict[str, Any] | None
+    sprint_number: int
+    evolving_requirements: dict[str, Any] | None
+
     # ── Extensible bag ───────────────────────────────────────────────
     metadata: dict[str, Any]
 
@@ -99,5 +104,8 @@ def create_initial_state(
         backlog=None,
         current_sprint=None,
         work_items=[],
+        sprint_context=None,
+        sprint_number=1,
+        evolving_requirements=None,
         metadata={},
     )
