@@ -2,6 +2,7 @@
 site/
 
 # Python
+src/colette/_version.py
 __pycache__/
 *.py[cod]
 *$py.class

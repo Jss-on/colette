@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help install dev lint format typecheck test test-unit test-integration security clean docker-up docker-down docs-serve docs-build
+.PHONY: help install dev hooks lint format typecheck test test-unit test-integration security clean docker-up docker-down docs-serve docs-build changelog bump-patch bump-minor bump-major release
 
 # ── Meta ──────────────────────────────────────────────────────────────
 help: ## Show this help
@@ -10,8 +10,11 @@ help: ## Show this help
 install: ## Install all dependencies (prod + dev)
 	uv sync --all-extras
 
-dev: install ## Install + copy .env.example if .env missing
+dev: install hooks ## Install + copy .env.example + install hooks
 	@test -f .env || cp .env.example .env && echo "Created .env from .env.example"
+
+hooks: ## Install pre-commit hooks (conventional commits, ruff, etc.)
+	uv run pre-commit install --hook-type commit-msg --hook-type pre-commit
 
 # ── Quality ───────────────────────────────────────────────────────────
 lint: ## Run ruff linter
@@ -60,6 +63,43 @@ docs-serve: ## Serve docs locally with hot reload
 
 docs-build: ## Build static docs site to site/
 	uv run mkdocs build --strict
+
+# ── Release ──────────────────────────────────────────────────────────
+CURRENT_VERSION = $(shell git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//')
+
+changelog: ## Regenerate CHANGELOG.md from full git history
+	git-cliff --output CHANGELOG.md
+
+bump-patch: check ## Bump patch version (e.g. 0.1.0 → 0.1.1), tag, update changelog
+	$(call bump,patch)
+
+bump-minor: check ## Bump minor version (e.g. 0.1.0 → 0.2.0), tag, update changelog
+	$(call bump,minor)
+
+bump-major: check ## Bump major version (e.g. 0.1.0 → 1.0.0), tag, update changelog
+	$(call bump,major)
+
+release: ## Push latest tag to trigger GitHub release workflow
+	@TAG=$$(git describe --tags --abbrev=0) && \
+	echo "Pushing $$TAG to origin..." && \
+	git push origin $$TAG && \
+	echo "Release workflow triggered for $$TAG"
+
+define bump
+	@echo "Current version: $(CURRENT_VERSION)"
+	@NEXT=$$(python -c " \
+		parts = '$(CURRENT_VERSION)'.split('.'); \
+		idx = {'major': 0, 'minor': 1, 'patch': 2}['$(1)']; \
+		parts[idx] = str(int(parts[idx]) + 1); \
+		parts[idx+1:] = ['0'] * (2 - idx); \
+		print('.'.join(parts))"); \
+	echo "Next version: $$NEXT"; \
+	git-cliff --tag "v$$NEXT" --output CHANGELOG.md; \
+	git add CHANGELOG.md; \
+	git commit -m "chore(release): v$$NEXT"; \
+	git tag -a "v$$NEXT" -m "v$$NEXT"; \
+	echo "Tagged v$$NEXT — run 'make release' to push and trigger CI."
+endef
 
 # ── All checks (CI equivalent) ───────────────────────────────────────
 check: lint typecheck test-unit security ## Run all quality checks

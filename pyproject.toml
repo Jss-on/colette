@@ -1,6 +1,6 @@
 [project]
 name = "colette"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Multi-agent AI system for autonomous end-to-end software development"
 readme = "README.md"
 license = { text = "MIT" }
@@ -83,6 +83,9 @@ dev = [
     "mypy>=1.14,<2.0",
     "types-PyYAML>=6.0",
 
+    # Git hooks
+    "pre-commit>=4.0,<5.0",
+
     # Security
     "bandit>=1.8,<2.0",
     "pip-audit>=2.8,<3.0",
@@ -100,8 +103,14 @@ dev = [
 colette = "colette.cli:main"
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/colette/_version.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/colette"]

@@ -13,13 +13,10 @@ Thank you for your interest in contributing to Colette. This guide covers the de
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/colette.git
+git clone https://github.com/Jss-on/colette.git
 cd colette
 
-# Install all dependencies (including dev)
-make install
-
-# Create .env from template
+# Install all dependencies + pre-commit hooks + .env
 make dev
 
 # Start dev services
@@ -28,6 +25,17 @@ make docker-up
 # Verify everything works
 make check
 ```
+
+The `make dev` command automatically installs pre-commit hooks that enforce conventional commits and run ruff on every commit.
+
+## Branch Strategy
+
+We use **trunk-based development** with short-lived feature branches:
+
+- **`main`** is the trunk — always releasable, protected by CI
+- Feature branches are short-lived (< 1 week) and merge via pull request
+- No `develop` branch, no long-lived release branches
+- Releases are cut from `main` via git tags (see [Release Process](docs/RELEASE.md))
 
 ## Development Workflow
 
@@ -152,9 +160,19 @@ tests/
 
 ## Reporting Issues
 
-- Use GitHub Issues for bug reports and feature requests
+- Use GitHub Issues for bug reports and feature requests (structured templates provided)
 - Include steps to reproduce for bugs
 - Include expected vs actual behavior
+
+## Releases
+
+See [docs/RELEASE.md](docs/RELEASE.md) for the full release process. Quick summary:
+
+```bash
+make bump-patch   # or bump-minor / bump-major
+make release      # pushes tag → triggers CI → GitHub Release + Docker image
+git push origin main
+```
 
 ## Security
 
