@@ -10,6 +10,7 @@ Colette is a multi-agent AI system that turns a natural language description int
 - [Quick Start](#quick-start)
 - [CLI Reference](#cli-reference)
   - [Agent Activity Display](#agent-activity-display)
+  - [Live LLM Output Streaming](#live-llm-output-streaming)
 - [API Reference](#api-reference)
 - [Programmatic Usage (Python)](#programmatic-usage-python)
 - [Configuration Reference](#configuration-reference)
@@ -267,7 +268,7 @@ colette status PROJECT_ID [--follow] [--activity MODE]
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `-f, --follow` | -- | Stream real-time progress events via SSE |
+| `-f, --follow` | -- | Stream real-time progress (SSE for minimal/status, WebSocket for conversation/verbose) |
 | `--activity` | `status` | Agent activity display mode (with `--follow`, see [Agent Activity Display](#agent-activity-display)) |
 
 #### `colette approve`
@@ -366,8 +367,10 @@ The `--activity` flag controls how much agent detail is shown during live progre
 |------|-------|----------|
 | `minimal` | Stage progress only (checkmarks, spinners) | CI/scripting |
 | `status` (default) | Stage progress + active agent panel | Normal use |
-| `conversation` | Stage progress + agent panel + streaming log | Debugging/curiosity |
-| `verbose` | Full detail: progress + agents + streaming log + conversation feed | Deep debugging |
+| `conversation` | Stage progress + agent panel + **live LLM output** + streaming log | Debugging/curiosity |
+| `verbose` | Full detail: progress + agents + **live LLM output** + streaming log + conversation feed | Deep debugging |
+
+**Transport:** `minimal` and `status` modes use SSE (Server-Sent Events). `conversation` and `verbose` modes automatically upgrade to **WebSocket** for real-time token-level streaming of LLM output.
 
 **Example: `--activity=status` (default)**
 
@@ -419,6 +422,37 @@ Shows everything from `conversation` mode plus a scrolling conversation feed wit
 ```
 
 The conversation feed is a ring buffer (last 50 messages) to keep memory bounded.
+
+### Live LLM Output Streaming
+
+In `conversation` and `verbose` modes, Colette streams LLM tokens in real-time via WebSocket. As agents generate their responses, the raw output appears in a **Live Output** panel:
+
+```
+╭─ Live Output ────────────────────────────────────────────────────────────╮
+│ ArchitectureResult                                                        │
+│ {                                                                         │
+│   "project_overview": "A full-stack todo application with user            │
+│   authentication, CRUD operations, and filtering capabilities...",        │
+│   "tech_stack": {                                                         │
+│     "frontend": "React 18 with TypeScript",                               │
+│     "backend": "Python 3.12 + FastAPI",                                   │
+│     "database": "PostgreSQL 16"                                           │
+│   },                                                                      │
+│   "services": [                                                           │
+│     {"name": "auth-service", "responsibilities": ["user regist            │
+╰──────────────────────────────────────────────────────────────────────────╯
+```
+
+**How it works:**
+- The LLM callback handler batches tokens every 50ms and emits `AGENT_STREAM_CHUNK` events
+- These events flow through the event bus to the WebSocket endpoint
+- The CLI maintains a per-agent rolling text buffer (last 2000 chars) that clears when the final response arrives
+- The Live Output panel refreshes at 8fps for smooth display
+
+**When streaming is active:**
+- `invoke_structured()` uses `model.astream()` instead of `model.ainvoke()`
+- Tokens are streamed for display while the full response is accumulated for JSON parsing
+- Token batching (50ms) prevents event bus flooding on fast models
 
 ---
 
@@ -486,7 +520,9 @@ curl -H "X-API-Key: your-key" http://localhost:8000/api/v1/projects
 
 | Path | Description |
 |------|-------------|
-| `/api/v1/ws/{project_id}` | Real-time pipeline updates |
+| `/api/v1/projects/{project_id}/ws` | Real-time pipeline events (event-bus-driven, includes `AGENT_STREAM_CHUNK`) |
+
+The WebSocket endpoint subscribes to the event bus and forwards all events as JSON frames, including live LLM token chunks. It sends catch-up events on reconnection and heartbeat pings every few seconds to keep the connection alive. This is the preferred transport for `conversation` and `verbose` display modes.
 
 ---
 
@@ -665,9 +701,11 @@ All settings use the `COLETTE_` prefix and load from `.env` or environment varia
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `COLETTE_CHECKPOINT_BACKEND` | `memory` (dev) or `postgres` (prod) | `memory` |
+| `COLETTE_CHECKPOINT_BACKEND` | `memory` (dev) or `postgres` (prod, durable) | `memory` |
 | `COLETTE_CHECKPOINT_DB_URL` | Checkpoint DB (falls back to DATABASE_URL) | *(empty)* |
 | `COLETTE_HANDOFF_MAX_CHARS` | Max handoff size | `128000` |
+
+**Durable checkpointing:** Set `COLETTE_CHECKPOINT_BACKEND=postgres` for production. This persists pipeline state to PostgreSQL so pipelines survive server restarts. On startup, Colette automatically creates the checkpoint tables and opens a connection pool. The `memory` backend is for development only -- state is lost when the server stops.
 
 ### Security
 
@@ -994,7 +1032,7 @@ make docs-build       # Build static docs site
 src/colette/
   __init__.py           # Package root, __version__
   cli.py                # CLI entry point (Click)
-  cli_ui.py             # Rich terminal rendering + streaming log panel
+  cli_ui.py             # Rich terminal rendering, streaming log, live LLM output panel
   cli_review.py         # Textual TUI for interactive approval review
   config.py             # Settings via pydantic-settings
   schemas/              # Typed handoff schemas between stages
@@ -1009,7 +1047,7 @@ src/colette/
     pipeline.py         # LangGraph DAG construction
     state.py            # PipelineState definition
     progress.py         # Progress event tracking
-    event_bus.py        # In-process event bus for pipeline events
+    event_bus.py        # In-process event bus (incl. AGENT_STREAM_CHUNK for live output)
     agent_presence.py   # Agent presence tracking (Slack-style activity feed)
   stages/
     requirements/       # Analyst + Researcher agents
@@ -1029,7 +1067,7 @@ src/colette/
   gates/                # Quality gate implementations
   human/                # Approval routing, confidence scoring
   tools/                # MCP tool wrappers
-  llm/                  # LiteLLM gateway, structured output, prompt caching
+  llm/                  # LiteLLM gateway, structured output, prompt caching, streaming
   security/             # RBAC, audit, secret filtering
   observability/        # Logging, OpenTelemetry tracing
 tests/
@@ -1064,4 +1102,5 @@ docker run -p 8000:8000 --env-file .env colette:latest
 | 7. Monitoring | Planned | Observability and incident response agents |
 | 8. REST API + CLI | Done | FastAPI server, Click CLI, Rich UI, Textual TUI for approvals |
 | 9. Cost Optimization | Done | Anthropic prompt caching, three-tier models, token budgets, streaming agent log |
-| 10. Hardening | Planned | Performance tuning, security audit, batch API |
+| 10. Real-time Streaming | Done | WebSocket event-driven streaming, live LLM token output, durable Postgres checkpointing |
+| 11. Hardening | Planned | Performance tuning, security audit, batch API |
