@@ -30,6 +30,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         from colette.api.deps import get_pipeline_runner
+        from colette.build_info import build_info
+
+        info = build_info()
+        logger.info(
+            "server.starting",
+            version=info.version,
+            environment=info.environment,
+            git_sha=info.git_sha_short,
+            python=info.python_version,
+        )
 
         # Startup: initialise DB engine.
         init_engine(settings)

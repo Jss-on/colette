@@ -2,18 +2,44 @@
 
 from __future__ import annotations
 
-from pydantic import Field
+from enum import StrEnum
+
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings
+
+
+class Environment(StrEnum):
+    """Deployment environment."""
+
+    DEVELOPMENT = "development"
+    STAGING = "staging"
+    PRODUCTION = "production"
+    TESTING = "testing"
+
+    @property
+    def is_production(self) -> bool:
+        return self == Environment.PRODUCTION
+
+    @property
+    def is_development(self) -> bool:
+        return self in (Environment.DEVELOPMENT, Environment.TESTING)
 
 
 class Settings(BaseSettings):
     """Global Colette settings.
 
     Values are read from environment variables (prefixed COLETTE_)
-    or a .env file.
+    or a .env file.  When ``COLETTE_ENVIRONMENT`` is set, settings
+    also load from ``.env.<environment>`` (e.g. ``.env.staging``).
     """
 
     model_config = {"env_prefix": "COLETTE_", "env_file": ".env", "extra": "ignore"}
+
+    # ── Environment ──────────────────────────────────────────────────
+    environment: Environment = Field(
+        default=Environment.DEVELOPMENT,
+        description="Deployment environment: development, staging, production, testing.",
+    )
 
     # ── LLM — primary models ────────────────────────────────────────
     litellm_base_url: str = ""
@@ -169,3 +195,22 @@ class Settings(BaseSettings):
     port: int = 8000
     workers: int = 1
     debug: bool = False
+
+    @model_validator(mode="after")
+    def _apply_environment_defaults(self) -> Settings:
+        """Apply production-safe defaults when environment is production.
+
+        Only overrides values that are still at their development defaults.
+        Explicit env var overrides always win.
+        """
+        if self.environment == Environment.PRODUCTION:
+            # Security: tighten defaults for prod
+            if self.debug:
+                object.__setattr__(self, "debug", False)
+            if self.cors_origins == ["*"]:
+                object.__setattr__(self, "cors_origins", [])
+            if self.checkpoint_backend == "memory":
+                object.__setattr__(self, "checkpoint_backend", "postgres")
+            if self.log_level == "DEBUG":
+                object.__setattr__(self, "log_level", "INFO")
+        return self

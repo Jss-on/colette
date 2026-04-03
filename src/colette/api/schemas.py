@@ -156,4 +156,28 @@ class HealthCheck(BaseModel, frozen=True):
 class HealthResponse(BaseModel, frozen=True):
     status: str  # "healthy" | "degraded" | "unhealthy"
     version: str
+    environment: str = ""
     checks: list[HealthCheck] = Field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
+# Build / Version
+# ---------------------------------------------------------------------------
+
+
+class GitInfo(BaseModel, frozen=True):
+    sha: str = ""
+    sha_short: str = ""
+    branch: str = ""
+    dirty: bool = False
+
+
+class VersionResponse(BaseModel, frozen=True):
+    """Detailed build and runtime metadata."""
+
+    version: str
+    git: GitInfo = Field(default_factory=GitInfo)
+    build_date: str = ""
+    python: str = ""
+    platform: str = ""
+    environment: str = ""

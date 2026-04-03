@@ -23,8 +23,28 @@ logger = structlog.get_logger(__name__)
 DEFAULT_API_URL = "http://localhost:8000"
 
 
+def _version_callback(ctx: click.Context, _param: click.Parameter, value: bool) -> None:
+    """Rich version output with build metadata."""
+    if not value or ctx.resilient_parsing:
+        return
+    from colette.build_info import build_info
+
+    info = build_info()
+    click.echo(f"colette {info.version_display}")
+    click.echo(f"  Python {info.python_version} on {info.platform_system}/{info.platform_machine}")
+    click.echo(f"  Environment: {info.environment}")
+    ctx.exit()
+
+
 @click.group()
-@click.version_option(version=__version__, prog_name="colette")
+@click.option(
+    "--version",
+    is_flag=True,
+    callback=_version_callback,
+    expose_value=False,
+    is_eager=True,
+    help="Show version and build info.",
+)
 @click.option("--log-level", default="INFO", help="Logging level.")
 @click.option(
     "--log-format",
@@ -44,9 +64,15 @@ def main(ctx: click.Context, log_level: str, log_format: str, api_url: str) -> N
     from colette.observability.logging import configure_logging
 
     configure_logging(log_level=log_level, log_format=log_format)
+
+    from colette.build_info import build_info
+
+    info = build_info()
     logger.info(
         "cli_started",
         version=__version__,
+        environment=info.environment,
+        git_sha=info.git_sha_short,
         log_level=log_level,
         log_format=log_format,
     )
@@ -68,9 +94,7 @@ def _run_ws_loop(
     import asyncio
     import json
 
-    ws_url = api_url.replace("http://", "ws://").replace(
-        "https://", "wss://"
-    )
+    ws_url = api_url.replace("http://", "ws://").replace("https://", "wss://")
     endpoint = f"{ws_url}/api/v1/projects/{project_id}/ws"
 
     async def _ws_stream() -> bool:
@@ -79,10 +103,7 @@ def _run_ws_loop(
         try:
             import websockets
         except ImportError:
-            target_console.print(
-                "[yellow]websockets not installed — "
-                "falling back to SSE[/yellow]"
-            )
+            target_console.print("[yellow]websockets not installed — falling back to SSE[/yellow]")
             return False
 
         try:
@@ -101,10 +122,7 @@ def _run_ws_loop(
                         if is_terminal:
                             break
         except Exception as exc:
-            target_console.print(
-                f"[red bold]Error:[/red bold] "
-                f"WebSocket stream failed: {exc}"
-            )
+            target_console.print(f"[red bold]Error:[/red bold] WebSocket stream failed: {exc}")
             return True
 
         return bool(display.is_done)
@@ -129,11 +147,14 @@ def _run_sse_loop(
     from rich.live import Live
 
     try:
-        with httpx.Client(timeout=httpx.Timeout(None)) as client, client.stream(
-            "GET",
-            f"{api_url}/api/v1/projects/{project_id}/pipeline/events",
-            headers=headers,
-        ) as resp:
+        with (
+            httpx.Client(timeout=httpx.Timeout(None)) as client,
+            client.stream(
+                "GET",
+                f"{api_url}/api/v1/projects/{project_id}/pipeline/events",
+                headers=headers,
+            ) as resp,
+        ):
             resp.raise_for_status()
             with Live(
                 display.render(),
@@ -188,9 +209,7 @@ def _handle_interactive_approval(
                 )
                 resp.raise_for_status()
         except httpx.HTTPError as exc:
-            target_console.print(
-                f"[red bold]Error:[/red bold] Resume failed: {exc}"
-            )
+            target_console.print(f"[red bold]Error:[/red bold] Resume failed: {exc}")
             return False
 
         target_console.print("[green]Approved — pipeline resuming...[/green]\n")
@@ -236,22 +255,16 @@ def _stream_progress(
 
     while True:
         if use_ws:
-            finished = _run_ws_loop(
-                api_url, project_id, display, target_console
-            )
+            finished = _run_ws_loop(api_url, project_id, display, target_console)
         else:
-            finished = _run_sse_loop(
-                api_url, project_id, display, target_console, headers
-            )
+            finished = _run_sse_loop(api_url, project_id, display, target_console, headers)
         if finished:
             break
 
         # Pipeline paused for approval — handle inline.
         approval = display.pending_approval
         if approval:
-            approved = _handle_interactive_approval(
-                api_url, project_id, approval, target_console
-            )
+            approved = _handle_interactive_approval(api_url, project_id, approval, target_console)
             display.clear_approval()
             if approved:
                 continue  # reconnect SSE — catch-up events replay progress

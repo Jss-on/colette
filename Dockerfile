@@ -34,10 +34,11 @@ COPY --from=builder /app/src /app/src
 COPY --from=builder /app/alembic /app/alembic
 COPY --from=builder /app/alembic.ini /app/alembic.ini
 
-# Put venv on PATH
+# Put venv on PATH; default to production environment
 ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
+    PYTHONDONTWRITEBYTECODE=1 \
+    COLETTE_ENVIRONMENT=production
 
 USER colette
 

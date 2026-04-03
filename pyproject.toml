@@ -147,6 +147,7 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = ["S101", "S105", "S106", "S108"]
 "src/colette/tools/*.py" = ["S602", "S607"]  # tool wrappers legitimately run subprocesses
+"src/colette/build_info.py" = ["S603", "S607"]  # git subprocess calls for build metadata
 
 [tool.ruff.lint.isort]
 known-first-party = ["colette"]
