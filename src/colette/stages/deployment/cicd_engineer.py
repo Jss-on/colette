@@ -65,7 +65,7 @@ async def run_cicd_engineer(
         user_content=f"Project & Test Results:\n\n{deployment_context}",
         output_type=CICDResult,
         settings=settings,
-        model_tier=ModelTier.EXECUTION,
+        model_tier=ModelTier.VALIDATION,
     )
 
     logger.info(

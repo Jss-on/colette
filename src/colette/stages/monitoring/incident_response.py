@@ -67,7 +67,7 @@ async def run_incident_response(
         user_content=f"Deployment context:\n\n{deployment_context}",
         output_type=IncidentResponseResult,
         settings=settings,
-        model_tier=ModelTier.EXECUTION,
+        model_tier=ModelTier.VALIDATION,
     )
 
     logger.info(

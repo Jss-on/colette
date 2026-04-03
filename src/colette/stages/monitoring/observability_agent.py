@@ -69,7 +69,7 @@ async def run_observability_agent(
         user_content=f"Deployment context:\n\n{deployment_context}",
         output_type=ObservabilityResult,
         settings=settings,
-        model_tier=ModelTier.EXECUTION,
+        model_tier=ModelTier.VALIDATION,
     )
 
     logger.info(

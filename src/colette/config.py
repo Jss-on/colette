@@ -17,7 +17,7 @@ class Settings(BaseSettings):
 
     # ── LLM — primary models ────────────────────────────────────────
     litellm_base_url: str = ""
-    default_planning_model: str = "anthropic/claude-sonnet-4-6"
+    default_planning_model: str = "anthropic/claude-opus-4-6"
     default_execution_model: str = "anthropic/claude-sonnet-4-6"
     default_validation_model: str = "anthropic/claude-haiku-4-5"
 
@@ -45,7 +45,8 @@ class Settings(BaseSettings):
     # ── LLM — cost & caching ────────────────────────────────────────
     prompt_caching_enabled: bool = True
     llm_timeout_seconds: int = 120
-    llm_max_retries: int = 6
+    llm_max_retries: int = 2
+    llm_max_concurrency: int = 2
 
     # ── Database ──────────────────────────────────────────────────────
     database_url: str = "postgresql+asyncpg://colette:colette@localhost:5432/colette"
@@ -64,7 +65,7 @@ class Settings(BaseSettings):
     validator_context_budget: int = 30_000
 
     # ── Handoff (FR-ORC-024) ─────────────────────────────────────────
-    handoff_max_chars: int = 32_000
+    handoff_max_chars: int = 128_000
 
     # ── Memory (FR-MEM-004/005/007/012) ─────────────────────────────
     compaction_threshold: float = 0.70

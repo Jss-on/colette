@@ -6,6 +6,7 @@ the response into a typed Pydantic model via JSON extraction.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 from typing import TYPE_CHECKING
@@ -22,6 +23,11 @@ if TYPE_CHECKING:
     from colette.config import Settings
 
 logger = structlog.get_logger(__name__)
+
+# Global semaphore to cap concurrent LLM calls and avoid rate-limit storms.
+# Initialized lazily from settings on first use.
+_llm_semaphore: asyncio.Semaphore | None = None
+_llm_semaphore_size: int = 0
 
 
 def extract_json_block(text: str) -> str:
@@ -124,6 +130,12 @@ async def invoke_structured[T: BaseModel](
 
         settings = _Settings()
 
+    # Lazily initialize the concurrency semaphore.
+    global _llm_semaphore, _llm_semaphore_size
+    if _llm_semaphore is None or _llm_semaphore_size != settings.llm_max_concurrency:
+        _llm_semaphore_size = settings.llm_max_concurrency
+        _llm_semaphore = asyncio.Semaphore(_llm_semaphore_size)
+
     # Sanitize user content to strip prompt-injection markers (H1)
     safe_content = sanitize_output(user_content)
 
@@ -139,12 +151,18 @@ async def invoke_structured[T: BaseModel](
         model=str(model_tier),
     )
 
-    response = await model.ainvoke(
-        [
-            SystemMessage(content=full_prompt),
-            HumanMessage(content=safe_content),
-        ],
-        config={"callbacks": [callback]},
-    )
+    async with _llm_semaphore:
+        logger.debug(
+            "llm_semaphore_acquired",
+            output_type=output_type.__name__,
+            tier=str(model_tier),
+        )
+        response = await model.ainvoke(
+            [
+                SystemMessage(content=full_prompt),
+                HumanMessage(content=safe_content),
+            ],
+            config={"callbacks": [callback]},
+        )
 
     return _parse_structured_response(str(response.content), output_type)

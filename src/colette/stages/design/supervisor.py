@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+import json
+from typing import TYPE_CHECKING, Any
 
 import structlog
 
+from colette.schemas.base import DEFAULT_MAX_HANDOFF_CHARS
 from colette.schemas.common import TaskComplexity
 from colette.schemas.design import DesignToImplementationHandoff, ImplementationTask
 from colette.schemas.requirements import RequirementsToDesignHandoff
@@ -120,31 +122,89 @@ def _evaluate_design_quality(
     )
 
 
+_MAX_OPENAPI_SPEC_CHARS = 20_000
+_MAX_ARCH_SUMMARY_CHARS = 8_000
+_MAX_SECURITY_DESIGN_CHARS = 4_000
+
+# Leave headroom below the hard limit for base-class fields added during
+# Pydantic construction (created_at, metadata, schema_version, etc.).
+_SIZE_BUDGET = DEFAULT_MAX_HANDOFF_CHARS - 5_000
+
+
+def _estimate_fields_size(fields: dict[str, Any]) -> int:
+    """Estimate the JSON size of handoff fields before Pydantic construction."""
+
+    def _convert(v: Any) -> Any:
+        if isinstance(v, list):
+            return [_convert(item) for item in v]
+        if hasattr(v, "model_dump"):
+            return v.model_dump(mode="json")
+        return v
+
+    return len(json.dumps({k: _convert(v) for k, v in fields.items()}, default=str))
+
+
+def _truncate_text(text: str, limit: int) -> str:
+    if len(text) <= limit:
+        return text
+    return text[:limit] + "\n... (truncated)"
+
+
 def assemble_handoff(
     project_id: str,
     arch: ArchitectureResult,
     api: APIDesignResult,
     ui: UIDesignResult,
 ) -> DesignToImplementationHandoff:
-    """Assemble the Design-to-Implementation handoff from specialist outputs."""
+    """Assemble the Design-to-Implementation handoff from specialist outputs.
+
+    Large text fields are truncated to keep the handoff within size limits.
+    If the total still exceeds the budget after initial truncation, structured
+    lists are progressively trimmed (endpoints carry the same data as the raw
+    ``openapi_spec``, so the spec is sacrificed first).
+    """
     tasks = _generate_tasks(arch, api, ui)
     gate_passed = _evaluate_design_quality(arch, api)
 
-    return DesignToImplementationHandoff(
-        project_id=project_id,
-        architecture_summary=arch.architecture_summary,
-        tech_stack=arch.tech_stack,
-        openapi_spec=api.openapi_spec,
-        endpoints=api.endpoints,
-        db_entities=arch.db_entities,
-        migration_strategy=arch.migration_strategy,
-        ui_components=ui.ui_components,
-        navigation_flows=ui.navigation_flows,
-        adrs=arch.adrs,
-        security_design=arch.security_design,
-        tasks=tasks,
-        quality_gate_passed=gate_passed,
-    )
+    # Mutable copies so we can truncate progressively.
+    fields: dict[str, Any] = {
+        "project_id": project_id,
+        "architecture_summary": _truncate_text(arch.architecture_summary, _MAX_ARCH_SUMMARY_CHARS),
+        "tech_stack": arch.tech_stack,
+        "openapi_spec": _truncate_text(api.openapi_spec, _MAX_OPENAPI_SPEC_CHARS),
+        "endpoints": list(api.endpoints),
+        "db_entities": list(arch.db_entities),
+        "migration_strategy": arch.migration_strategy,
+        "ui_components": list(ui.ui_components),
+        "navigation_flows": list(ui.navigation_flows),
+        "adrs": list(arch.adrs),
+        "security_design": _truncate_text(arch.security_design, _MAX_SECURITY_DESIGN_CHARS),
+        "tasks": tasks,
+        "quality_gate_passed": gate_passed,
+    }
+
+    size = _estimate_fields_size(fields)
+
+    # ── Progressive truncation phases ─────────────────────────────────
+    if size > _SIZE_BUDGET:
+        logger.warning("design_handoff.truncating", phase=1, size=size, budget=_SIZE_BUDGET)
+        fields["openapi_spec"] = _truncate_text(fields["openapi_spec"], 2_000)
+        size = _estimate_fields_size(fields)
+
+    if size > _SIZE_BUDGET:
+        logger.warning("design_handoff.truncating", phase=2, size=size)
+        fields["endpoints"] = fields["endpoints"][:15]
+        fields["db_entities"] = fields["db_entities"][:10]
+        fields["ui_components"] = fields["ui_components"][:10]
+        size = _estimate_fields_size(fields)
+
+    if size > _SIZE_BUDGET:
+        logger.warning("design_handoff.truncating", phase=3, size=size)
+        fields["architecture_summary"] = _truncate_text(fields["architecture_summary"], 3_000)
+        fields["security_design"] = _truncate_text(fields["security_design"], 1_000)
+        fields["adrs"] = fields["adrs"][:5]
+
+    return DesignToImplementationHandoff(**fields)
 
 
 async def supervise_design(

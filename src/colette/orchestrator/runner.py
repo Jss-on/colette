@@ -10,6 +10,8 @@ from typing import Any
 import structlog
 from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.memory import MemorySaver
+from langgraph.errors import GraphInterrupt
+from langgraph.types import Command
 
 from colette.config import Settings
 from colette.gates import create_default_registry
@@ -35,7 +37,7 @@ class UserRequestTooLargeError(ValueError):
     """Raised when user_request exceeds the maximum allowed length."""
 
 
-# Align with HandoffSchema.DEFAULT_MAX_HANDOFF_CHARS (32K chars ≈ 8K tokens).
+# Align with HandoffSchema.DEFAULT_MAX_HANDOFF_CHARS (128K chars ≈ 32K tokens).
 MAX_USER_REQUEST_CHARS = 32_000
 
 
@@ -163,6 +165,12 @@ class PipelineRunner:
                 )
             )
             return dict(result)
+        except GraphInterrupt:
+            # Pipeline paused for human approval — keep it active.
+            project_status_registry.mark(project_id, "awaiting_approval")
+            logger.info("pipeline.awaiting_approval", project_id=project_id)
+            snapshot = await self._graph.aget_state(config)
+            return dict(snapshot.values)
         except Exception as exc:
             project_status_registry.mark(project_id, "failed")
             self._event_bus.emit(
@@ -176,23 +184,59 @@ class PipelineRunner:
             )
             raise
         finally:
-            self._active.pop(project_id, None)
-            self._tasks.pop(project_id, None)
+            # Don't remove from _active if awaiting approval
+            status = project_status_registry.get(project_id)
+            if status != "awaiting_approval":
+                self._active.pop(project_id, None)
+                self._tasks.pop(project_id, None)
 
     async def resume(
         self,
         project_id: str,
         update_values: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """Resume a paused pipeline (e.g. after human approval)."""
+        """Resume a paused pipeline (e.g. after human approval).
+
+        Uses LangGraph's ``Command(resume=...)`` to continue from
+        the ``interrupt()`` point in the gate node.
+        """
         thread_id = self._active.get(project_id)
         if not thread_id:
             msg = f"No active pipeline found for project '{project_id}'"
             raise KeyError(msg)
 
+        project_status_registry.mark(project_id, "running")
         config: RunnableConfig = {"configurable": {"thread_id": thread_id}}
-        result = await self._graph.ainvoke(update_values, config)
-        return dict(result)
+
+        approval_value = update_values or {"action": "approved"}
+        logger.info("pipeline.resume", project_id=project_id)
+
+        try:
+            result = await self._graph.ainvoke(
+                Command(resume=approval_value), config
+            )
+            project_status_registry.mark(project_id, "completed")
+            self._event_bus.emit(
+                PipelineEvent(
+                    project_id=project_id,
+                    event_type=EventType.PIPELINE_COMPLETED,
+                    elapsed_seconds=compute_elapsed(
+                        result.get("started_at", "")
+                    ),
+                )
+            )
+            return dict(result)
+        except GraphInterrupt:
+            # Hit another gate that requires approval
+            project_status_registry.mark(project_id, "awaiting_approval")
+            logger.info("pipeline.awaiting_approval", project_id=project_id)
+            snapshot = await self._graph.aget_state(config)
+            return dict(snapshot.values)
+        except Exception:
+            project_status_registry.mark(project_id, "failed")
+            self._active.pop(project_id, None)
+            self._tasks.pop(project_id, None)
+            raise
 
     async def get_progress(self, project_id: str) -> ProgressEvent:
         """Read the current progress of a running pipeline."""

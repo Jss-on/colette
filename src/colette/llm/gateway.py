@@ -74,24 +74,25 @@ class GuardedChatModel(BaseChatModel):
 _litellm_configured = False
 
 
-def _ensure_litellm_retries(max_retries: int) -> None:
-    """Set LiteLLM-level retry config (once).
+def _ensure_litellm_configured() -> None:
+    """Set LiteLLM-level config (once).
 
-    The deprecated ``ChatLiteLLM`` from langchain-community does NOT
-    retry on ``litellm.InternalServerError`` (which wraps HTTP 529
-    overloaded).  Setting ``litellm.num_retries`` ensures retries
-    happen at the LiteLLM layer with exponential backoff.
+    We set ``num_retries=0`` at the LiteLLM layer to avoid double-retrying
+    (ChatLiteLLM already handles retries via its own ``max_retries``).
+    We also lower the default timeout and enable dropping params so
+    provider-specific kwargs don't cause errors on fallback models.
     """
-    global _litellm_configured  # noqa: PLW0603
+    global _litellm_configured
     if _litellm_configured:
         return
 
     import litellm
 
-    litellm.num_retries = max_retries
+    litellm.num_retries = 0  # prevent double-retry with ChatLiteLLM
     litellm.request_timeout = 120
+    litellm.drop_params = True
     _litellm_configured = True
-    logger.info("litellm_retry_configured", num_retries=max_retries)
+    logger.info("litellm_configured", num_retries=0)
 
 
 def _build_chat_model(
@@ -117,7 +118,7 @@ def _build_chat_model(
     """
     from langchain_community.chat_models import ChatLiteLLM
 
-    _ensure_litellm_retries(max_retries)
+    _ensure_litellm_configured()
 
     kwargs: dict[str, Any] = {
         "model": model_name,

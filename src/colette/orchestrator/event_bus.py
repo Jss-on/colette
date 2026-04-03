@@ -53,6 +53,7 @@ class EventType(StrEnum):
     AGENT_HANDOFF = "agent_handoff"
     AGENT_MESSAGE = "agent_message"
     AGENT_STATE_CHANGED = "agent_state_changed"
+    APPROVAL_REQUIRED = "approval_required"
     PIPELINE_COMPLETED = "pipeline_completed"
     PIPELINE_FAILED = "pipeline_failed"
 

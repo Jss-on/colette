@@ -210,7 +210,7 @@ async def _run_cross_review(
         user_content=user_content,
         output_type=CrossReviewResult,
         settings=settings,
-        model_tier=ModelTier.EXECUTION,
+        model_tier=ModelTier.VALIDATION,
     )
 
     logger.info(

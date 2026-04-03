@@ -53,7 +53,7 @@ async def run_analyst(user_request: str, *, settings: Settings) -> AnalysisResul
         user_content=f"Project Description:\n\n{user_request}",
         output_type=AnalysisResult,
         settings=settings,
-        model_tier=ModelTier.EXECUTION,
+        model_tier=ModelTier.PLANNING,
     )
 
     logger.info(

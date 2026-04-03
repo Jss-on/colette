@@ -8,8 +8,9 @@ from typing import Any, Self
 
 from pydantic import BaseModel, Field, model_validator
 
-# Default max handoff size in characters (proxy for ~8K tokens at ~4 chars/token).
-DEFAULT_MAX_HANDOFF_CHARS = 32_000
+# Default max handoff size in characters (proxy for ~32K tokens at ~4 chars/token).
+# Design handoffs carry OpenAPI specs + architecture + DB schema; 32K was too tight.
+DEFAULT_MAX_HANDOFF_CHARS = 128_000
 
 
 class HandoffSchema(BaseModel):

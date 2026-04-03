@@ -84,6 +84,7 @@ class TestEventType:
             "stage_failed",
             "gate_passed",
             "gate_failed",
+            "approval_required",
             "agent_started",
             "agent_completed",
             "agent_error",

@@ -9,9 +9,11 @@ import structlog
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
+from langgraph.types import interrupt
 
 from colette.config import Settings
 from colette.gates.base import GateRegistry, evaluate_gate
+from colette.human.approval import create_approval_request, determine_approval_action
 from colette.orchestrator.event_bus import (
     EventType,
     PipelineEvent,
@@ -22,7 +24,7 @@ from colette.orchestrator.event_bus import (
     stage_var,
 )
 from colette.orchestrator.state import STAGE_ORDER, PipelineState
-from colette.schemas.common import StageName, StageStatus
+from colette.schemas.common import ApprovalTier, StageName, StageStatus
 from colette.stages.deployment.stage import run_stage as deployment_run
 from colette.stages.design.stage import run_stage as design_run
 from colette.stages.implementation.stage import run_stage as implementation_run
@@ -53,6 +55,17 @@ _GATE_AFTER_STAGE: dict[str, str] = {
 }
 
 
+# Which approval tier each gate requires before proceeding.
+# T0/T1 always interrupt; T2 interrupts if confidence < threshold; T3 auto-approves.
+_GATE_APPROVAL_TIER: dict[str, ApprovalTier] = {
+    "requirements": ApprovalTier.T2_MODERATE,
+    "design": ApprovalTier.T1_HIGH,
+    "implementation": ApprovalTier.T2_MODERATE,
+    "testing": ApprovalTier.T2_MODERATE,
+    "staging": ApprovalTier.T1_HIGH,
+}
+
+
 def _next_stage(current: str, skip_stages: list[str]) -> str | None:
     """Return the next non-skipped stage, or ``None`` if *current* is last."""
     idx = STAGE_ORDER.index(current)
@@ -65,9 +78,16 @@ def _next_stage(current: str, skip_stages: list[str]) -> str | None:
 def _make_gate_node(
     gate_name: str,
     gate_registry: GateRegistry,
+    settings: Settings,
     event_bus: PipelineEventBus | None = None,
 ) -> Any:
-    """Create an async gate-evaluation node function."""
+    """Create an async gate-evaluation node function.
+
+    After evaluating the gate, checks the approval tier for this gate.
+    If human review is required (T0/T1, or T2 below confidence threshold),
+    the node emits an approval-required event and calls ``interrupt()``
+    to pause the pipeline until the user approves via ``colette approve``.
+    """
 
     async def _gate_node(state: dict[str, Any]) -> dict[str, Any]:
         project_id = state.get("project_id", "")
@@ -87,7 +107,7 @@ def _make_gate_node(
                 )
             )
 
-        return {
+        gate_state: dict[str, Any] = {
             "quality_gate_results": {
                 **state.get("quality_gate_results", {}),
                 gate_name: result.model_dump(mode="json"),
@@ -101,6 +121,57 @@ def _make_gate_node(
                 },
             ],
         }
+
+        # ── Human-in-the-loop check (FR-HIL-001) ────────────────────
+        if result.passed:
+            tier = _GATE_APPROVAL_TIER.get(gate_name, ApprovalTier.T3_ROUTINE)
+            action = determine_approval_action(
+                tier, result.score, settings
+            )
+            if action == "interrupt":
+                approval_req = create_approval_request(
+                    state,
+                    tier,
+                    context_summary=(
+                        f"Gate '{gate_name}' passed with score "
+                        f"{result.score:.2f}. "
+                        f"Criteria: {result.criteria_results}"
+                    ),
+                    proposed_action=f"Proceed to next stage after {gate_name}",
+                    confidence=result.score,
+                    settings=settings,
+                )
+                gate_state["approval_requests"] = [
+                    approval_req.model_dump(mode="json")
+                ]
+
+                if event_bus is not None:
+                    event_bus.emit(
+                        PipelineEvent(
+                            project_id=project_id,
+                            event_type=EventType.APPROVAL_REQUIRED,
+                            stage=gate_name,
+                            message=(
+                                f"Human approval required ({tier}). "
+                                f"Run: colette approve {approval_req.request_id}"
+                            ),
+                            detail=approval_req.model_dump(mode="json"),
+                            elapsed_seconds=compute_elapsed(
+                                state.get("started_at", "")
+                            ),
+                        )
+                    )
+
+                logger.info(
+                    "gate.approval_required",
+                    gate=gate_name,
+                    tier=tier,
+                    request_id=approval_req.request_id,
+                )
+                # Pause pipeline — resumed via `colette approve`
+                interrupt(approval_req.model_dump(mode="json"))
+
+        return gate_state
 
     _gate_node.__name__ = f"gate_{gate_name}"
     return _gate_node
@@ -222,7 +293,7 @@ def build_pipeline(
     for _stage_name, gate_name in _GATE_AFTER_STAGE.items():
         graph.add_node(
             f"gate_{gate_name}",
-            _make_gate_node(gate_name, gate_registry, event_bus),
+            _make_gate_node(gate_name, gate_registry, settings, event_bus),
         )
 
     # ── Gate-failed terminal node ────────────────────────────────────

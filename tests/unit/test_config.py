@@ -22,11 +22,17 @@ def test_settings_override(monkeypatch: object) -> None:
         del os.environ["COLETTE_AGENT_MAX_ITERATIONS"]
 
 
-def test_llm_fallback_defaults_empty() -> None:
-    s = Settings()
-    assert s.planning_fallback_models == []
-    assert s.execution_fallback_models == []
-    assert s.validation_fallback_models == []
+def test_llm_fallback_defaults_empty(monkeypatch: object) -> None:
+    os.environ.pop("COLETTE_PLANNING_FALLBACK_MODELS", None)
+    os.environ.pop("COLETTE_EXECUTION_FALLBACK_MODELS", None)
+    os.environ.pop("COLETTE_VALIDATION_FALLBACK_MODELS", None)
+    try:
+        s = Settings(_env_file=None)  # type: ignore[call-arg]
+        assert s.planning_fallback_models == []
+        assert s.execution_fallback_models == []
+        assert s.validation_fallback_models == []
+    finally:
+        pass  # env vars already removed
 
 
 def test_llm_model_defaults() -> None:
@@ -38,4 +44,4 @@ def test_llm_model_defaults() -> None:
 
 def test_handoff_max_chars_default() -> None:
     s = Settings()
-    assert s.handoff_max_chars == 32_000
+    assert s.handoff_max_chars == 128_000

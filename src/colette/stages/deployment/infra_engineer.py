@@ -65,7 +65,7 @@ async def run_infra_engineer(
         user_content=f"Project Architecture:\n\n{deployment_context}",
         output_type=InfraResult,
         settings=settings,
-        model_tier=ModelTier.EXECUTION,
+        model_tier=ModelTier.VALIDATION,
     )
 
     logger.info(

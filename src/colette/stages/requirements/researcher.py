@@ -52,7 +52,7 @@ async def run_researcher(user_request: str, *, settings: Settings) -> ResearchRe
         user_content=f"Research domain context for:\n\n{user_request}",
         output_type=ResearchResult,
         settings=settings,
-        model_tier=ModelTier.EXECUTION,
+        model_tier=ModelTier.VALIDATION,
     )
 
     logger.info(

@@ -1,204 +1,137 @@
 # CLAUDE.md
 
-> **Version:** 4.0 | **Last updated:** 2026-03-30 | **Status:** Scaffolded — dev environment ready
-
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
 
-**Colette** is a multi-agent AI system that autonomously performs end-to-end software development for web applications. It handles the full SDLC from natural language requirements through production deployment and monitoring, using a hybrid oversight model where routine tasks execute autonomously while critical decisions require human approval.
+**Colette** is a multi-agent AI system that autonomously performs end-to-end software development. It takes a natural language project description and runs it through a 6-stage SDLC pipeline (Requirements → Design → Implementation → Testing → Deployment → Monitoring), each with supervisor + specialist agents, quality gates between stages, and human-in-the-loop approval for critical decisions.
 
-**Colette is a standalone CLI tool**, similar to Claude Code. Users interact via the command line. It is NOT a framework, library, or SDK — it should not be imported, embedded, or extended by other projects.
+**Colette is a standalone CLI tool** (like Claude Code). Users run `uv run colette submit --name "app" --description "..."` and watch progress via SSE streaming. It is NOT a framework/library/SDK.
 
-**Current status:** Scaffolded. Project structure, build system, CI, and dev tooling are in place. Core implementation has not started.
+## Development Commands
 
-## Target Tech Stack
+```bash
+# Setup
+make install                  # uv sync --all-extras
+make dev                      # install + create .env from .env.example
 
-- **Language:** Python 3.13+ (managed via `uv`)
-- **Orchestration:** LangGraph (graph-based state machine, chosen for token efficiency and durable execution)
-- **Memory:** Mem0 (project/user memory) + Graphiti/Zep (codebase knowledge graph with bi-temporal tracking) + LangGraph shared state (session)
-- **RAG:** Recursive chunking at 512 tokens + pgvector + Cohere Rerank
-- **LLM Gateway:** LiteLLM (open-source, provider-agnostic; Claude, GPT, Gemini via unified API with fallback chains and usage tracking)
-- **Tool Integration:** MCP (Model Context Protocol) servers for all external tools
-- **Context Compression:** Morph Compact (verbatim, no summarization) triggered at 70% utilization
-- **Target apps:** React/Next.js frontend, Node.js or Python backend, PostgreSQL database
+# Quality
+make lint                     # ruff check src/ tests/
+make format                   # ruff format + ruff check --fix
+make typecheck                # mypy src/ (strict mode)
+make check                    # lint + typecheck + test-unit + security
+
+# Testing
+make test                     # pytest with coverage (80% min, --cov-fail-under=80)
+make test-unit                # pytest tests/unit/ only
+make test-integration         # pytest tests/integration/ -m integration
+uv run pytest tests/unit/stages/test_requirements_stage.py  # single file
+uv run pytest tests/unit/ -k "test_gate"                    # by name pattern
+uv run pytest tests/unit/ --no-cov                          # skip coverage
+
+# Run
+uv run colette serve          # start FastAPI server (uvicorn, port 8000)
+uv run colette submit --name "my-app" --description "..."   # submit a project
+uv run colette status <project-id> --follow                 # stream progress
+uv run colette approve <gate-id>                            # approve a gate
+uv run colette config show                                  # show current config
+
+# Services (needed for integration tests / prod)
+make docker-up                # postgres, redis, neo4j
+make docker-down
+```
 
 ## Architecture
 
-### Three-Layer Design
+### Pipeline Flow
 
-1. **Orchestration Layer (LangGraph):** SDLC pipeline as a DAG. A Project Orchestrator decomposes requests into pipeline stages, delegates to Stage Supervisors, each managing 2-4 specialist agents.
-2. **Memory Layer (Hybrid):** Hot (LangGraph context window) → Warm (Mem0 + Graphiti + pgvector) → Cold (S3-compatible archive).
-3. **Context Management Layer:** Per-agent token budgets, Morph Compact at 70%, RAG with hybrid retrieval (BM25 + dense vectors + reranking).
-
-### Six-Stage Sequential Pipeline
+The core is a LangGraph `StateGraph` in `orchestrator/pipeline.py`. Six stage nodes and six gate nodes form a linear DAG:
 
 ```
-User Request → Requirements → Design → Implementation → Testing → Deployment → Monitoring → Delivery
+START → requirements → req_gate → design → design_gate → implementation → impl_gate
+      → testing → test_gate → deployment → staging_gate → monitoring → END
 ```
 
-Each stage has a **supervisor** agent and **2-4 specialist agents**. Inter-stage transfers use **typed Pydantic handoff schemas** (versioned, validated). No free-text handoffs.
+Each stage node calls `stages/<name>/stage.py:run_stage(state)` which delegates to a supervisor (`supervisor.py`), which orchestrates 2-3 specialist agents. Each gate node calls `gates/<name>_gate.py:evaluate()` which checks handoff quality (completeness scores, required fields, thresholds).
 
-### Key Agents (16 total)
+### State Threading
 
-| Stage | Supervisor | Specialists |
-|---|---|---|
-| Requirements | Requirements Supervisor | Analyst, Domain Researcher |
-| Design | Design Supervisor | System Architect, API Designer, UI/UX Designer |
-| Implementation | Implementation Supervisor | Frontend Dev, Backend Dev, DB Engineer |
-| Testing | Testing Supervisor | Unit Tester, Integration Tester, Security Scanner |
-| Deployment | Deployment Supervisor | CI/CD Engineer, Infra Engineer |
-| Monitoring | Monitoring Supervisor | Observability Agent, Incident Response Agent |
+`PipelineState` (in `orchestrator/state.py`) is a `TypedDict` threaded through all nodes. Key fields:
+- `handoffs: dict[str, dict]` — each stage writes its output handoff here; the next stage reads from it
+- `stage_statuses: dict[str, str]` — tracks PENDING/RUNNING/COMPLETED/FAILED per stage
+- `progress_events`, `error_log` — append-only lists (using `operator.add` reducer for concurrency safety)
+- `approval_requests`, `approval_decisions` — human-in-the-loop state
 
-**Model assignment:** Opus for planning/architecture (Orchestrator, Design Supervisor, System Architect); Sonnet for execution (all others).
+### How Agents Call LLMs
 
-### Human Oversight Tiers
+All agent LLM calls go through `llm/structured.py:invoke_structured()`:
 
-- **T0 (Critical):** Human required — production deploys, DB migrations, security architecture
-- **T1 (High):** Human review — API contract changes, new dependencies, infra changes
-- **T2 (Moderate):** Confidence-gated — code generation, test writing, staging CI/CD (escalate if confidence < 0.60)
-- **T3 (Routine):** Fully autonomous — linting, formatting, test execution, log analysis
-
-### Context Budgets
-
-- Supervisors: 100K tokens (10% system prompt, 15% tools, 35% retrieved context, 15% history, 25% output)
-- Specialist agents: 60K tokens (same proportions, 40% retrieved context)
-- Scanners/validators: 30K tokens
-
-## Design Constraints
-
-- **Cloud-agnostic:** Must run on AWS, GCP, Azure, or on-premises
-- **Open-source first:** Every component must have an OSS option
-- **LLM provider agnostic:** All LLM calls go through LiteLLM gateway
-- **Data residency:** All project data stays on user infrastructure; no third-party data sharing except LLM API calls
-- **Horizontal scalability:** Concurrent project execution with full isolation
-
-## Documentation Reference
-
-All planning documents are in `docs/`. Markdown versions are authoritative; .docx files are retained as archives.
-
-### Primary Documents (Markdown)
-- `Colette_Software_Requirements_Specification.md` — 164 requirements across 16 domains (MoSCoW prioritized, IEEE 830 compliant)
-- `MultiAgent_SDLC_System_Architecture.md` — Full architecture: agent catalog, handoff schemas, memory tiers, MCP integration, infrastructure
-- `Complete_Guide_to_Building_AI_Agent_Systems.md` — Implementation guide
-
-### Supporting Documents
-- `requirements_traceability_matrix.md` — Maps requirements to architecture components, test strategies, and acceptance criteria
-- `srs_gap_analysis.md` — Documents all changes from SRS v1.0 to v2.0 with rationale
-- `colette_vs_openclaw_comparison.md` — Competitive analysis against OpenClaw
-
-### Research Documents
-- `compass_artifact_wf-94ffe879*.md` — Agent orchestration patterns and topologies
-- `compass_artifact_wf-b51e327d*.md` — Agentic memory systems: bi-temporal graphs, decay, scoping
-- `compass_artifact_wf-f571ba0b*.md` — Context management: RAG pipelines, compression, hallucination defense
-
-### Archives (.docx originals)
-- `Colette_Software_Requirements_Specification.docx`, `MultiAgent_SDLC_System_Architecture.docx`, `Complete_Guide_to_Building_AI_Agent_Systems.docx`
-
-## Document Versions
-
-| Document | Version | Updated | Notes |
-|---|---|---|---|
-| `CLAUDE.md` | 4.0 | 2026-03-30 | CLI-first interface, not a framework |
-| `Colette_Software_Requirements_Specification.md` | 4.0 | 2026-03-30 | CLI as primary UI (MUST), Web UI deferred to v1.5 (WON'T), Colette is not a framework |
-| `MultiAgent_SDLC_System_Architecture.md` | 1.0 | 2026-03-29 | Full architecture doc |
-| `Complete_Guide_to_Building_AI_Agent_Systems.md` | 1.0 | 2026-03-29 | Implementation guide |
-| `requirements_traceability_matrix.md` | 1.0 | 2026-03-29 | Req → arch → test mapping |
-| `srs_gap_analysis.md` | 1.0 | 2026-03-29 | SRS v1.0 → v2.0 delta |
-| `colette_vs_openclaw_comparison.md` | 1.0 | 2026-03-29 | Competitive analysis |
-
-## Project Structure
-
-```
-colette/
-├── src/colette/              # Source package (src-layout)
-│   ├── __init__.py           # Package root, __version__
-│   ├── cli.py                # CLI entry point (Click)
-│   ├── config.py             # Settings via pydantic-settings
-│   ├── schemas/              # Typed Pydantic handoff schemas (FR-ORC-020)
-│   │   ├── __init__.py
-│   │   └── base.py           # HandoffSchema base class
-│   ├── orchestrator/         # Project Orchestrator (FR-ORC-001)
-│   ├── stages/               # Six SDLC pipeline stages
-│   │   ├── requirements/     # NL → PRD (FR-REQ-*)
-│   │   ├── design/           # PRD → architecture (FR-DES-*)
-│   │   ├── implementation/   # Design → code (FR-IMP-*)
-│   │   ├── testing/          # Code → test reports (FR-TST-*)
-│   │   ├── deployment/       # Tested → deployed (FR-DEP-*)
-│   │   └── monitoring/       # Observability (FR-MON-*)
-│   ├── memory/               # Memory layer: hot/warm/cold (FR-MEM-*)
-│   ├── tools/                # MCP tool integration (FR-TL-*)
-│   ├── gates/                # Quality gate enforcement (§12)
-│   └── human/                # Human-in-the-loop (FR-HIL-*)
-├── tests/                    # Test suite (mirrors src/)
-│   ├── conftest.py           # Shared fixtures
-│   ├── unit/                 # Fast, no external deps
-│   ├── integration/          # Requires services
-│   └── e2e/                  # Full pipeline tests
-├── docs/                     # Specification & architecture docs
-├── scripts/                  # Utility scripts
-├── pyproject.toml            # Project metadata, deps, tool configs
-├── Makefile                  # Dev command shortcuts
-├── Dockerfile                # Multi-stage container build
-├── docker-compose.yml        # Dev services (postgres, redis, neo4j)
-├── .env.example              # Environment variable template
-├── CHANGELOG.md              # Keep-a-Changelog format
-└── .github/workflows/ci.yml  # CI pipeline
+```python
+result = await invoke_structured(
+    system_prompt=ANALYST_SYSTEM_PROMPT,
+    user_content=f"Project Description:\n\n{user_request}",
+    output_type=AnalysisResult,    # Pydantic model — response parsed into this
+    settings=settings,
+    model_tier=ModelTier.EXECUTION, # PLANNING / EXECUTION / VALIDATION
+)
 ```
 
-## Versioning
+This function: augments the system prompt with the JSON schema of `output_type`, sends the request via `llm/gateway.py` (LiteLLM-backed, with fallback chains), extracts JSON from the response, and validates it into the Pydantic model. A `ColletteCallbackHandler` is auto-attached for event emission.
 
-- **Application:** Semantic Versioning (`MAJOR.MINOR.PATCH`) — single source of truth in `pyproject.toml` and `src/colette/__init__.py`
-- **Handoff schemas:** Semantic versioning per schema, major bump on breaking changes (FR-ORC-021)
-- **CLAUDE.md:** Integer version in header, changelog at bottom
-- **Changelog:** `CHANGELOG.md` in Keep-a-Changelog format
+### LLM Gateway & Model Tiers
 
-## Changelog
+`llm/gateway.py:create_chat_model_for_tier()` maps `ModelTier` → model string via config:
+- **PLANNING**: `default_planning_model` (Claude Sonnet 4.6)
+- **EXECUTION**: `default_execution_model` (Claude Sonnet 4.6)
+- **VALIDATION**: `default_validation_model` (Claude Haiku 4.5)
 
-### v4.0 — 2026-03-30
-- CLI is now the primary (and only v1.0) user interface — modeled after Claude Code
-- Web UI deferred to v1.5 (WNT-013)
-- Colette is explicitly a standalone CLI tool, not a framework/library (WNT-014)
-- Updated SRS to v4.0, development phase plan Phase 8 updated
+Each tier has optional fallback chains (`planning_fallback_models`, etc.) tried in order on failure. A `GuardedChatModel` wrapper blocks LLM calls for non-running projects (checked via `llm/registry.py:project_status_registry`).
 
-### v3.0 — 2026-03-29
-- Added project structure, directory layout, source packages
-- Added `pyproject.toml` with all deps, ruff/mypy/pytest configs
-- Added Dockerfile, docker-compose.yml, Makefile, CI workflow
-- Added versioning scheme documentation
+### Handoff Schemas
 
-### v2.0 — 2026-03-29
-- Added document version registry
-- Added changelog section
-- Added version/status header
+Typed Pydantic models in `schemas/` define the contract between stages. Each is frozen/immutable:
+- `RequirementsToDesignHandoff` — user stories, NFRs, constraints, completeness score
+- `DesignToImplementationHandoff` — OpenAPI spec, DB entities, tech stack, ADRs
+- `ImplementationToTestingHandoff` — generated files, packages, migrations
+- `TestingToDeploymentHandoff` — test files, coverage metrics, security findings
+- `DeploymentToMonitoringHandoff` — deployment configs, container image, infra manifest
 
-### v1.0 — 2026-03-29
-- Initial CLAUDE.md: project overview, tech stack, architecture, design constraints, doc reference, dev environment
+Shared types (UserStory, NFRSpec, EntitySpec, etc.) live in `schemas/common.py`.
 
-## Development Environment
+### Quality Gates
 
-```bash
-# ── Setup ──────────────────────────────────────────────────
-make install               # uv sync (all deps)
-make dev                   # install + create .env from template
+Each gate in `gates/` implements the `QualityGate` Protocol (async `evaluate(state) -> QualityGateResult`). Gates never raise exceptions — they always return a result with `passed: bool` and `reasons: list[str]`. The `GateRegistry` in `gates/base.py` provides lookup by name.
 
-# ── Quality ────────────────────────────────────────────────
-make lint                  # ruff check
-make format                # ruff format + fix
-make typecheck             # mypy strict mode
-make test                  # pytest with coverage (80% min)
-make test-unit             # unit tests only
-make security              # bandit + pip-audit
+### Event Bus & SSE Streaming
 
-# ── Docker ─────────────────────────────────────────────────
-make docker-up             # start postgres, redis, neo4j
-make docker-down           # stop services
-make docker-build          # build colette image
+`orchestrator/event_bus.py` provides an in-process pub/sub per project. Stage nodes and agent callbacks emit `PipelineEvent`s (STAGE_STARTED, AGENT_THINKING, GATE_PASSED, etc.). The API layer (`api/routes/pipelines.py`) streams these to clients as SSE. Context variables (`event_bus_var`, `project_id_var`, `stage_var`) propagate the bus through async call chains.
 
-# ── All checks ─────────────────────────────────────────────
-make check                 # lint + typecheck + test + security
+### Configuration
 
-# ── Direct uv commands ─────────────────────────────────────
-uv run python <script>     # Run with venv
-uv run colette --version   # CLI
-```
+`config.py:Settings` uses `pydantic-settings` with `COLETTE_` env prefix. All settings load from env vars or `.env` file. Key groups: LLM models/fallbacks, database URLs, agent budgets (100k/60k/30k tokens), human-in-the-loop thresholds (0.60 escalation, 0.85 auto-approve), observability, security toggles.
+
+## Key Directories
+
+- `src/colette/stages/<name>/` — each has `stage.py` (entry), `supervisor.py` (orchestrates agents), specialist agents, `prompts.py`
+- `src/colette/llm/` — gateway.py (LiteLLM + fallbacks), structured.py (typed output), registry.py (project status guard)
+- `src/colette/orchestrator/` — pipeline.py (LangGraph DAG), runner.py (execution manager), state.py, event_bus.py, circuit_breaker.py
+- `src/colette/memory/` — manager.py (facade), project_memory.py (Mem0), knowledge_graph.py (Neo4j, null fallback), rag/ (indexer, retriever, evaluator, chunker), context/ (budget tracker, compactor)
+- `src/colette/api/` — FastAPI app with routes for projects, pipelines (SSE), approvals, artifacts, WebSocket
+- `src/colette/security/` — RBAC, audit logging, secret filtering, prompt injection defense, MCP tool pinning
+- `src/colette/tools/` — MCP-wrapped tools (git, filesystem, terminal, npm, linter, etc.) extending `MCPBaseTool` with sanitization
+
+## Testing Conventions
+
+- Tests mirror `src/` under `tests/unit/` and `tests/integration/`
+- `conftest.py` provides `settings` fixture (in-memory DB config), `mock_project_memory`, `mock_knowledge_graph`
+- Markers: `@pytest.mark.unit`, `@pytest.mark.integration`, `@pytest.mark.e2e`, `@pytest.mark.slow`
+- `asyncio_mode = "auto"` — async test functions just work
+- Coverage enforced at 80% via `--cov-fail-under=80`
+
+## Documentation
+
+Planning docs live in `docs/`. Markdown versions are authoritative:
+- `Colette_Software_Requirements_Specification.md` — 164 requirements (MoSCoW prioritized)
+- `MultiAgent_SDLC_System_Architecture.md` — full architecture reference
+- `Complete_Guide_to_Building_AI_Agent_Systems.md` — implementation guide
+- `requirements_traceability_matrix.md` — requirement → component → test mapping
