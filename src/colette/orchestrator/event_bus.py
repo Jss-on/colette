@@ -55,6 +55,7 @@ class EventType(StrEnum):
     AGENT_STREAM_CHUNK = "agent_stream_chunk"
     AGENT_STATE_CHANGED = "agent_state_changed"
     APPROVAL_REQUIRED = "approval_required"
+    FEEDBACK_APPLIED = "feedback_applied"
     PIPELINE_COMPLETED = "pipeline_completed"
     PIPELINE_FAILED = "pipeline_failed"
 
@@ -84,9 +85,7 @@ class PipelineEventBus:
     """
 
     def __init__(self) -> None:
-        self._subscribers: dict[str, list[asyncio.Queue[PipelineEvent]]] = defaultdict(
-            list
-        )
+        self._subscribers: dict[str, list[asyncio.Queue[PipelineEvent]]] = defaultdict(list)
 
     def subscribe(
         self, project_id: str, *, max_size: int = MAX_QUEUE_SIZE
@@ -96,9 +95,7 @@ class PipelineEventBus:
         self._subscribers[project_id].append(queue)
         return queue
 
-    def unsubscribe(
-        self, project_id: str, queue: asyncio.Queue[PipelineEvent]
-    ) -> None:
+    def unsubscribe(self, project_id: str, queue: asyncio.Queue[PipelineEvent]) -> None:
         """Remove a subscriber queue.  Safe to call even if not subscribed."""
         queues = self._subscribers.get(project_id, [])
         with contextlib.suppress(ValueError):

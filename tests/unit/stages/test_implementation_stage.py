@@ -17,6 +17,7 @@ from colette.schemas.common import (
     StageName,
 )
 from colette.schemas.design import DesignToImplementationHandoff, ImplementationTask
+from colette.schemas.module_design import ModuleDesign
 from colette.stages.implementation.backend import BackendResult
 from colette.stages.implementation.database import DatabaseResult
 from colette.stages.implementation.frontend import FrontendResult
@@ -401,8 +402,11 @@ class TestAssembleHandoff:
 
 def _make_clean_verification() -> VerificationReport:
     return VerificationReport(
-        findings=[], lint_passed=True, type_check_passed=True,
-        build_passed=True, summary="Clean.",
+        findings=[],
+        lint_passed=True,
+        type_check_passed=True,
+        build_passed=True,
+        summary="Clean.",
     )
 
 
@@ -418,12 +422,19 @@ def _mock_verify_passthrough() -> AsyncMock:
 class TestAssembleHandoffWithVerification:
     def test_uses_verification_flags(self) -> None:
         report = VerificationReport(
-            findings=[], lint_passed=True, type_check_passed=True,
-            build_passed=True, summary="Clean.",
+            findings=[],
+            lint_passed=True,
+            type_check_passed=True,
+            build_passed=True,
+            summary="Clean.",
         )
         handoff = assemble_handoff(
-            "proj-1", _make_design_handoff(), _make_frontend_result(),
-            _make_backend_result(), _make_database_result(), None,
+            "proj-1",
+            _make_design_handoff(),
+            _make_frontend_result(),
+            _make_backend_result(),
+            _make_database_result(),
+            None,
             verification=report,
         )
         assert handoff.lint_passed is True
@@ -432,12 +443,19 @@ class TestAssembleHandoffWithVerification:
 
     def test_partial_verification_flags(self) -> None:
         report = VerificationReport(
-            findings=[], lint_passed=True, type_check_passed=False,
-            build_passed=True, summary="Type errors.",
+            findings=[],
+            lint_passed=True,
+            type_check_passed=False,
+            build_passed=True,
+            summary="Type errors.",
         )
         handoff = assemble_handoff(
-            "proj-1", _make_design_handoff(), _make_frontend_result(),
-            _make_backend_result(), _make_database_result(), None,
+            "proj-1",
+            _make_design_handoff(),
+            _make_frontend_result(),
+            _make_backend_result(),
+            _make_database_result(),
+            None,
             verification=report,
         )
         assert handoff.lint_passed is True
@@ -446,8 +464,12 @@ class TestAssembleHandoffWithVerification:
 
     def test_no_verification_defaults_false(self) -> None:
         handoff = assemble_handoff(
-            "proj-1", _make_design_handoff(), _make_frontend_result(),
-            _make_backend_result(), _make_database_result(), None,
+            "proj-1",
+            _make_design_handoff(),
+            _make_frontend_result(),
+            _make_backend_result(),
+            _make_database_result(),
+            None,
         )
         assert handoff.lint_passed is False
         assert handoff.type_check_passed is False
@@ -460,6 +482,16 @@ class TestSuperviseImplementation:
         design = _make_design_handoff()
 
         with (
+            patch(
+                "colette.stages.implementation.supervisor.run_architect",
+                new_callable=AsyncMock,
+                return_value=ModuleDesign(),
+            ),
+            patch(
+                "colette.stages.implementation.supervisor.run_test_agent",
+                new_callable=AsyncMock,
+                return_value=AsyncMock(test_files=[]),
+            ),
             patch(
                 "colette.stages.implementation.supervisor.run_frontend",
                 new_callable=AsyncMock,
@@ -504,6 +536,16 @@ class TestSuperviseImplementation:
 
         with (
             patch(
+                "colette.stages.implementation.supervisor.run_architect",
+                new_callable=AsyncMock,
+                return_value=ModuleDesign(),
+            ),
+            patch(
+                "colette.stages.implementation.supervisor.run_test_agent",
+                new_callable=AsyncMock,
+                return_value=AsyncMock(test_files=[]),
+            ),
+            patch(
                 "colette.stages.implementation.supervisor.run_frontend",
                 new_callable=AsyncMock,
                 return_value=_make_frontend_result(),
@@ -544,6 +586,16 @@ class TestSuperviseImplementation:
         design = _make_design_handoff()
 
         with (
+            patch(
+                "colette.stages.implementation.supervisor.run_architect",
+                new_callable=AsyncMock,
+                return_value=ModuleDesign(),
+            ),
+            patch(
+                "colette.stages.implementation.supervisor.run_test_agent",
+                new_callable=AsyncMock,
+                return_value=AsyncMock(test_files=[]),
+            ),
             patch(
                 "colette.stages.implementation.supervisor.run_frontend",
                 new_callable=AsyncMock,
@@ -610,6 +662,16 @@ class TestRunStage:
         }
 
         with (
+            patch(
+                "colette.stages.implementation.supervisor.run_architect",
+                new_callable=AsyncMock,
+                return_value=ModuleDesign(),
+            ),
+            patch(
+                "colette.stages.implementation.supervisor.run_test_agent",
+                new_callable=AsyncMock,
+                return_value=AsyncMock(test_files=[]),
+            ),
             patch(
                 "colette.stages.implementation.supervisor.run_frontend",
                 new_callable=AsyncMock,

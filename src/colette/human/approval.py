@@ -9,6 +9,13 @@ from typing import Any
 from colette.config import Settings
 from colette.human.models import ApprovalRequest
 from colette.human.sla import compute_deadline
+from colette.orchestrator.event_bus import (
+    EventType,
+    PipelineEvent,
+    event_bus_var,
+    project_id_var,
+    stage_var,
+)
 from colette.schemas.common import ApprovalTier
 
 
@@ -71,5 +78,23 @@ def apply_modifications(
     """Merge inline modifications into a handoff dict (FR-HIL-008).
 
     Returns a new dict — the original is not mutated.
+    Emits a ``FEEDBACK_APPLIED`` event when modifications are non-empty.
     """
-    return {**handoff_dict, **modifications}
+    if not modifications:
+        return handoff_dict
+
+    result = {**handoff_dict, **modifications}
+
+    bus = event_bus_var.get()
+    if bus is not None:
+        bus.emit(
+            PipelineEvent(
+                project_id=project_id_var.get(""),
+                event_type=EventType.FEEDBACK_APPLIED,
+                stage=stage_var.get(""),
+                message=f"Applied {len(modifications)} modification(s) to handoff.",
+                detail={"keys": list(modifications.keys())},
+            )
+        )
+
+    return result

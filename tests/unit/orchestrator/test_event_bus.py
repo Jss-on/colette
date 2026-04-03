@@ -56,9 +56,7 @@ class TestPipelineEvent:
         assert event.tokens_used == 1200
 
     def test_frozen(self) -> None:
-        event = PipelineEvent(
-            project_id="p1", event_type=EventType.STAGE_STARTED
-        )
+        event = PipelineEvent(project_id="p1", event_type=EventType.STAGE_STARTED)
         with pytest.raises(AttributeError):
             event.stage = "design"  # type: ignore[misc]
 
@@ -95,6 +93,7 @@ class TestEventType:
             "agent_message",
             "agent_stream_chunk",
             "agent_state_changed",
+            "feedback_applied",
             "pipeline_completed",
             "pipeline_failed",
         }
@@ -179,25 +178,15 @@ class TestPipelineEventBus:
     def test_emit_drops_on_full_queue(self) -> None:
         bus = PipelineEventBus()
         queue = bus.subscribe("proj-1", max_size=1)
-        bus.emit(
-            PipelineEvent(
-                project_id="proj-1", event_type=EventType.STAGE_STARTED
-            )
-        )
+        bus.emit(PipelineEvent(project_id="proj-1", event_type=EventType.STAGE_STARTED))
         # Second emit should be dropped, not raise
-        bus.emit(
-            PipelineEvent(
-                project_id="proj-1", event_type=EventType.STAGE_COMPLETED
-            )
-        )
+        bus.emit(PipelineEvent(project_id="proj-1", event_type=EventType.STAGE_COMPLETED))
         assert queue.qsize() == 1
         assert queue.get_nowait().event_type == EventType.STAGE_STARTED
 
     def test_emit_no_subscribers_is_noop(self) -> None:
         bus = PipelineEventBus()
-        event = PipelineEvent(
-            project_id="proj-1", event_type=EventType.STAGE_STARTED
-        )
+        event = PipelineEvent(project_id="proj-1", event_type=EventType.STAGE_STARTED)
         bus.emit(event)  # Should not raise
 
     def test_subscriber_count_zero_for_unknown(self) -> None:
@@ -208,11 +197,7 @@ class TestPipelineEventBus:
         bus = PipelineEventBus()
         queue = bus.subscribe("proj-1")
         bus.unsubscribe("proj-1", queue)
-        bus.emit(
-            PipelineEvent(
-                project_id="proj-1", event_type=EventType.STAGE_STARTED
-            )
-        )
+        bus.emit(PipelineEvent(project_id="proj-1", event_type=EventType.STAGE_STARTED))
         assert queue.empty()
 
 

@@ -72,3 +72,23 @@ class TestApplyModifications:
         result = apply_modifications(original, {"b": 99, "c": 3})
         assert result == {"a": 1, "b": 99, "c": 3}
         assert original == {"a": 1, "b": 2}
+
+    def test_empty_modifications_returns_original(self) -> None:
+        original = {"a": 1}
+        result = apply_modifications(original, {})
+        assert result is original
+
+    def test_emits_feedback_applied_event(self) -> None:
+        from unittest.mock import MagicMock
+
+        from colette.orchestrator.event_bus import EventType, event_bus_var
+
+        bus = MagicMock()
+        token = event_bus_var.set(bus)
+        try:
+            apply_modifications({"a": 1}, {"b": 2})
+            bus.emit.assert_called_once()
+            event = bus.emit.call_args[0][0]
+            assert event.event_type == EventType.FEEDBACK_APPLIED
+        finally:
+            event_bus_var.reset(token)
