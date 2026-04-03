@@ -1,6 +1,6 @@
 ---
 id: "final-integration-2026-04-04"
-status: "backlog"
+status: "done"
 priority: "critical"
 assignee: "claude"
 dueDate: "2026-04-10"
