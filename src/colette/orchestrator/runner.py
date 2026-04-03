@@ -59,9 +59,10 @@ class PipelineRunner:
         self._event_bus = event_bus or PipelineEventBus()
 
         # Checkpointer — MemorySaver for dev; PostgresSaver for prod.
-        self._checkpointer = self._create_checkpointer()
+        self._checkpointer: MemorySaver | Any = MemorySaver()
+        self._pg_pool: Any | None = None  # ConnectionPool, set by asetup()
 
-        # Build the compiled pipeline graph once.
+        # Build the compiled pipeline graph once (re-built after asetup if needed).
         self._gate_registry = create_default_registry()
         self._graph = build_pipeline(
             self._gate_registry,
@@ -76,25 +77,67 @@ class PipelineRunner:
         # Track asyncio tasks for hard cancellation.
         self._tasks: dict[str, asyncio.Task[Any]] = {}
 
-    def _create_checkpointer(self) -> MemorySaver:
-        """Create the checkpoint backend.
+    async def asetup(self) -> None:
+        """Async initialisation — call once at application startup.
 
-        Uses ``MemorySaver`` for dev/test (default) and
-        ``PostgresSaver`` for production when ``checkpoint_backend="postgres"``.
+        When ``checkpoint_backend="postgres"``, opens a sync connection
+        pool, creates checkpoint tables, and rebuilds the pipeline graph
+        with the durable checkpointer.  No-op for the default memory
+        backend.
+
+        Uses the **sync** ``PostgresSaver`` (not async) to avoid Windows
+        ``ProactorEventLoop`` incompatibility with psycopg async.
         """
-        if self._settings.checkpoint_backend == "postgres":
-            try:
-                from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+        if self._settings.checkpoint_backend != "postgres":
+            return
 
-                db_url = self._settings.checkpoint_db_url or self._settings.database_url
-                # Convert asyncpg URL to psycopg for checkpoint library.
-                sync_url = db_url.replace("+asyncpg", "+psycopg")
-                return AsyncPostgresSaver.from_conn_string(sync_url)  # type: ignore[no-any-return]
-            except ImportError:
-                logger.warning(
-                    "langgraph-checkpoint-postgres not installed; falling back to MemorySaver"
-                )
-        return MemorySaver()
+        try:
+            from langgraph.checkpoint.postgres import PostgresSaver
+            from psycopg import Connection
+            from psycopg.rows import dict_row
+            from psycopg_pool import ConnectionPool
+        except ImportError:
+            logger.warning(
+                "langgraph-checkpoint-postgres not installed; "
+                "falling back to MemorySaver"
+            )
+            return
+
+        db_url = (
+            self._settings.checkpoint_db_url
+            or self._settings.database_url
+        )
+        # psycopg needs a plain postgresql:// URL, not asyncpg.
+        conn_str = db_url.replace("+asyncpg", "")
+
+        # Create tables with an autocommit connection (required for
+        # CREATE INDEX CONCURRENTLY in the migration).
+        setup_conn = Connection.connect(
+            conn_str, autocommit=True, row_factory=dict_row,
+        )
+        try:
+            PostgresSaver(setup_conn).setup()
+        finally:
+            setup_conn.close()
+
+        # Open a connection pool for runtime use.
+        self._pg_pool = ConnectionPool(conn_str)
+        self._checkpointer = PostgresSaver(self._pg_pool)
+
+        # Rebuild the graph with the durable checkpointer.
+        self._graph = build_pipeline(
+            self._gate_registry,
+            self._settings,
+            checkpointer=self._checkpointer,
+            event_bus=self._event_bus,
+        )
+        logger.info("checkpoint.postgres_ready")
+
+    async def ashutdown(self) -> None:
+        """Close the Postgres connection pool (if any)."""
+        if self._pg_pool is not None:
+            self._pg_pool.close()
+            self._pg_pool = None
 
     @property
     def event_bus(self) -> PipelineEventBus:

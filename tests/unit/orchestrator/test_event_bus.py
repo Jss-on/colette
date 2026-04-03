@@ -93,6 +93,7 @@ class TestEventType:
             "agent_reviewing",
             "agent_handoff",
             "agent_message",
+            "agent_stream_chunk",
             "agent_state_changed",
             "pipeline_completed",
             "pipeline_failed",

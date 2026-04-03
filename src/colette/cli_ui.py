@@ -720,9 +720,11 @@ class StreamLogEntry:
 
 
 _MAX_STREAM_LOG = 30
+_MAX_STREAM_BUFFER = 2000  # max chars kept per agent in the live buffer
 _EVENT_STYLE: dict[str, str] = {
     "agent_thinking": "cyan",
     "agent_message": "green",
+    "agent_stream_chunk": "dim green",
     "agent_tool_call": "yellow",
     "agent_handoff": "magenta",
     "agent_error": "red",
@@ -730,6 +732,39 @@ _EVENT_STYLE: dict[str, str] = {
     "stage_completed": "bold green",
     "stage_failed": "bold red",
 }
+
+
+def build_live_output_panel(
+    buffers: dict[str, str],
+    max_lines: int = 12,
+) -> Panel:
+    """Build a panel showing the last N lines of live LLM output per agent."""
+    if not buffers:
+        return Panel(
+            "[dim]Waiting for agent output...[/dim]",
+            title="Live Output",
+            border_style="green",
+        )
+
+    parts: list[str] = []
+    for agent, text in buffers.items():
+        # Show the tail of the buffer.
+        lines = text.split("\n")
+        tail = lines[-max_lines:] if len(lines) > max_lines else lines
+        content = "\n".join(tail)
+        # Truncate very long last lines.
+        if len(content) > 600:
+            content = content[-600:]
+        parts.append(
+            f"[bold cyan]{escape(agent)}[/bold cyan]\n"
+            f"{escape(content)}"
+        )
+
+    return Panel(
+        "\n\n".join(parts),
+        title="Live Output",
+        border_style="green",
+    )
 
 
 def build_streaming_log(
@@ -858,6 +893,8 @@ class PipelineProgressDisplay:
         self._project_id_for_presence = project_id
         self._pending_approval: dict[str, Any] | None = None
         self._stream_log: tuple[StreamLogEntry, ...] = ()
+        # Per-agent rolling text buffer for live token streaming.
+        self._stream_buffers: dict[str, str] = {}
 
     # ── Read-only properties ──────────────────────────────────────────
 
@@ -985,9 +1022,19 @@ class PipelineProgressDisplay:
 
         elif etype == "agent_message":
             self._handle_message_event(event)
+            # Clear the stream buffer for this agent (final response arrived).
+            agent = event.get("agent", "")
+            if agent:
+                self._stream_buffers.pop(agent, None)
+
+        elif etype == "agent_stream_chunk":
+            self._handle_stream_chunk(event)
 
         # Append to streaming log for verbose/conversation modes.
-        if etype.startswith("agent_") or etype.startswith("stage_"):
+        # Skip individual stream chunks — they're shown in the live buffer.
+        if etype != "agent_stream_chunk" and (
+            etype.startswith("agent_") or etype.startswith("stage_")
+        ):
             self._append_log(event)
 
         return False
@@ -1032,6 +1079,17 @@ class PipelineProgressDisplay:
             ),
         )
 
+    def _handle_stream_chunk(self, event: dict[str, Any]) -> None:
+        """Append a token chunk to the per-agent live buffer."""
+        agent = event.get("agent", "unknown")
+        chunk = event.get("message", "")
+        buf = self._stream_buffers.get(agent, "")
+        buf += chunk
+        # Keep only the tail to prevent unbounded growth.
+        if len(buf) > _MAX_STREAM_BUFFER:
+            buf = buf[-_MAX_STREAM_BUFFER:]
+        self._stream_buffers[agent] = buf
+
     def _handle_message_event(self, event: dict[str, Any]) -> None:
         """Append a conversation entry for an agent message."""
         target = event.get("target_agent", "") or event.get("detail", {}).get("target_agent", "")
@@ -1063,6 +1121,11 @@ class PipelineProgressDisplay:
         """Return the stream log entries."""
         return self._stream_log
 
+    @property
+    def stream_buffers(self) -> dict[str, str]:
+        """Return per-agent live token buffers (read-only snapshot)."""
+        return dict(self._stream_buffers)
+
     def render(self) -> Table | Panel | Group:
         """Return the current renderable based on activity mode."""
         if self.is_done:
@@ -1076,11 +1139,12 @@ class PipelineProgressDisplay:
         panel = build_agent_activity_panel(agents)
         if self._activity_mode == ActivityMode.STATUS:
             return Group(progress, panel)
-        # CONVERSATION: progress + agents + streaming log
+        # CONVERSATION: progress + agents + live output + streaming log
+        live_out = build_live_output_panel(self._stream_buffers)
         stream = build_streaming_log(self._stream_log)
         if self._activity_mode == ActivityMode.CONVERSATION:
-            return Group(progress, panel, stream)
-        # VERBOSE: progress + agents + stream log + conversation feed
+            return Group(progress, panel, live_out, stream)
+        # VERBOSE: progress + agents + live output + stream log + conversation
         entries = self._presence.get_conversation(self._project_id_for_presence)
         feed = build_conversation_feed(entries)
-        return Group(progress, panel, stream, feed)
+        return Group(progress, panel, live_out, stream, feed)

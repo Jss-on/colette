@@ -29,6 +29,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
+        from colette.api.deps import get_pipeline_runner
+
         # Startup: initialise DB engine.
         init_engine(settings)
 
@@ -43,8 +45,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             # (e.g. DB tables don't exist yet on first run).
             logger.error("startup.cleanup_failed", error=str(exc))
 
+        # Initialise the pipeline runner (opens Postgres checkpoint pool
+        # when checkpoint_backend="postgres").
+        runner = get_pipeline_runner(settings)
+        await runner.asetup()
+
         yield
-        # Shutdown: dispose engine.
+
+        # Shutdown: close checkpoint pool, then dispose DB engine.
+        await runner.ashutdown()
         await close_engine()
 
     app = FastAPI(

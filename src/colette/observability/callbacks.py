@@ -124,6 +124,9 @@ def _extract_response_preview(response: LLMResult, max_len: int = 300) -> str:
     return text
 
 
+_STREAM_BATCH_INTERVAL = 0.05  # 50ms — flush token buffer at this interval
+
+
 class ColletteCallbackHandler(BaseCallbackHandler):
     """Tracks LLM tokens and tool calls for a single agent invocation.
 
@@ -157,6 +160,10 @@ class ColletteCallbackHandler(BaseCallbackHandler):
         self.tool_call_records: list[ToolCallRecord] = []
         self._tool_start_times: dict[UUID, tuple[str, float]] = {}
 
+        # Token streaming buffer — batches tokens before emitting.
+        self._token_buffer: list[str] = []
+        self._last_flush: float = 0.0
+
     # ── LLM callbacks ───────────────────────────────────────────────
 
     def on_llm_start(
@@ -177,8 +184,30 @@ class ColletteCallbackHandler(BaseCallbackHandler):
             detail={"input_preview": preview} if preview else {},
         )
 
+    def on_llm_new_token(self, token: str, **kwargs: Any) -> None:
+        """Called on each streamed token.  Batches and emits AGENT_STREAM_CHUNK."""
+        self._token_buffer.append(token)
+        now = time.monotonic()
+        if now - self._last_flush >= _STREAM_BATCH_INTERVAL:
+            self._flush_token_buffer()
+
+    def _flush_token_buffer(self) -> None:
+        """Emit buffered tokens as a single AGENT_STREAM_CHUNK event."""
+        if not self._token_buffer:
+            return
+        chunk = "".join(self._token_buffer)
+        self._token_buffer.clear()
+        self._last_flush = time.monotonic()
+        _emit_agent_event(
+            "agent_stream_chunk",
+            agent=self.agent_role,
+            model=self.model,
+            message=chunk,
+        )
+
     def on_llm_end(self, response: LLMResult, **kwargs: Any) -> None:
         """Called when an LLM call completes.  Extracts token usage, emits AGENT_MESSAGE."""
+        self._flush_token_buffer()  # emit any remaining streamed tokens
         tokens = 0
         cache_read = 0
         cache_write = 0

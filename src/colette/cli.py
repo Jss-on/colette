@@ -55,7 +55,64 @@ def main(ctx: click.Context, log_level: str, log_format: str, api_url: str) -> N
     ctx.obj["api_url"] = api_url
 
 
-# ── Shared SSE progress streaming (Phase 4) ───────────────────────────
+# ── WebSocket progress streaming ──────────────────────────────────────
+
+
+def _run_ws_loop(
+    api_url: str,
+    project_id: str,
+    display: Any,  # PipelineProgressDisplay
+    target_console: Console,
+) -> bool:
+    """Run one WebSocket streaming session. Returns True if finished."""
+    import asyncio
+    import json
+
+    ws_url = api_url.replace("http://", "ws://").replace(
+        "https://", "wss://"
+    )
+    endpoint = f"{ws_url}/api/v1/projects/{project_id}/ws"
+
+    async def _ws_stream() -> bool:
+        from rich.live import Live
+
+        try:
+            import websockets
+        except ImportError:
+            target_console.print(
+                "[yellow]websockets not installed — "
+                "falling back to SSE[/yellow]"
+            )
+            return False
+
+        try:
+            async with websockets.connect(endpoint) as ws:
+                with Live(
+                    display.render(),
+                    console=target_console,
+                    refresh_per_second=8,
+                ) as live:
+                    async for raw in ws:
+                        event = json.loads(raw)
+                        if event.get("event_type") == "heartbeat":
+                            continue
+                        is_terminal = display.process_event(event)
+                        live.update(display.render())
+                        if is_terminal:
+                            break
+        except Exception as exc:
+            target_console.print(
+                f"[red bold]Error:[/red bold] "
+                f"WebSocket stream failed: {exc}"
+            )
+            return True
+
+        return bool(display.is_done)
+
+    return asyncio.get_event_loop().run_until_complete(_ws_stream())
+
+
+# ── SSE progress streaming ───────────────────────────────────────────
 
 
 def _run_sse_loop(
@@ -161,12 +218,12 @@ def _stream_progress(
     target_console: Console,
     activity: str = "status",
 ) -> None:
-    """Stream pipeline events via SSE and render with Rich Live.
+    """Stream pipeline events and render with Rich Live.
 
-    Connects to the SSE endpoint, creates a :class:`PipelineProgressDisplay`,
-    and drives a Rich ``Live`` display until a terminal event or Ctrl+C.
-    When an approval gate is hit, the Live display pauses and an
-    interactive review prompt is shown inline.
+    Uses WebSocket for ``conversation`` / ``verbose`` modes (real-time
+    token streaming) and SSE for ``minimal`` / ``status`` modes (lower
+    overhead).  When an approval gate is hit, the Live display pauses
+    and an interactive review prompt is shown inline.
     """
     from colette.cli_ui import ActivityMode, PipelineProgressDisplay
 
@@ -174,8 +231,18 @@ def _stream_progress(
     display = PipelineProgressDisplay(project_id, activity_mode=mode)
     headers = {"X-API-Key": "default"}
 
+    # Use WebSocket for modes that benefit from token streaming.
+    use_ws = mode in (ActivityMode.CONVERSATION, ActivityMode.VERBOSE)
+
     while True:
-        finished = _run_sse_loop(api_url, project_id, display, target_console, headers)
+        if use_ws:
+            finished = _run_ws_loop(
+                api_url, project_id, display, target_console
+            )
+        else:
+            finished = _run_sse_loop(
+                api_url, project_id, display, target_console, headers
+            )
         if finished:
             break
 

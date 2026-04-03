@@ -52,6 +52,7 @@ class EventType(StrEnum):
     AGENT_REVIEWING = "agent_reviewing"
     AGENT_HANDOFF = "agent_handoff"
     AGENT_MESSAGE = "agent_message"
+    AGENT_STREAM_CHUNK = "agent_stream_chunk"
     AGENT_STATE_CHANGED = "agent_state_changed"
     APPROVAL_REQUIRED = "approval_required"
     PIPELINE_COMPLETED = "pipeline_completed"

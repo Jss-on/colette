@@ -158,15 +158,32 @@ async def invoke_structured[T: BaseModel](
     else:
         sys_msg = SystemMessage(content=full_prompt)
 
+    # Enable streaming when the event bus is active so on_llm_new_token
+    # fires and AGENT_STREAM_CHUNK events reach the TUI in real-time.
+    from colette.orchestrator.event_bus import event_bus_var
+
+    stream_enabled = event_bus_var.get() is not None
+
+    from langchain_core.runnables import RunnableConfig
+
+    messages = [sys_msg, HumanMessage(content=safe_content)]
+    config = RunnableConfig(callbacks=[callback])
+
     async with _llm_semaphore:
         logger.debug(
             "llm_semaphore_acquired",
             output_type=output_type.__name__,
             tier=str(model_tier),
+            streaming=stream_enabled,
         )
-        response = await model.ainvoke(
-            [sys_msg, HumanMessage(content=safe_content)],
-            config={"callbacks": [callback]},
-        )
+        if stream_enabled:
+            # Stream tokens for real-time display; accumulate full text.
+            chunks: list[str] = []
+            async for chunk in model.astream(messages, config=config):
+                chunks.append(str(chunk.content))
+            full_text = "".join(chunks)
+        else:
+            response = await model.ainvoke(messages, config=config)
+            full_text = str(response.content)
 
-    return _parse_structured_response(str(response.content), output_type)
+    return _parse_structured_response(full_text, output_type)
