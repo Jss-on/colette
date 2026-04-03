@@ -1,6 +1,6 @@
 ---
 id: "phase-7f-skills-memory-2026-04-04"
-status: "backlog"
+status: "done"
 priority: "medium"
 assignee: "claude"
 dueDate: "2026-04-09"

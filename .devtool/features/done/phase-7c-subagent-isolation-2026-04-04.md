@@ -1,6 +1,6 @@
 ---
 id: "phase-7c-subagent-isolation-2026-04-04"
-status: "backlog"
+status: "done"
 priority: "high"
 assignee: "claude"
 dueDate: "2026-04-08"

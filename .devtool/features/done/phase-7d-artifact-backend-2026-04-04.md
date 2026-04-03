@@ -1,6 +1,6 @@
 ---
 id: "phase-7d-artifact-backend-2026-04-04"
-status: "backlog"
+status: "done"
 priority: "critical"
 assignee: "claude"
 dueDate: "2026-04-04"
