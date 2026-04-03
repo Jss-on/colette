@@ -106,6 +106,93 @@ def render_approval_prompt(approval: dict[str, Any]) -> Panel:
     return Panel(content, title="Approval Required", border_style="yellow")
 
 
+def build_approval_review_panel(event_data: dict[str, Any]) -> Panel:
+    """Build a rich panel showing stage deliverables for human review.
+
+    ``event_data`` is the full ``detail`` dict from an ``approval_required``
+    SSE event, which includes the approval request fields **and** a nested
+    ``handoff_summary`` dict with stage-specific deliverables.
+    """
+    stage = event_data.get("stage", "?")
+    tier = event_data.get("tier", "?")
+    score = event_data.get("confidence_score")
+    request_id = event_data.get("request_id", "?")
+    summary = event_data.get("handoff_summary", {})
+
+    lines: list[str] = [
+        f"[bold yellow]Stage:[/bold yellow]  {_STAGE_LABELS.get(stage, stage)}",
+        f"[bold yellow]Tier:[/bold yellow]   {tier}",
+    ]
+    if score is not None:
+        lines.append(f"[bold yellow]Score:[/bold yellow]  {score:.2f}")
+    lines.append(f"[bold yellow]ID:[/bold yellow]     {request_id}")
+    lines.append("")
+
+    # ── Stage-specific deliverables ──────────────────────────────────
+    if stage == "requirements" or summary.get("stage") == "requirements":
+        _append_list(lines, "User Stories", summary.get("user_stories", []))
+        _append_list(lines, "Non-Functional Reqs", summary.get("nfrs", []))
+        _append_list(lines, "Tech Constraints", summary.get("tech_constraints", []))
+        cs = summary.get("completeness_score", 0)
+        if cs:
+            lines.append(f"[bold]Completeness:[/bold] {cs:.0%}")
+
+    elif stage == "design" or summary.get("stage") == "design":
+        tech = summary.get("tech_stack", {})
+        if tech:
+            lines.append("[bold]Tech Stack:[/bold]")
+            for role, choice in tech.items():
+                lines.append(f"  {role}: {escape(str(choice))}")
+            lines.append("")
+        _append_list(lines, "API Endpoints", summary.get("endpoints", []))
+        _append_list(lines, "DB Entities", summary.get("db_entities", []))
+        _append_list(lines, "UI Components", summary.get("ui_components", []))
+        _append_list(lines, "Architecture Decisions", summary.get("adrs", []))
+        preview = summary.get("architecture_preview", "")
+        if preview:
+            lines.append(f"\n[bold]Architecture Preview:[/bold]\n[dim]{escape(preview)}[/dim]")
+
+    elif stage == "implementation" or summary.get("stage") == "implementation":
+        fc = summary.get("file_count", 0)
+        lines.append(f"[bold]Generated Files:[/bold] {fc}")
+        _append_list(lines, "Files", summary.get("files", []))
+        _append_list(lines, "Packages", summary.get("packages", []))
+
+    elif stage == "testing" or summary.get("stage") == "testing":
+        lines.append(f"[bold]Test Files:[/bold] {summary.get('test_file_count', 0)}")
+        lines.append(f"[bold]Line Coverage:[/bold] {summary.get('line_coverage', 0):.0f}%")
+        lines.append(f"[bold]Security Findings:[/bold] {summary.get('security_findings', 0)}")
+
+    elif stage in ("staging", "deployment") or summary.get("stage") == "deployment":
+        lines.append(f"[bold]Deploy Target:[/bold] {summary.get('deploy_target', '?')}")
+        img = summary.get("container_image", "")
+        if img:
+            lines.append(f"[bold]Container Image:[/bold] {escape(img)}")
+        _append_list(lines, "Config Files", summary.get("config_files", []))
+
+    else:
+        note = summary.get("note", "")
+        if note:
+            lines.append(f"[dim]{escape(note)}[/dim]")
+
+    return Panel(
+        "\n".join(lines),
+        title="Review Required",
+        subtitle="[Y]es / [N]o / [S]kip",
+        border_style="yellow",
+    )
+
+
+def _append_list(lines: list[str], title: str, items: list[str]) -> None:
+    """Append a titled bullet list to *lines* (skips if empty)."""
+    if not items:
+        return
+    lines.append(f"[bold]{title}:[/bold]")
+    for item in items:
+        lines.append(f"  - {escape(str(item))}")
+    lines.append("")
+
+
 def render_pipeline_summary(data: dict[str, Any]) -> Panel:
     """Render a final pipeline summary."""
     status = data.get("status", "unknown")
@@ -356,6 +443,7 @@ class PipelineProgressDisplay:
         self._activity_mode = activity_mode
         self._presence = AgentPresenceTracker()
         self._project_id_for_presence = project_id
+        self._pending_approval: dict[str, Any] | None = None
 
     # ── Read-only properties ──────────────────────────────────────────
 
@@ -378,6 +466,15 @@ class PipelineProgressDisplay:
     @property
     def error_message(self) -> str:
         return self._error
+
+    @property
+    def pending_approval(self) -> dict[str, Any] | None:
+        """Non-None when the pipeline is paused waiting for human approval."""
+        return self._pending_approval
+
+    def clear_approval(self) -> None:
+        """Clear pending approval after the user has responded."""
+        self._pending_approval = None
 
     # ── Event processing ──────────────────────────────────────────────
 
@@ -432,6 +529,11 @@ class PipelineProgressDisplay:
         elif etype == "gate_failed" and idx is not None:
             self._replace_stage(idx, status="failed")
             self._error = event.get("message", "Gate failed")
+
+        elif etype == "approval_required":
+            self._pending_approval = event.get("detail", event)
+            self._pending_approval["stage"] = stage  # ensure stage is set
+            return True  # break Live loop for interactive prompt
 
         elif etype in ("pipeline_completed", "complete"):
             # If a gate already failed, this is not a true success.

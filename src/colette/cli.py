@@ -58,6 +58,116 @@ def main(ctx: click.Context, log_level: str, log_format: str, api_url: str) -> N
 # ── Shared SSE progress streaming (Phase 4) ───────────────────────────
 
 
+def _run_sse_loop(
+    api_url: str,
+    project_id: str,
+    display: object,  # PipelineProgressDisplay (deferred import)
+    target_console: Console,
+    headers: dict[str, str],
+) -> bool:
+    """Run one SSE streaming session. Returns True if pipeline finished."""
+    import json
+
+    import httpx
+    from rich.live import Live
+
+    try:
+        with httpx.Client(timeout=httpx.Timeout(None)) as client, client.stream(
+            "GET",
+            f"{api_url}/api/v1/projects/{project_id}/pipeline/events",
+            headers=headers,
+        ) as resp:
+            resp.raise_for_status()
+            with Live(
+                display.render(),  # type: ignore[union-attr]
+                console=target_console,
+                refresh_per_second=4,
+            ) as live:
+                for line in resp.iter_lines():
+                    if not line.startswith("data: "):
+                        continue
+                    event = json.loads(line[6:])
+                    is_terminal = display.process_event(event)  # type: ignore[union-attr]
+                    if is_terminal:
+                        break
+                    live.update(display.render())  # type: ignore[union-attr]
+    except httpx.HTTPError as exc:
+        target_console.print(f"[red bold]Error:[/red bold] Stream failed: {exc}")
+        return True  # stop retrying on connection errors
+
+    return display.is_done  # type: ignore[union-attr]
+
+
+def _handle_interactive_approval(
+    api_url: str,
+    project_id: str,
+    approval_data: dict[str, object],
+    target_console: Console,
+) -> bool:
+    """Show the approval review panel and prompt the user.
+
+    Returns True if approved (pipeline should resume), False otherwise.
+    """
+    import httpx
+
+    from colette.cli_ui import build_approval_review_panel
+
+    target_console.print()
+    target_console.print(build_approval_review_panel(approval_data))  # type: ignore[arg-type]
+    target_console.print()
+
+    while True:
+        choice = click.prompt(
+            "Approve and continue?  [Y]es / [N]o",
+            type=str,
+            default="Y",
+        ).strip().upper()
+
+        if choice in ("Y", "YES"):
+            request_id = approval_data.get("request_id", "")
+            headers = {"X-API-Key": "default"}
+            try:
+                with httpx.Client(timeout=30) as client:
+                    # Record the approval decision.
+                    client.post(
+                        f"{api_url}/api/v1/approvals/{request_id}/approve",
+                        json={"reviewer_id": "cli-user", "comments": ""},
+                        headers=headers,
+                    )
+                    # Resume the LangGraph pipeline.
+                    resp = client.post(
+                        f"{api_url}/api/v1/projects/{project_id}/pipeline/resume",
+                        headers=headers,
+                    )
+                    resp.raise_for_status()
+            except httpx.HTTPError as exc:
+                target_console.print(
+                    f"[red bold]Error:[/red bold] Resume failed: {exc}"
+                )
+                return False
+
+            target_console.print("[green]Approved — pipeline resuming...[/green]\n")
+            return True
+
+        if choice in ("N", "NO"):
+            request_id = approval_data.get("request_id", "")
+            reason = click.prompt("Rejection reason", default="Rejected via CLI")
+            headers = {"X-API-Key": "default"}
+            try:
+                with httpx.Client(timeout=30) as client:
+                    client.post(
+                        f"{api_url}/api/v1/approvals/{request_id}/reject",
+                        json={"reviewer_id": "cli-user", "reason": reason},
+                        headers=headers,
+                    )
+            except httpx.HTTPError:
+                pass  # best-effort
+            target_console.print("[yellow]Rejected — pipeline stopped.[/yellow]")
+            return False
+
+        target_console.print("[dim]Please enter Y or N.[/dim]")
+
+
 def _stream_progress(
     api_url: str,
     project_id: str,
@@ -68,42 +178,32 @@ def _stream_progress(
 
     Connects to the SSE endpoint, creates a :class:`PipelineProgressDisplay`,
     and drives a Rich ``Live`` display until a terminal event or Ctrl+C.
+    When an approval gate is hit, the Live display pauses and an
+    interactive review prompt is shown inline.
     """
-    import json
-
-    import httpx
-    from rich.live import Live
-
     from colette.cli_ui import ActivityMode, PipelineProgressDisplay
 
     mode = ActivityMode(activity)
     display = PipelineProgressDisplay(project_id, activity_mode=mode)
     headers = {"X-API-Key": "default"}
 
-    try:
-        with httpx.Client(timeout=600) as client, client.stream(
-            "GET",
-            f"{api_url}/api/v1/projects/{project_id}/pipeline/events",
-            headers=headers,
-        ) as resp:
-            resp.raise_for_status()
-            with Live(
-                display.render(),
-                console=target_console,
-                refresh_per_second=4,
-            ) as live:
-                for line in resp.iter_lines():
-                    # SSE protocol: skip event/comment lines, parse data lines.
-                    if not line.startswith("data: "):
-                        continue
-                    event = json.loads(line[6:])
-                    is_terminal = display.process_event(event)
-                    if is_terminal:
-                        break
-                    live.update(display.render())
-    except httpx.HTTPError as exc:
-        target_console.print(f"[red bold]Error:[/red bold] Stream failed: {exc}")
-        return
+    while True:
+        finished = _run_sse_loop(api_url, project_id, display, target_console, headers)
+        if finished:
+            break
+
+        # Pipeline paused for approval — handle inline.
+        approval = display.pending_approval
+        if approval:
+            approved = _handle_interactive_approval(
+                api_url, project_id, approval, target_console
+            )
+            display.clear_approval()
+            if approved:
+                continue  # reconnect SSE — catch-up events replay progress
+            break  # user rejected — stop
+
+        break  # unexpected break without approval or terminal
 
     # Print final summary after Live context exits (once only).
     if display.is_done:
