@@ -119,7 +119,7 @@ async def _emit_ws_catchup(
             })
 
 
-@router.websocket("/api/v1/projects/{project_id}/ws")
+@router.websocket("/projects/{project_id}/ws")
 async def pipeline_ws(websocket: WebSocket, project_id: str) -> None:
     """WebSocket endpoint streaming pipeline events in real-time.
 

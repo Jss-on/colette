@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -11,12 +11,33 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from colette.api.deps import CurrentUser, get_db, get_pipeline_runner, require_role
 from colette.api.schemas import ProjectCreate, ProjectListResponse, ProjectResponse
 from colette.db.models import Project
-from colette.db.repositories import PipelineRunRepository, ProjectRepository
+from colette.db.repositories import (
+    ApprovalRecordRepository,
+    PipelineRunRepository,
+    ProjectRepository,
+)
 from colette.llm.registry import project_status_registry
 from colette.orchestrator.runner import PipelineRunner
 from colette.security.rbac import Permission
 
 router = APIRouter()
+
+
+def _sanitize_for_json(obj: Any) -> Any:
+    """Deep-copy, replacing non-JSON-serializable values with ``repr()``."""
+    import json
+
+    if obj is None or isinstance(obj, (bool, int, float, str)):
+        return obj
+    if isinstance(obj, dict):
+        return {k: _sanitize_for_json(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_sanitize_for_json(v) for v in obj]
+    try:
+        json.dumps(obj)
+        return obj
+    except (TypeError, ValueError):
+        return repr(obj)
 
 
 def _project_to_response(p: Project) -> ProjectResponse:
@@ -76,6 +97,8 @@ async def _run_pipeline_bg(
             "pipeline.failed",
             project_id=project_id,
             error=str(exc),
+            exc_type=type(exc).__name__,
+            traceback=tb_mod.format_exc(),
         )
         try:
             async with session_factory() as session:
@@ -101,6 +124,7 @@ async def _run_pipeline_bg(
     if current_status == "awaiting_approval":
         log.info("pipeline.awaiting_approval", project_id=project_id)
         thread_id = runner.get_thread_id(project_id)
+        safe_state = _sanitize_for_json(state)
         try:
             async with session_factory() as session:
                 repo = ProjectRepository(session)
@@ -113,9 +137,29 @@ async def _run_pipeline_bg(
                     await run_repo.update_state(
                         runs[0].id,
                         status="awaiting_approval",
-                        state_snapshot=state,
+                        state_snapshot=safe_state,
                         thread_id=thread_id,
                     )
+                    # Persist approval records so the CLI can approve.
+                    approval_reqs = state.get("approval_requests", [])
+                    if approval_reqs:
+                        approval_repo = ApprovalRecordRepository(session)
+                        for req in approval_reqs:
+                            await approval_repo.create(
+                                pipeline_run_id=runs[0].id,
+                                request_id=req.get("request_id", ""),
+                                stage=req.get("stage", ""),
+                                tier=str(req.get("tier", "")),
+                                context_summary=req.get(
+                                    "context_summary", ""
+                                ),
+                                proposed_action=req.get(
+                                    "proposed_action", ""
+                                ),
+                                risk_assessment=req.get(
+                                    "risk_assessment", ""
+                                ),
+                            )
                 await session.commit()
         except Exception as db_exc:
             log.critical(
@@ -127,6 +171,7 @@ async def _run_pipeline_bg(
 
     # Pipeline completed — update DB and registry.
     project_status_registry.mark(project_id, "completed")
+    safe_state = _sanitize_for_json(state)
     try:
         async with session_factory() as session:
             repo = ProjectRepository(session)
@@ -137,7 +182,7 @@ async def _run_pipeline_bg(
             )
             if runs:
                 await run_repo.update_state(
-                    runs[0].id, status="completed", state_snapshot=state,
+                    runs[0].id, status="completed", state_snapshot=safe_state,
                 )
             await session.commit()
         log.info("pipeline.completed", project_id=project_id)
@@ -186,11 +231,18 @@ async def create_project(
     # Commit NOW so background task can see the records.
     await db.commit()
 
+    # Pre-register the project as active so the SSE endpoint sees it
+    # before the background task starts (fixes race where SSE connects
+    # and immediately returns "complete" because runner.is_active() is False).
+    pid = str(project.id)
+    project_status_registry.mark(pid, "running")
+    runner._active[pid] = thread_id
+
     # Start pipeline in background.
     from colette.db.session import _session_factory
 
     background_tasks.add_task(
-        _run_pipeline_bg, runner, str(project.id), body.user_request, _session_factory
+        _run_pipeline_bg, runner, pid, body.user_request, _session_factory
     )
 
     return _project_to_response(project)
@@ -227,8 +279,10 @@ async def resume_project(
         )
 
     # Re-mark as running in DB and registry.
+    pid = str(project_id)
     await repo.update_status(project_id, "running")
-    project_status_registry.mark(str(project_id), "running")
+    project_status_registry.mark(pid, "running")
+    runner._active[pid] = f"{pid}-pipeline"
     await db.commit()
 
     # Re-fetch to return updated state.
@@ -240,7 +294,7 @@ async def resume_project(
     from colette.db.session import _session_factory
 
     background_tasks.add_task(
-        _run_pipeline_bg, runner, str(project_id), project.user_request, _session_factory
+        _run_pipeline_bg, runner, pid, project.user_request, _session_factory
     )
 
     return _project_to_response(project)

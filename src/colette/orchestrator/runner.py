@@ -29,6 +29,74 @@ from colette.orchestrator.state import create_initial_state
 logger = structlog.get_logger()
 
 
+class _AsyncWrappedPostgresSaver(MemorySaver):
+    """Wraps sync ``PostgresSaver`` with async methods via ``run_in_executor``.
+
+    psycopg async is incompatible with Windows ``ProactorEventLoop``, so we
+    keep the sync driver and offload blocking calls to a thread pool.  This
+    satisfies LangGraph >=1.1 which requires ``aget_tuple`` / ``aput`` etc.
+
+    Inherits from ``MemorySaver`` only for type compatibility with
+    ``BaseCheckpointSaver``; all operations delegate to the inner
+    ``PostgresSaver``.
+    """
+
+    def __init__(self, conn_or_pool: Any) -> None:
+        super().__init__()
+        from langgraph.checkpoint.postgres import PostgresSaver
+
+        self._inner = PostgresSaver(conn_or_pool)
+
+    # Delegate attribute access to the inner saver for config_specs, serde, etc.
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._inner, name)
+
+    async def _run(self, method: str, *args: Any, **kwargs: Any) -> Any:
+        loop = asyncio.get_running_loop()
+        func = getattr(self._inner, method)
+        return await loop.run_in_executor(None, lambda: func(*args, **kwargs))
+
+    # ── Sync interface (delegates to inner PostgresSaver) ────────────
+    def get_tuple(self, config: Any) -> Any:
+        return self._inner.get_tuple(config)
+
+    def put(self, config: Any, checkpoint: Any, metadata: Any, new_versions: Any) -> Any:
+        return self._inner.put(config, checkpoint, metadata, new_versions)
+
+    def put_writes(
+        self, config: Any, writes: Any, task_id: Any, task_path: str = "",
+    ) -> None:
+        self._inner.put_writes(config, writes, task_id, task_path)
+
+    def list(self, config: Any, **kwargs: Any) -> Any:
+        return self._inner.list(config, **kwargs)
+
+    # ── Async interface required by LangGraph ────────────────────────
+    async def aget_tuple(self, config: Any) -> Any:
+        return await self._run("get_tuple", config)
+
+    async def aput(self, config: Any, checkpoint: Any, metadata: Any, new_versions: Any) -> Any:
+        return await self._run("put", config, checkpoint, metadata, new_versions)
+
+    async def aput_writes(
+        self, config: Any, writes: Any, task_id: Any, task_path: str = "",
+    ) -> None:
+        await self._run("put_writes", config, writes, task_id, task_path)
+
+    async def alist(
+        self, config: Any, **kwargs: Any
+    ) -> Any:
+        loop = asyncio.get_running_loop()
+        items = await loop.run_in_executor(
+            None, lambda: list(self._inner.list(config, **kwargs))
+        )
+        for item in items:
+            yield item
+
+    def setup(self) -> None:
+        self._inner.setup()
+
+
 class ConcurrencyLimitError(Exception):
     """Raised when the maximum number of concurrent pipelines is reached."""
 
@@ -122,7 +190,7 @@ class PipelineRunner:
 
         # Open a connection pool for runtime use.
         self._pg_pool = ConnectionPool(conn_str)
-        self._checkpointer = PostgresSaver(self._pg_pool)
+        self._checkpointer = _AsyncWrappedPostgresSaver(self._pg_pool)
 
         # Rebuild the graph with the durable checkpointer.
         self._graph = build_pipeline(
@@ -199,6 +267,16 @@ class PipelineRunner:
 
         try:
             result = await self._graph.ainvoke(dict(initial), config)
+
+            # With a checkpointer, LangGraph may return normally on
+            # interrupt() instead of raising GraphInterrupt.  Detect
+            # this by checking whether the graph has pending nodes.
+            snapshot = await self._graph.aget_state(config)
+            if snapshot.next:
+                project_status_registry.mark(project_id, "awaiting_approval")
+                logger.info("pipeline.awaiting_approval", project_id=project_id)
+                return dict(snapshot.values)
+
             project_status_registry.mark(project_id, "completed")
             self._event_bus.emit(
                 PipelineEvent(
@@ -209,12 +287,19 @@ class PipelineRunner:
             )
             return dict(result)
         except GraphInterrupt:
-            # Pipeline paused for human approval — keep it active.
+            # Fallback for configs without a checkpointer.
             project_status_registry.mark(project_id, "awaiting_approval")
             logger.info("pipeline.awaiting_approval", project_id=project_id)
             snapshot = await self._graph.aget_state(config)
             return dict(snapshot.values)
         except Exception as exc:
+            logger.error(
+                "pipeline.ainvoke_failed",
+                project_id=project_id,
+                exc_type=type(exc).__name__,
+                exc_repr=repr(exc),
+                traceback=tb_mod.format_exc(),
+            )
             project_status_registry.mark(project_id, "failed")
             self._event_bus.emit(
                 PipelineEvent(
@@ -258,6 +343,14 @@ class PipelineRunner:
             result = await self._graph.ainvoke(
                 Command(resume=approval_value), config
             )
+
+            # Check if the graph hit another interrupt.
+            snapshot = await self._graph.aget_state(config)
+            if snapshot.next:
+                project_status_registry.mark(project_id, "awaiting_approval")
+                logger.info("pipeline.awaiting_approval", project_id=project_id)
+                return dict(snapshot.values)
+
             project_status_registry.mark(project_id, "completed")
             self._event_bus.emit(
                 PipelineEvent(
@@ -270,7 +363,7 @@ class PipelineRunner:
             )
             return dict(result)
         except GraphInterrupt:
-            # Hit another gate that requires approval
+            # Fallback for configs without a checkpointer.
             project_status_registry.mark(project_id, "awaiting_approval")
             logger.info("pipeline.awaiting_approval", project_id=project_id)
             snapshot = await self._graph.aget_state(config)
