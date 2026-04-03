@@ -43,7 +43,8 @@ dependencies = [
     "fastapi>=0.115,<1.0",
     "uvicorn[standard]>=0.34,<1.0",
     # Terminal UI
-    "rich>=13.0,<14.0",
+    "rich>=13.0,<15.0",
+    "textual>=1.0,<9.0",
     # Utilities
     "pyyaml>=6.0,<7.0",
     "click>=8.1,<9.0",

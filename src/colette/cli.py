@@ -110,126 +110,49 @@ def _handle_interactive_approval(
     """
     import httpx
 
-    from colette.cli_ui import (
-        build_approval_review_panel,
-        build_review_menu,
-        render_detail_view,
-        resolve_menu_choice,
-    )
+    from colette.cli_review import ApprovalReviewApp
 
-    summary = approval_data.get("handoff_summary", {})
+    app = ApprovalReviewApp(approval_data)  # type: ignore[arg-type]
+    decision = app.run()  # blocks until user decides
 
-    target_console.print()
-    target_console.print(build_approval_review_panel(approval_data))  # type: ignore[arg-type]
-    target_console.print()
-    target_console.print(build_review_menu(summary))  # type: ignore[arg-type]
-    target_console.print()
-
-    while True:
-        choice = click.prompt(
-            "Enter choice",
-            type=str,
-            default="A",
-        ).strip().upper()
-
-        # ── Approve ──────────────────────────────────────────────────
-        if choice == "A":
-            request_id = approval_data.get("request_id", "")
-            headers = {"X-API-Key": "default"}
-            try:
-                with httpx.Client(timeout=30) as client:
-                    client.post(
-                        f"{api_url}/api/v1/approvals/{request_id}/approve",
-                        json={"reviewer_id": "cli-user", "comments": ""},
-                        headers=headers,
-                    )
-                    resp = client.post(
-                        f"{api_url}/api/v1/projects/{project_id}/pipeline/resume",
-                        headers=headers,
-                    )
-                    resp.raise_for_status()
-            except httpx.HTTPError as exc:
-                target_console.print(
-                    f"[red bold]Error:[/red bold] Resume failed: {exc}"
+    if decision == "approved":
+        request_id = approval_data.get("request_id", "")
+        headers = {"X-API-Key": "default"}
+        try:
+            with httpx.Client(timeout=30) as client:
+                client.post(
+                    f"{api_url}/api/v1/approvals/{request_id}/approve",
+                    json={"reviewer_id": "cli-user", "comments": ""},
+                    headers=headers,
                 )
-                return False
-
-            target_console.print("[green]Approved — pipeline resuming...[/green]\n")
-            return True
-
-        # ── Reject ───────────────────────────────────────────────────
-        if choice == "R":
-            request_id = approval_data.get("request_id", "")
-            reason = click.prompt("Rejection reason", default="Rejected via CLI")
-            headers = {"X-API-Key": "default"}
-            try:
-                with httpx.Client(timeout=30) as client:
-                    client.post(
-                        f"{api_url}/api/v1/approvals/{request_id}/reject",
-                        json={"reviewer_id": "cli-user", "reason": reason},
-                        headers=headers,
-                    )
-            except httpx.HTTPError:
-                pass
-            target_console.print("[yellow]Rejected — pipeline stopped.[/yellow]")
+                resp = client.post(
+                    f"{api_url}/api/v1/projects/{project_id}/pipeline/resume",
+                    headers=headers,
+                )
+                resp.raise_for_status()
+        except httpx.HTTPError as exc:
+            target_console.print(
+                f"[red bold]Error:[/red bold] Resume failed: {exc}"
+            )
             return False
 
-        # ── Numeric drill-down ───────────────────────────────────────
-        data_key = resolve_menu_choice(choice, summary)  # type: ignore[arg-type]
-        if data_key is not None:
-            target_console.print()
-            target_console.print(render_detail_view(data_key, summary))  # type: ignore[arg-type]
+        target_console.print("[green]Approved — pipeline resuming...[/green]\n")
+        return True
 
-            # Sub-menu for source code files — lets user browse individual files
-            if data_key == "generated_files":
-                _browse_source_files(summary.get("generated_files", []), target_console)  # type: ignore[arg-type]
-
-            target_console.print()
-            target_console.print(build_review_menu(summary))  # type: ignore[arg-type]
-            target_console.print()
-            continue
-
-        target_console.print(
-            "[dim]Enter a number to inspect, [A] to approve, or [R] to reject.[/dim]"
-        )
-
-
-def _browse_source_files(
-    files: list[dict[str, object]],
-    target_console: Console,
-) -> None:
-    """Interactive sub-menu to browse individual source code files."""
-    from colette.cli_ui import render_source_file
-
-    if not files:
-        return
-
-    target_console.print(
-        "\n[dim]Enter a file number to view, or [B]ack to return.[/dim]"
-    )
-
-    while True:
-        file_choice = click.prompt(
-            "File #", type=str, default="B",
-        ).strip().upper()
-
-        if file_choice in ("B", "BACK", ""):
-            return
-
-        try:
-            idx = int(file_choice) - 1
-        except ValueError:
-            target_console.print("[dim]Enter a file number or B to go back.[/dim]")
-            continue
-
-        if 0 <= idx < len(files):
-            target_console.print()
-            target_console.print(render_source_file(files[idx]))  # type: ignore[arg-type]
-            target_console.print(
-                "\n[dim]Enter another file number, or [B]ack.[/dim]"
+    # Rejected or quit
+    request_id = approval_data.get("request_id", "")
+    headers = {"X-API-Key": "default"}
+    try:
+        with httpx.Client(timeout=30) as client:
+            client.post(
+                f"{api_url}/api/v1/approvals/{request_id}/reject",
+                json={"reviewer_id": "cli-user", "reason": "Rejected via TUI"},
+                headers=headers,
             )
-        else:
-            target_console.print(f"[dim]Valid range: 1-{len(files)}[/dim]")
+    except httpx.HTTPError:
+        pass
+    target_console.print("[yellow]Rejected — pipeline stopped.[/yellow]")
+    return False
 
 
 def _stream_progress(
