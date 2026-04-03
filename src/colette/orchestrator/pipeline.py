@@ -79,10 +79,12 @@ def _summarize_handoff_for_review(gate_name: str, state: dict[str, Any]) -> dict
     """Extract a human-readable deliverable summary from the stage handoff.
 
     The gate name maps to the stage that just completed.  We pull key
-    fields from its handoff dict so the CLI can show them in an approval
-    review panel.
+    fields from its handoff dict so the CLI can show drill-down detail
+    views in the interactive approval panel.
+
+    Each section carries both a short label list (``*_labels``) for the
+    summary panel **and** the full dicts (``*_detail``) for drill-down.
     """
-    # Gate name → stage name that produced the handoff
     gate_to_stage = {
         "requirements": "requirements",
         "design": "design",
@@ -99,50 +101,37 @@ def _summarize_handoff_for_review(gate_name: str, state: dict[str, Any]) -> dict
 
     if stage == "requirements":
         stories = handoff.get("functional_requirements", [])
-        summary["user_stories"] = [
-            f"{s.get('id', '?')}: {s.get('title', '?')}" for s in stories
-        ]
+        summary["user_stories"] = stories  # full dicts
         nfrs = handoff.get("nonfunctional_requirements", [])
-        summary["nfrs"] = [f"{n.get('id', '?')}: {n.get('description', '')[:80]}" for n in nfrs]
-        constraints = handoff.get("tech_constraints", [])
-        summary["tech_constraints"] = [c.get("description", "")[:80] for c in constraints]
+        summary["nfrs"] = nfrs
+        summary["tech_constraints"] = handoff.get("tech_constraints", [])
         summary["completeness_score"] = handoff.get("completeness_score", 0)
 
     elif stage == "design":
         summary["tech_stack"] = handoff.get("tech_stack", {})
-        endpoints = handoff.get("endpoints", [])
-        summary["endpoints"] = [
-            f"{e.get('method', '?')} {e.get('path', '?')} — {e.get('summary', '')[:60]}"
-            for e in endpoints[:25]
-        ]
-        entities = handoff.get("db_entities", [])
-        summary["db_entities"] = [e.get("name", "?") for e in entities]
-        components = handoff.get("ui_components", [])
-        summary["ui_components"] = [c.get("name", "?") for c in components]
-        adrs = handoff.get("adrs", [])
-        summary["adrs"] = [a.get("title", "?") for a in adrs]
-        summary["architecture_preview"] = handoff.get("architecture_summary", "")[:400]
+        summary["endpoints"] = handoff.get("endpoints", [])  # full EndpointSpec dicts
+        summary["db_entities"] = handoff.get("db_entities", [])  # full EntitySpec dicts
+        summary["ui_components"] = handoff.get("ui_components", [])  # full ComponentSpec dicts
+        summary["adrs"] = handoff.get("adrs", [])  # full ADRRecord dicts
+        summary["architecture_preview"] = handoff.get("architecture_summary", "")[:2000]
 
     elif stage == "implementation":
         files = handoff.get("files", [])
-        summary["files"] = [
-            f.get("path", "?") for f in files[:30]
-        ]
+        summary["files"] = files[:50]  # full FileDiff dicts
         summary["file_count"] = len(files)
         summary["packages"] = handoff.get("packages", [])
 
     elif stage == "testing":
-        summary["test_file_count"] = len(handoff.get("test_files", []))
+        summary["test_files"] = handoff.get("test_files", [])[:30]
         coverage = handoff.get("coverage_metrics", {})
         summary["line_coverage"] = coverage.get("line_coverage_pct", 0)
         findings = handoff.get("security_findings", [])
-        summary["security_findings"] = len(findings)
+        summary["security_findings"] = findings[:20]
 
     elif stage == "deployment":
         summary["deploy_target"] = handoff.get("deploy_target", "?")
         summary["container_image"] = handoff.get("container_image", "")
-        configs = handoff.get("deployment_configs", [])
-        summary["config_files"] = [c.get("path", "?") for c in configs[:10]]
+        summary["deployment_configs"] = handoff.get("deployment_configs", [])[:10]
 
     return summary
 

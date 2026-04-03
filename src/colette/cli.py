@@ -104,37 +104,45 @@ def _handle_interactive_approval(
     approval_data: dict[str, object],
     target_console: Console,
 ) -> bool:
-    """Show the approval review panel and prompt the user.
+    """Run an interactive approval menu with drill-down views.
 
     Returns True if approved (pipeline should resume), False otherwise.
     """
     import httpx
 
-    from colette.cli_ui import build_approval_review_panel
+    from colette.cli_ui import (
+        build_approval_review_panel,
+        build_review_menu,
+        render_detail_view,
+        resolve_menu_choice,
+    )
+
+    summary = approval_data.get("handoff_summary", {})
 
     target_console.print()
     target_console.print(build_approval_review_panel(approval_data))  # type: ignore[arg-type]
     target_console.print()
+    target_console.print(build_review_menu(summary))  # type: ignore[arg-type]
+    target_console.print()
 
     while True:
         choice = click.prompt(
-            "Approve and continue?  [Y]es / [N]o",
+            "Enter choice",
             type=str,
-            default="Y",
+            default="A",
         ).strip().upper()
 
-        if choice in ("Y", "YES"):
+        # ── Approve ──────────────────────────────────────────────────
+        if choice == "A":
             request_id = approval_data.get("request_id", "")
             headers = {"X-API-Key": "default"}
             try:
                 with httpx.Client(timeout=30) as client:
-                    # Record the approval decision.
                     client.post(
                         f"{api_url}/api/v1/approvals/{request_id}/approve",
                         json={"reviewer_id": "cli-user", "comments": ""},
                         headers=headers,
                     )
-                    # Resume the LangGraph pipeline.
                     resp = client.post(
                         f"{api_url}/api/v1/projects/{project_id}/pipeline/resume",
                         headers=headers,
@@ -149,7 +157,8 @@ def _handle_interactive_approval(
             target_console.print("[green]Approved — pipeline resuming...[/green]\n")
             return True
 
-        if choice in ("N", "NO"):
+        # ── Reject ───────────────────────────────────────────────────
+        if choice == "R":
             request_id = approval_data.get("request_id", "")
             reason = click.prompt("Rejection reason", default="Rejected via CLI")
             headers = {"X-API-Key": "default"}
@@ -161,11 +170,23 @@ def _handle_interactive_approval(
                         headers=headers,
                     )
             except httpx.HTTPError:
-                pass  # best-effort
+                pass
             target_console.print("[yellow]Rejected — pipeline stopped.[/yellow]")
             return False
 
-        target_console.print("[dim]Please enter Y or N.[/dim]")
+        # ── Numeric drill-down ───────────────────────────────────────
+        data_key = resolve_menu_choice(choice, summary)  # type: ignore[arg-type]
+        if data_key is not None:
+            target_console.print()
+            target_console.print(render_detail_view(data_key, summary))  # type: ignore[arg-type]
+            target_console.print()
+            target_console.print(build_review_menu(summary))  # type: ignore[arg-type]
+            target_console.print()
+            continue
+
+        target_console.print(
+            "[dim]Enter a number to inspect, [A] to approve, or [R] to reject.[/dim]"
+        )
 
 
 def _stream_progress(

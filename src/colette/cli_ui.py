@@ -107,16 +107,10 @@ def render_approval_prompt(approval: dict[str, Any]) -> Panel:
 
 
 def build_approval_review_panel(event_data: dict[str, Any]) -> Panel:
-    """Build a rich panel showing stage deliverables for human review.
-
-    ``event_data`` is the full ``detail`` dict from an ``approval_required``
-    SSE event, which includes the approval request fields **and** a nested
-    ``handoff_summary`` dict with stage-specific deliverables.
-    """
+    """Build a compact summary panel with key metrics for the interactive menu."""
     stage = event_data.get("stage", "?")
     tier = event_data.get("tier", "?")
     score = event_data.get("confidence_score")
-    request_id = event_data.get("request_id", "?")
     summary = event_data.get("handoff_summary", {})
 
     lines: list[str] = [
@@ -125,72 +119,328 @@ def build_approval_review_panel(event_data: dict[str, Any]) -> Panel:
     ]
     if score is not None:
         lines.append(f"[bold yellow]Score:[/bold yellow]  {score:.2f}")
-    lines.append(f"[bold yellow]ID:[/bold yellow]     {request_id}")
     lines.append("")
 
-    # ── Stage-specific deliverables ──────────────────────────────────
-    if stage == "requirements" or summary.get("stage") == "requirements":
-        _append_list(lines, "User Stories", summary.get("user_stories", []))
-        _append_list(lines, "Non-Functional Reqs", summary.get("nfrs", []))
-        _append_list(lines, "Tech Constraints", summary.get("tech_constraints", []))
+    # Show quick counts per section.
+    s = summary.get("stage", stage)
+    if s == "requirements":
+        lines.append(f"  User Stories:      {len(summary.get('user_stories', []))}")
+        lines.append(f"  NFRs:              {len(summary.get('nfrs', []))}")
+        lines.append(f"  Tech Constraints:  {len(summary.get('tech_constraints', []))}")
         cs = summary.get("completeness_score", 0)
         if cs:
-            lines.append(f"[bold]Completeness:[/bold] {cs:.0%}")
-
-    elif stage == "design" or summary.get("stage") == "design":
+            lines.append(f"  Completeness:      {cs:.0%}")
+    elif s == "design":
+        lines.append(f"  API Endpoints:     {len(summary.get('endpoints', []))}")
+        lines.append(f"  DB Entities:       {len(summary.get('db_entities', []))}")
+        lines.append(f"  UI Components:     {len(summary.get('ui_components', []))}")
+        lines.append(f"  ADRs:              {len(summary.get('adrs', []))}")
         tech = summary.get("tech_stack", {})
         if tech:
-            lines.append("[bold]Tech Stack:[/bold]")
-            for role, choice in tech.items():
-                lines.append(f"  {role}: {escape(str(choice))}")
-            lines.append("")
-        _append_list(lines, "API Endpoints", summary.get("endpoints", []))
-        _append_list(lines, "DB Entities", summary.get("db_entities", []))
-        _append_list(lines, "UI Components", summary.get("ui_components", []))
-        _append_list(lines, "Architecture Decisions", summary.get("adrs", []))
-        preview = summary.get("architecture_preview", "")
-        if preview:
-            lines.append(f"\n[bold]Architecture Preview:[/bold]\n[dim]{escape(preview)}[/dim]")
-
-    elif stage == "implementation" or summary.get("stage") == "implementation":
-        fc = summary.get("file_count", 0)
-        lines.append(f"[bold]Generated Files:[/bold] {fc}")
-        _append_list(lines, "Files", summary.get("files", []))
-        _append_list(lines, "Packages", summary.get("packages", []))
-
-    elif stage == "testing" or summary.get("stage") == "testing":
-        lines.append(f"[bold]Test Files:[/bold] {summary.get('test_file_count', 0)}")
-        lines.append(f"[bold]Line Coverage:[/bold] {summary.get('line_coverage', 0):.0f}%")
-        lines.append(f"[bold]Security Findings:[/bold] {summary.get('security_findings', 0)}")
-
-    elif stage in ("staging", "deployment") or summary.get("stage") == "deployment":
-        lines.append(f"[bold]Deploy Target:[/bold] {summary.get('deploy_target', '?')}")
-        img = summary.get("container_image", "")
-        if img:
-            lines.append(f"[bold]Container Image:[/bold] {escape(img)}")
-        _append_list(lines, "Config Files", summary.get("config_files", []))
-
-    else:
-        note = summary.get("note", "")
-        if note:
-            lines.append(f"[dim]{escape(note)}[/dim]")
+            stack_str = ", ".join(f"{r}={v}" for r, v in list(tech.items())[:4])
+            lines.append(f"  Tech Stack:        {stack_str}")
+    elif s == "implementation":
+        lines.append(f"  Files Generated:   {summary.get('file_count', 0)}")
+        lines.append(f"  Packages:          {len(summary.get('packages', []))}")
+    elif s == "testing":
+        lines.append(f"  Test Files:        {len(summary.get('test_files', []))}")
+        lines.append(f"  Line Coverage:     {summary.get('line_coverage', 0):.0f}%")
+        lines.append(f"  Security Findings: {len(summary.get('security_findings', []))}")
+    elif s == "deployment":
+        lines.append(f"  Deploy Target:     {summary.get('deploy_target', '?')}")
+        lines.append(f"  Config Files:      {len(summary.get('deployment_configs', []))}")
 
     return Panel(
         "\n".join(lines),
         title="Review Required",
-        subtitle="[Y]es / [N]o / [S]kip",
         border_style="yellow",
     )
 
 
-def _append_list(lines: list[str], title: str, items: list[str]) -> None:
-    """Append a titled bullet list to *lines* (skips if empty)."""
-    if not items:
-        return
-    lines.append(f"[bold]{title}:[/bold]")
-    for item in items:
-        lines.append(f"  - {escape(str(item))}")
-    lines.append("")
+# ── Interactive approval: drill-down renderers ────────────────────────
+
+
+def build_review_menu(summary: dict[str, Any]) -> str:
+    """Build the numbered menu string based on which sections have data."""
+    stage = summary.get("stage", "")
+    items: list[str] = []
+    idx = 1
+
+    for key, label in _review_menu_items(stage):
+        data = summary.get(key, [] if key != "tech_stack" else {})
+        count = len(data) if isinstance(data, (list, dict)) else 0
+        if count or key == "architecture_preview":
+            if count:
+                items.append(f"  [bold cyan][{idx}][/bold cyan] {label} ({count})")
+            else:
+                items.append(f"  [bold cyan][{idx}][/bold cyan] {label}")
+            idx += 1
+
+    items.append("")
+    items.append("  [bold green][A][/bold green] Approve   [bold red][R][/bold red] Reject")
+    return "\n".join(items)
+
+
+def _review_menu_items(stage: str) -> list[tuple[str, str]]:
+    """Return (data_key, label) pairs for the given stage."""
+    if stage == "requirements":
+        return [
+            ("user_stories", "User Stories"),
+            ("nfrs", "Non-Functional Requirements"),
+            ("tech_constraints", "Tech Constraints"),
+        ]
+    if stage == "design":
+        return [
+            ("endpoints", "API Endpoints"),
+            ("db_entities", "DB Entities"),
+            ("ui_components", "UI Components"),
+            ("tech_stack", "Tech Stack"),
+            ("adrs", "Architecture Decisions"),
+            ("architecture_preview", "Architecture Summary"),
+        ]
+    if stage == "implementation":
+        return [
+            ("files", "Generated Files"),
+            ("packages", "Packages"),
+        ]
+    if stage == "testing":
+        return [
+            ("test_files", "Test Files"),
+            ("security_findings", "Security Findings"),
+        ]
+    if stage == "deployment":
+        return [
+            ("deployment_configs", "Deployment Configs"),
+        ]
+    return []
+
+
+def resolve_menu_choice(choice: str, summary: dict[str, Any]) -> str | None:
+    """Map a numeric menu choice to the data key, or None if invalid."""
+    stage = summary.get("stage", "")
+    items = _review_menu_items(stage)
+    visible: list[str] = []
+    for key, _label in items:
+        data = summary.get(key, [] if key != "tech_stack" else {})
+        if isinstance(data, str) or (isinstance(data, (list, dict)) and data):
+            visible.append(key)
+    try:
+        idx = int(choice) - 1
+    except ValueError:
+        return None
+    return visible[idx] if 0 <= idx < len(visible) else None
+
+
+def render_detail_view(key: str, summary: dict[str, Any]) -> Panel | Table:
+    """Render a drill-down detail view for a specific section."""
+    data = summary.get(key)
+    label = key.replace("_", " ").title()
+
+    if key == "endpoints":
+        return _render_endpoints_table(data or [])
+    if key == "db_entities":
+        return _render_entities_table(data or [])
+    if key == "ui_components":
+        return _render_components_table(data or [])
+    if key == "adrs":
+        return _render_adrs_panel(data or [])
+    if key == "tech_stack":
+        return _render_tech_stack_table(data or {})
+    if key == "architecture_preview":
+        return Panel(escape(str(data or "")), title="Architecture Summary", border_style="blue")
+    if key == "user_stories":
+        return _render_user_stories_table(data or [])
+    if key == "nfrs":
+        return _render_nfrs_table(data or [])
+    if key == "tech_constraints":
+        return _render_constraints_table(data or [])
+    if key == "files":
+        return _render_files_table(data or [])
+    if key == "test_files":
+        return _render_files_table(data or [])
+    if key == "security_findings":
+        return _render_security_findings_table(data or [])
+    if key == "deployment_configs":
+        return _render_files_table(data or [])
+    if key == "packages":
+        return _render_simple_list(label, data or [])
+
+    return Panel(str(data), title=label, border_style="blue")
+
+
+# ── Detail renderers ─────────────────────────────────────────────────
+
+
+def _render_endpoints_table(endpoints: list[dict[str, Any]]) -> Table:
+    table = Table(title="API Endpoints", show_lines=True)
+    table.add_column("#", style="dim", width=3)
+    table.add_column("Method", style="bold cyan", width=7)
+    table.add_column("Path", style="green")
+    table.add_column("Summary")
+    table.add_column("Auth", width=4, justify="center")
+    for i, ep in enumerate(endpoints, 1):
+        auth = "[green]Y[/green]" if ep.get("auth_required", True) else "[dim]N[/dim]"
+        table.add_row(
+            str(i),
+            ep.get("method", "?"),
+            ep.get("path", "?"),
+            escape(ep.get("summary", "")),
+            auth,
+        )
+    return table
+
+
+def _render_entities_table(entities: list[dict[str, Any]]) -> Table:
+    table = Table(title="DB Entities", show_lines=True)
+    table.add_column("Entity", style="bold cyan")
+    table.add_column("Fields")
+    table.add_column("Indexes", style="dim")
+    table.add_column("Relationships", style="dim")
+    for ent in entities:
+        fields = ent.get("fields", [])
+        field_strs = [f"{f.get('name', '?')}: {f.get('type', '?')}" for f in fields[:8]]
+        if len(fields) > 8:
+            field_strs.append(f"... +{len(fields) - 8} more")
+        indexes = ", ".join(ent.get("indexes", [])) or "-"
+        rels = ", ".join(ent.get("relationships", [])) or "-"
+        table.add_row(ent.get("name", "?"), "\n".join(field_strs), indexes, rels)
+    return table
+
+
+def _render_components_table(components: list[dict[str, Any]]) -> Table:
+    table = Table(title="UI Components", show_lines=True)
+    table.add_column("Component", style="bold cyan")
+    table.add_column("Description")
+    table.add_column("Route", style="dim")
+    table.add_column("Children", style="dim")
+    for comp in components:
+        route = comp.get("route") or "-"
+        children = ", ".join(comp.get("children", [])) or "-"
+        table.add_row(
+            comp.get("name", "?"),
+            escape(comp.get("description", "")),
+            route,
+            children,
+        )
+    return table
+
+
+def _render_adrs_panel(adrs: list[dict[str, Any]]) -> Panel:
+    lines: list[str] = []
+    for adr in adrs:
+        adr_id = escape(adr.get("id", "?"))
+        adr_title = escape(adr.get("title", "?"))
+        lines.append(f"[bold cyan]{adr_id}: {adr_title}[/bold cyan]")
+        lines.append(f"  [bold]Status:[/bold] {adr.get('status', '?')}")
+        ctx = adr.get("context", "")
+        if ctx:
+            lines.append(f"  [bold]Context:[/bold] {escape(ctx[:200])}")
+        dec = adr.get("decision", "")
+        if dec:
+            lines.append(f"  [bold]Decision:[/bold] {escape(dec[:200])}")
+        alts = adr.get("alternatives", [])
+        if alts:
+            lines.append("  [bold]Alternatives:[/bold]")
+            for alt in alts:
+                lines.append(f"    - {escape(alt)}")
+        lines.append("")
+    return Panel("\n".join(lines), title="Architecture Decisions", border_style="blue")
+
+
+def _render_tech_stack_table(tech: dict[str, Any]) -> Table:
+    table = Table(title="Tech Stack")
+    table.add_column("Role", style="bold cyan")
+    table.add_column("Technology", style="green")
+    for role, choice in tech.items():
+        table.add_row(role, escape(str(choice)))
+    return table
+
+
+def _render_user_stories_table(stories: list[dict[str, Any]]) -> Table:
+    table = Table(title="User Stories", show_lines=True)
+    table.add_column("ID", style="dim", width=12)
+    table.add_column("Title", style="bold")
+    table.add_column("Priority", width=8)
+    table.add_column("Acceptance Criteria")
+    for s in stories:
+        ac = s.get("acceptance_criteria", [])
+        ac_str = "\n".join(f"- {escape(c)}" for c in ac[:5])
+        if len(ac) > 5:
+            ac_str += f"\n... +{len(ac) - 5} more"
+        table.add_row(
+            s.get("id", "?"),
+            escape(s.get("title", "?")),
+            s.get("priority", "?"),
+            ac_str,
+        )
+    return table
+
+
+def _render_nfrs_table(nfrs: list[dict[str, Any]]) -> Table:
+    table = Table(title="Non-Functional Requirements", show_lines=True)
+    table.add_column("ID", style="dim", width=12)
+    table.add_column("Category", style="cyan")
+    table.add_column("Description")
+    table.add_column("Target", style="dim")
+    for n in nfrs:
+        table.add_row(
+            n.get("id", "?"),
+            n.get("category", "?"),
+            escape(n.get("description", "")),
+            n.get("target", "") or "-",
+        )
+    return table
+
+
+def _render_constraints_table(constraints: list[dict[str, Any]]) -> Table:
+    table = Table(title="Tech Constraints", show_lines=True)
+    table.add_column("ID", style="dim", width=12)
+    table.add_column("Description")
+    table.add_column("Rationale", style="dim")
+    for c in constraints:
+        table.add_row(
+            c.get("id", "?"),
+            escape(c.get("description", "")),
+            escape(c.get("rationale", "")),
+        )
+    return table
+
+
+def _render_files_table(files: list[dict[str, Any]]) -> Table:
+    table = Table(title="Files")
+    table.add_column("#", style="dim", width=3)
+    table.add_column("Path", style="green")
+    table.add_column("Language", style="dim", width=12)
+    for i, f in enumerate(files, 1):
+        path = f.get("path", "?") if isinstance(f, dict) else str(f)
+        lang = f.get("language", "") if isinstance(f, dict) else ""
+        table.add_row(str(i), escape(path), lang)
+    return table
+
+
+def _render_security_findings_table(findings: list[dict[str, Any]]) -> Table:
+    table = Table(title="Security Findings", show_lines=True)
+    table.add_column("Severity", style="bold")
+    table.add_column("Category")
+    table.add_column("Description")
+    for f in findings:
+        sev = f.get("severity", "?")
+        severity_styles = {
+            "critical": "red bold", "high": "red",
+            "medium": "yellow", "low": "dim",
+        }
+        sev_style = severity_styles.get(sev.lower(), "")
+        table.add_row(
+            f"[{sev_style}]{sev}[/{sev_style}]" if sev_style else sev,
+            f.get("category", "?"),
+            escape(f.get("description", "")),
+        )
+    return table
+
+
+def _render_simple_list(title: str, items: list[Any]) -> Panel:
+    lines = [f"  - {escape(str(item))}" for item in items]
+    return Panel("\n".join(lines) or "[dim]None[/dim]", title=title, border_style="blue")
 
 
 def render_pipeline_summary(data: dict[str, Any]) -> Panel:
