@@ -32,6 +32,7 @@ from colette.stages.implementation.supervisor import (
     assemble_handoff,
     supervise_implementation,
 )
+from colette.stages.implementation.verifier import VerificationReport
 
 # ── Fixtures ────────────────────────────────────────────────────────────
 
@@ -398,6 +399,61 @@ class TestAssembleHandoff:
 # ── supervise_implementation ────────────────────────────────────────────
 
 
+def _make_clean_verification() -> VerificationReport:
+    return VerificationReport(
+        findings=[], lint_passed=True, type_check_passed=True,
+        build_passed=True, summary="Clean.",
+    )
+
+
+def _mock_verify_passthrough() -> AsyncMock:
+    """Mock verify_and_fix_loop that returns inputs unchanged + clean report."""
+
+    async def _passthrough(fe: object, be: object, db: object, ctx: str, **kw: object) -> tuple:  # type: ignore[type-arg]
+        return fe, be, db, _make_clean_verification()
+
+    return AsyncMock(side_effect=_passthrough)
+
+
+class TestAssembleHandoffWithVerification:
+    def test_uses_verification_flags(self) -> None:
+        report = VerificationReport(
+            findings=[], lint_passed=True, type_check_passed=True,
+            build_passed=True, summary="Clean.",
+        )
+        handoff = assemble_handoff(
+            "proj-1", _make_design_handoff(), _make_frontend_result(),
+            _make_backend_result(), _make_database_result(), None,
+            verification=report,
+        )
+        assert handoff.lint_passed is True
+        assert handoff.type_check_passed is True
+        assert handoff.build_passed is True
+
+    def test_partial_verification_flags(self) -> None:
+        report = VerificationReport(
+            findings=[], lint_passed=True, type_check_passed=False,
+            build_passed=True, summary="Type errors.",
+        )
+        handoff = assemble_handoff(
+            "proj-1", _make_design_handoff(), _make_frontend_result(),
+            _make_backend_result(), _make_database_result(), None,
+            verification=report,
+        )
+        assert handoff.lint_passed is True
+        assert handoff.type_check_passed is False
+        assert handoff.build_passed is True
+
+    def test_no_verification_defaults_false(self) -> None:
+        handoff = assemble_handoff(
+            "proj-1", _make_design_handoff(), _make_frontend_result(),
+            _make_backend_result(), _make_database_result(), None,
+        )
+        assert handoff.lint_passed is False
+        assert handoff.type_check_passed is False
+        assert handoff.build_passed is False
+
+
 class TestSuperviseImplementation:
     @pytest.mark.asyncio
     async def test_produces_handoff(self, settings: object) -> None:
@@ -420,6 +476,10 @@ class TestSuperviseImplementation:
                 return_value=_make_database_result(),
             ),
             patch(
+                "colette.stages.implementation.supervisor.verify_and_fix_loop",
+                new=_mock_verify_passthrough(),
+            ),
+            patch(
                 "colette.stages.implementation.supervisor._run_cross_review",
                 new_callable=AsyncMock,
                 return_value=_make_review_result(),
@@ -435,6 +495,8 @@ class TestSuperviseImplementation:
         assert len(result.handoff.files_changed) == 6
         assert result.handoff.quality_gate_passed is True
         assert len(result.generated_files) == 6
+        # Verification sets flags to True now
+        assert result.handoff.lint_passed is True
 
     @pytest.mark.asyncio
     async def test_handles_cross_review_failure(self, settings: object) -> None:
@@ -457,6 +519,10 @@ class TestSuperviseImplementation:
                 return_value=_make_database_result(),
             ),
             patch(
+                "colette.stages.implementation.supervisor.verify_and_fix_loop",
+                new=_mock_verify_passthrough(),
+            ),
+            patch(
                 "colette.stages.implementation.supervisor._run_cross_review",
                 new_callable=AsyncMock,
                 side_effect=RuntimeError("LLM timeout"),
@@ -471,6 +537,50 @@ class TestSuperviseImplementation:
         # Cross-review is SHOULD, so failure doesn't block
         assert result.handoff.quality_gate_passed is True
         assert result.handoff.test_hints == []
+
+    @pytest.mark.asyncio
+    async def test_handles_verify_failure_gracefully(self, settings: object) -> None:
+        """When verify_and_fix_loop crashes, handoff proceeds with False flags."""
+        design = _make_design_handoff()
+
+        with (
+            patch(
+                "colette.stages.implementation.supervisor.run_frontend",
+                new_callable=AsyncMock,
+                return_value=_make_frontend_result(),
+            ),
+            patch(
+                "colette.stages.implementation.supervisor.run_backend",
+                new_callable=AsyncMock,
+                return_value=_make_backend_result(),
+            ),
+            patch(
+                "colette.stages.implementation.supervisor.run_database",
+                new_callable=AsyncMock,
+                return_value=_make_database_result(),
+            ),
+            patch(
+                "colette.stages.implementation.supervisor.verify_and_fix_loop",
+                new_callable=AsyncMock,
+                side_effect=RuntimeError("Verification crashed"),
+            ),
+            patch(
+                "colette.stages.implementation.supervisor._run_cross_review",
+                new_callable=AsyncMock,
+                return_value=_make_review_result(),
+            ),
+        ):
+            result = await supervise_implementation(
+                "proj-1",
+                design,
+                settings=settings,  # type: ignore[arg-type]
+            )
+
+        # Verification failure is non-blocking; flags stay False
+        assert result.handoff.lint_passed is False
+        assert result.handoff.type_check_passed is False
+        assert result.handoff.build_passed is False
+        assert result.handoff.quality_gate_passed is True
 
 
 # ── run_stage ───────────────────────────────────────────────────────────

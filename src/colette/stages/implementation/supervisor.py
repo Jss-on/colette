@@ -17,6 +17,7 @@ from colette.stages.implementation.backend import BackendResult, run_backend
 from colette.stages.implementation.database import DatabaseResult, run_database
 from colette.stages.implementation.frontend import FrontendResult, run_frontend
 from colette.stages.implementation.prompts import CROSS_REVIEW_PROMPT
+from colette.stages.implementation.verifier import VerificationReport, verify_and_fix_loop
 
 _MAX_SPEC_CHARS = 20_000
 
@@ -230,6 +231,7 @@ def assemble_handoff(
     backend: BackendResult,
     database: DatabaseResult,
     review: CrossReviewResult | None,
+    verification: VerificationReport | None = None,
 ) -> ImplementationToTestingHandoff:
     """Assemble the Implementation-to-Testing handoff from agent outputs."""
     files = _collect_files(frontend, backend, database)
@@ -246,9 +248,9 @@ def assemble_handoff(
         implemented_endpoints=endpoints,
         openapi_spec_ref=design.openapi_spec[:200] if design.openapi_spec else "",
         env_vars=env_vars,
-        lint_passed=False,  # not yet run — Testing stage will verify
-        type_check_passed=False,
-        build_passed=False,
+        lint_passed=verification.lint_passed if verification else False,
+        type_check_passed=verification.type_check_passed if verification else False,
+        build_passed=verification.build_passed if verification else False,
         test_hints=test_hints,
         quality_gate_passed=gate_passed,
     )
@@ -295,6 +297,24 @@ async def supervise_implementation(
         run_database(design_context, settings=settings),
     )
 
+    # Verify-and-fix loop (FR-IMP-012 — non-blocking on failure)
+    verification: VerificationReport | None = None
+    try:
+        frontend, backend, database, verification = await verify_and_fix_loop(
+            frontend,
+            backend,
+            database,
+            design_context,
+            settings=settings,
+            max_retries=settings.impl_verify_max_retries,
+        )
+    except Exception as exc:
+        logger.warning(
+            "verify_and_fix.failed",
+            error_type=type(exc).__name__,
+            error=str(exc)[:200],
+        )
+
     # Cross-review (FR-IMP-011, SHOULD — non-blocking on failure)
     review: CrossReviewResult | None = None
     try:
@@ -309,6 +329,7 @@ async def supervise_implementation(
         backend,
         database,
         review,
+        verification,
     )
 
     all_files = [*frontend.files, *backend.files, *database.files]

@@ -78,6 +78,12 @@ class Settings(BaseSettings):
     cold_storage_bucket: str = "colette-cold"
     memory_decay_enabled: bool = False
 
+    # ── Implementation verify-and-fix (FR-IMP-012) ────────────────────
+    impl_verify_max_retries: int = Field(
+        default=3,
+        description="Max verify-and-fix iterations for generated code.",
+    )
+
     # ── Pipeline (FR-ORC-003/006/007) ──────────────────────────────────
     checkpoint_backend: str = Field(
         default="memory",
