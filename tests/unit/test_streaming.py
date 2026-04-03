@@ -42,9 +42,7 @@ class TestCallbackTokenStreaming:
     def test_flush_emits_event(self) -> None:
         h = self._make_handler()
         h._token_buffer = ["Hello", " ", "world"]
-        with patch(
-            "colette.observability.callbacks._emit_agent_event"
-        ) as mock_emit:
+        with patch("colette.observability.callbacks._emit_agent_event") as mock_emit:
             h._flush_token_buffer()
             mock_emit.assert_called_once_with(
                 "agent_stream_chunk",
@@ -56,18 +54,14 @@ class TestCallbackTokenStreaming:
 
     def test_flush_noop_when_empty(self) -> None:
         h = self._make_handler()
-        with patch(
-            "colette.observability.callbacks._emit_agent_event"
-        ) as mock_emit:
+        with patch("colette.observability.callbacks._emit_agent_event") as mock_emit:
             h._flush_token_buffer()
             mock_emit.assert_not_called()
 
     def test_on_llm_new_token_flushes_after_interval(self) -> None:
         h = self._make_handler()
         h._last_flush = time.monotonic() - _STREAM_BATCH_INTERVAL - 0.01
-        with patch(
-            "colette.observability.callbacks._emit_agent_event"
-        ) as mock_emit:
+        with patch("colette.observability.callbacks._emit_agent_event") as mock_emit:
             h.on_llm_new_token("token")
             mock_emit.assert_called_once()
         assert h._token_buffer == []
@@ -78,9 +72,7 @@ class TestCallbackTokenStreaming:
         mock_response = MagicMock()
         mock_response.llm_output = None
         mock_response.generations = [[]]
-        with patch(
-            "colette.observability.callbacks._emit_agent_event"
-        ) as mock_emit:
+        with patch("colette.observability.callbacks._emit_agent_event") as mock_emit:
             h.on_llm_end(mock_response)
             # Should have flushed the buffer (stream_chunk) + emitted message
             calls = mock_emit.call_args_list
@@ -111,73 +103,91 @@ class TestPipelineDisplayStreamChunks:
 
     def test_stream_chunk_appends_to_buffer(self) -> None:
         d = self._make_display()
-        d.process_event({
-            "event_type": "agent_stream_chunk",
-            "agent": "Analyst",
-            "message": "Hello",
-        })
+        d.process_event(
+            {
+                "event_type": "agent_stream_chunk",
+                "agent": "Analyst",
+                "message": "Hello",
+            }
+        )
         assert d.stream_buffers["Analyst"] == "Hello"
 
     def test_stream_chunks_accumulate(self) -> None:
         d = self._make_display()
-        d.process_event({
-            "event_type": "agent_stream_chunk",
-            "agent": "Analyst",
-            "message": "Hello",
-        })
-        d.process_event({
-            "event_type": "agent_stream_chunk",
-            "agent": "Analyst",
-            "message": " world",
-        })
+        d.process_event(
+            {
+                "event_type": "agent_stream_chunk",
+                "agent": "Analyst",
+                "message": "Hello",
+            }
+        )
+        d.process_event(
+            {
+                "event_type": "agent_stream_chunk",
+                "agent": "Analyst",
+                "message": " world",
+            }
+        )
         assert d.stream_buffers["Analyst"] == "Hello world"
 
     def test_agent_message_clears_buffer(self) -> None:
         d = self._make_display()
-        d.process_event({
-            "event_type": "agent_stream_chunk",
-            "agent": "Analyst",
-            "message": "partial",
-        })
-        d.process_event({
-            "event_type": "agent_message",
-            "agent": "Analyst",
-            "message": "Final response",
-        })
+        d.process_event(
+            {
+                "event_type": "agent_stream_chunk",
+                "agent": "Analyst",
+                "message": "partial",
+            }
+        )
+        d.process_event(
+            {
+                "event_type": "agent_message",
+                "agent": "Analyst",
+                "message": "Final response",
+            }
+        )
         assert "Analyst" not in d.stream_buffers
 
     def test_stream_chunk_not_in_log(self) -> None:
         """Stream chunks should NOT appear in the stream log."""
         d = self._make_display()
-        d.process_event({
-            "event_type": "agent_stream_chunk",
-            "agent": "Analyst",
-            "message": "token",
-        })
+        d.process_event(
+            {
+                "event_type": "agent_stream_chunk",
+                "agent": "Analyst",
+                "message": "token",
+            }
+        )
         assert len(d.stream_log) == 0
 
     def test_stream_buffer_truncation(self) -> None:
         d = self._make_display()
         big_chunk = "x" * 3000
-        d.process_event({
-            "event_type": "agent_stream_chunk",
-            "agent": "Big",
-            "message": big_chunk,
-        })
+        d.process_event(
+            {
+                "event_type": "agent_stream_chunk",
+                "agent": "Big",
+                "message": big_chunk,
+            }
+        )
         assert len(d.stream_buffers["Big"]) <= 2000
 
     def test_multiple_agents_separate_buffers(self) -> None:
         d = self._make_display()
-        d.process_event({
-            "event_type": "agent_stream_chunk",
-            "agent": "A",
-            "message": "alpha",
-        })
-        d.process_event({
-            "event_type": "agent_stream_chunk",
-            "agent": "B",
-            "message": "beta",
-        })
+        d.process_event(
+            {
+                "event_type": "agent_stream_chunk",
+                "agent": "A",
+                "message": "alpha",
+            }
+        )
+        d.process_event(
+            {
+                "event_type": "agent_stream_chunk",
+                "agent": "B",
+                "message": "beta",
+            }
+        )
         assert d.stream_buffers["A"] == "alpha"
         assert d.stream_buffers["B"] == "beta"
 
@@ -187,26 +197,28 @@ class TestPipelineDisplayStreamChunks:
 
 class TestBuildLiveOutputPanel:
     def test_empty_buffers(self) -> None:
-        panel = build_live_output_panel({})
-        assert "Waiting" in str(panel.renderable)
+        result = build_live_output_panel({})
+        assert result.plain == ""
 
     def test_single_agent(self) -> None:
-        panel = build_live_output_panel({"Analyst": "Processing data..."})
-        text = str(panel.renderable)
-        assert "Analyst" in text
+        result = build_live_output_panel({"Analyst": "Processing data..."})
+        assert "Processing data..." in result.plain
 
     def test_multiple_agents(self) -> None:
-        panel = build_live_output_panel({
-            "A": "line1\nline2",
-            "B": "output",
-        })
-        assert panel.title == "Live Output"
+        result = build_live_output_panel(
+            {
+                "A": "line1\nline2",
+                "B": "output",
+            }
+        )
+        assert "line1" in result.plain
+        assert "output" in result.plain
 
     def test_long_output_truncated(self) -> None:
         long_text = "\n".join(f"line {i}" for i in range(50))
-        panel = build_live_output_panel({"Agent": long_text}, max_lines=5)
+        result = build_live_output_panel({"Agent": long_text}, max_lines=5)
         # Should only show last 5 lines
-        assert panel is not None
+        assert result is not None
 
 
 # ── Render with stream buffers ───────────────────────────────────────
@@ -214,38 +226,37 @@ class TestBuildLiveOutputPanel:
 
 class TestRenderWithStreaming:
     def test_conversation_mode_includes_live_output(self) -> None:
-        d = PipelineProgressDisplay(
-            "p1", activity_mode=ActivityMode.CONVERSATION
+        d = PipelineProgressDisplay("p1", activity_mode=ActivityMode.CONVERSATION)
+        d.process_event(
+            {
+                "event_type": "agent_stream_chunk",
+                "agent": "Test",
+                "message": "streaming...",
+            }
         )
-        d.process_event({
-            "event_type": "agent_stream_chunk",
-            "agent": "Test",
-            "message": "streaming...",
-        })
         renderable = d.render()
         # Should be a Group containing live output panel
         assert renderable is not None
 
     def test_verbose_mode_includes_live_output(self) -> None:
-        d = PipelineProgressDisplay(
-            "p1", activity_mode=ActivityMode.VERBOSE
-        )
+        d = PipelineProgressDisplay("p1", activity_mode=ActivityMode.VERBOSE)
         renderable = d.render()
         assert renderable is not None
 
     def test_minimal_mode_no_live_output(self) -> None:
-        d = PipelineProgressDisplay(
-            "p1", activity_mode=ActivityMode.MINIMAL
+        d = PipelineProgressDisplay("p1", activity_mode=ActivityMode.MINIMAL)
+        d.process_event(
+            {
+                "event_type": "agent_stream_chunk",
+                "agent": "Test",
+                "message": "streaming...",
+            }
         )
-        d.process_event({
-            "event_type": "agent_stream_chunk",
-            "agent": "Test",
-            "message": "streaming...",
-        })
         renderable = d.render()
-        # Minimal mode returns just progress table, not Group
-        from rich.table import Table
-        assert isinstance(renderable, Table)
+        # Minimal mode returns just Text, not Group
+        from rich.text import Text
+
+        assert isinstance(renderable, Text)
 
 
 # ── WebSocket helpers ────────────────────────────────────────────────
@@ -341,14 +352,10 @@ class TestRunWsLoopImportFallback:
     def test_ws_url_conversion(self) -> None:
         """Verify http->ws URL conversion logic."""
         api_url = "http://localhost:8000"
-        ws_url = api_url.replace("http://", "ws://").replace(
-            "https://", "wss://"
-        )
+        ws_url = api_url.replace("http://", "ws://").replace("https://", "wss://")
         assert ws_url == "ws://localhost:8000"
 
     def test_https_ws_url_conversion(self) -> None:
         api_url = "https://example.com"
-        ws_url = api_url.replace("http://", "ws://").replace(
-            "https://", "wss://"
-        )
+        ws_url = api_url.replace("http://", "ws://").replace("https://", "wss://")
         assert ws_url == "wss://example.com"

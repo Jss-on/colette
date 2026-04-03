@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from enum import StrEnum
@@ -11,8 +12,10 @@ from rich.console import Console, Group
 from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
+from rich.text import Text
 from rich.tree import Tree
 
+from colette import __version__
 from colette.orchestrator.agent_presence import (
     AgentPresence,
     AgentPresenceTracker,
@@ -94,16 +97,24 @@ def render_progress_table(events: list[dict[str, Any]]) -> Table:
     return table
 
 
-def render_approval_prompt(approval: dict[str, Any]) -> Panel:
-    """Render an approval request for interactive review."""
-    content = (
-        f"[bold]Stage:[/bold] {approval.get('stage', '?')}\n"
-        f"[bold]Tier:[/bold] {approval.get('tier', '?')}\n"
-        f"[bold]Risk:[/bold] {approval.get('risk_assessment', 'N/A')}\n\n"
-        f"[bold]Context:[/bold]\n{approval.get('context_summary', '')}\n\n"
-        f"[bold]Proposed Action:[/bold]\n{approval.get('proposed_action', '')}"
-    )
-    return Panel(content, title="Approval Required", border_style="yellow")
+def render_approval_prompt(approval: dict[str, Any]) -> Text:
+    """Render an inline approval prompt (Claude Code-style)."""
+    stage = approval.get("stage", "?")
+    confidence = approval.get("confidence_score", "")
+    risk = approval.get("risk_assessment", "")
+
+    t = Text()
+    t.append("  approval required", style="bold")
+    t.append(f" - {stage} gate\n\n", style="bold")
+
+    t.append(f"  stage: {stage}", style="dim")
+    if confidence:
+        t.append(f"  confidence: {confidence}", style="dim")
+    if risk:
+        t.append(f"  risk: {risk}", style="dim")
+    t.append("\n\n")
+    t.append('  press enter to review, or type "approve" / "reject"', style="dim")
+    return t
 
 
 def build_approval_review_panel(event_data: dict[str, Any]) -> Panel:
@@ -618,14 +629,27 @@ def render_success(message: str) -> None:
     console.print(f"[green bold]OK:[/green bold] {message}")
 
 
-# ── Phase 4: Inline progress display ─────────────────────────────────
+# ── Phase 4: Inline progress display (Claude Code-style) ────────────
 
-_STATUS_ICONS: dict[str, str] = {
-    "completed": "[green]✓[/green]",
-    "running": "[yellow]>[/yellow]",
-    "failed": "[red]✗[/red]",
-    "pending": "[dim]-[/dim]",
-    "interrupted": "[magenta]![/magenta]",
+# Status words replace colored icons — near-monochrome palette.
+_STATUS_WORDS: dict[str, tuple[str, str]] = {
+    "completed": ("completed", "dim"),
+    "running": ("running", ""),
+    "failed": ("failed", "red"),
+    "pending": ("pending", "dim"),
+    "interrupted": ("interrupted", "dim"),
+    "cancelled": ("cancelled", "dim"),
+}
+
+# Agent state words replace colored dots.
+_AGENT_STATE_WORDS: dict[str, tuple[str, str]] = {
+    "idle": ("", ""),  # not shown
+    "thinking": ("thinking", ""),
+    "tool_use": ("tool_use", ""),
+    "reviewing": ("reviewing", ""),
+    "handing_off": ("handing_off", ""),
+    "done": ("", ""),  # not shown
+    "error": ("error", "red"),
 }
 
 
@@ -641,16 +665,6 @@ class ActivityMode(StrEnum):
     VERBOSE = "verbose"
 
 
-_AGENT_STATE_ICONS: dict[str, str] = {
-    "idle": "[dim]○[/dim]",
-    "thinking": "[cyan]●[/cyan]",
-    "tool_use": "[yellow]●[/yellow]",
-    "reviewing": "[blue]●[/blue]",
-    "handing_off": "[magenta]→[/magenta]",
-    "done": "[green]●[/green]",
-    "error": "[red]●[/red]",
-}
-
 _PRESENCE_EVENT_STATE_MAP: dict[str, AgentState] = {
     "agent_thinking": AgentState.THINKING,
     "agent_tool_call": AgentState.TOOL_USE,
@@ -659,56 +673,180 @@ _PRESENCE_EVENT_STATE_MAP: dict[str, AgentState] = {
 }
 
 
-def build_agent_activity_panel(agents: tuple[AgentPresence, ...]) -> Table:
-    """Build a compact table of active agents and their states."""
-    table = Table(
-        title="Agent Activity",
-        show_header=False,
-        box=None,
-        padding=(0, 1),
-    )
-    table.add_column("icon", width=3, no_wrap=True)
-    table.add_column("agent", min_width=20)
-    table.add_column("state", width=12)
-    table.add_column("activity")
+# ── Formatting helpers (Claude Code-style) ───────────────────────────
 
+
+def _format_header(
+    project_name: str,
+    status: str | None = None,
+) -> Text:
+    """Format header line: ``colette v{version}  {project}  [status]``."""
+    t = Text()
+    t.append("colette", style="dim")
+    t.append(f" v{__version__}", style="dim")
+    t.append(f"  {project_name}")
+    if status:
+        style = "red" if "failed" in status else "dim"
+        t.append(f"  {status}", style=style)
+    return t
+
+
+def _format_stage_line(
+    stage: StageState,
+    max_name_len: int,
+    *,
+    show_tokens: bool = False,
+) -> Text:
+    """Format a single stage line with column-aligned fields."""
+    name = stage.name.ljust(max_name_len)
+    word, style = _STATUS_WORDS.get(stage.status, (stage.status, "dim"))
+
+    t = Text()
+    t.append("  ")  # 2-space indent
+
+    if stage.status == "running":
+        t.append(name, style="bold")
+        t.append(f"  {word}")
+    elif stage.status == "failed":
+        t.append(f"{name}  {word}", style="red")
+    else:
+        t.append(f"{name}  {word}", style=style)
+
+    if stage.elapsed_seconds:
+        elapsed = _format_elapsed(stage.elapsed_seconds)
+        t.append(f"  {elapsed}", style="dim")
+
+    if show_tokens and stage.tokens_used:
+        t.append(f"  {stage.tokens_used:,} tokens", style="dim")
+
+    return t
+
+
+def _format_elapsed(seconds: float) -> str:
+    """Format seconds as a human-readable duration (e.g. '2m 34s' or '12s')."""
+    if seconds >= 60:
+        m = int(seconds) // 60
+        s = int(seconds) % 60
+        return f"{m}m {s}s"
+    return f"{int(seconds)}s"
+
+
+def _format_agent_line(
+    agent: AgentPresence,
+    width: int = 80,
+) -> Text | None:
+    """Format agent status line, or None if agent is idle/done."""
+    word, style = _AGENT_STATE_WORDS.get(agent.state.value, ("", ""))
+    if not word:
+        return None
+
+    t = Text()
+    t.append("  ")  # 2-space indent
+    name = agent.display_name or agent.agent_id
+    t.append(name)
+    t.append(f"  {word}", style=style)
+
+    activity = agent.activity or ""
+    if agent.state == AgentState.HANDING_OFF and agent.target_agent:
+        activity = f"→ {agent.target_agent}: {activity}"
+    if activity:
+        # Truncate message to fit terminal width.
+        max_msg = width - len(name) - len(word) - 10
+        if max_msg > 0:
+            if len(activity) > max_msg:
+                activity = activity[: max_msg - 1] + "…"
+            t.append(f'  "{activity}"', style="dim")
+
+    return t
+
+
+def _format_log_entry(
+    entry: StreamLogEntry,
+    max_agent_len: int,
+) -> Text:
+    """Format a single stream log entry."""
+    t = Text()
+    t.append("  ")  # 2-space indent
+    t.append(_format_time(entry.timestamp), style="dim")
+    t.append("  ")
+
+    agent = entry.agent.ljust(max_agent_len)
+    t.append(agent)
+    t.append("  ")
+
+    label = entry.event_type.replace("agent_", "").replace("stage_", "").replace("_", " ")
+    if entry.message:
+        msg = entry.message[:200]
+        t.append(f'"{msg}"', style="dim")
+    else:
+        t.append(label, style="dim")
+
+    return t
+
+
+def _format_live_output(
+    buffers: dict[str, str],
+    width: int = 80,
+    max_lines: int = 12,
+) -> Text:
+    """Format live token output with ``> `` prefix."""
+    t = Text()
+    if not buffers:
+        return t
+
+    for _agent, text in buffers.items():
+        lines = text.split("\n")
+        tail = lines[-max_lines:] if len(lines) > max_lines else lines
+        for line in tail:
+            # Wrap at terminal width.
+            if len(line) > width - 6:
+                line = line[: width - 6]
+            t.append("  > ", style="dim")
+            t.append(line)
+            t.append("\n")
+
+    # Remove trailing newline.
+    if t.plain.endswith("\n"):
+        t.right_crop(1)
+
+    return t
+
+
+# ── Rendering functions (Claude Code-style) ──────────────────────────
+
+
+def build_agent_activity_panel(agents: tuple[AgentPresence, ...]) -> Text:
+    """Build agent status lines (plain text, no panel)."""
+    width = shutil.get_terminal_size((80, 24)).columns
+    t = Text()
     for agent in agents:
-        icon = _AGENT_STATE_ICONS.get(agent.state.value, " ")
-        name = escape(agent.display_name or agent.agent_id)
-        state_label = agent.state.value.replace("_", " ")
-        activity = escape(agent.activity) if agent.activity else ""
-        if agent.state == AgentState.HANDING_OFF and agent.target_agent:
-            activity = f"→ {escape(agent.target_agent)}: {activity}"
-        table.add_row(icon, name, f"[dim]{state_label}[/dim]", activity)
-
-    return table
+        line = _format_agent_line(agent, width=width)
+        if line is not None:
+            if t.plain:
+                t.append("\n")
+            t.append_text(line)
+    return t
 
 
 def build_conversation_feed(
     entries: tuple[ConversationEntry, ...],
     max_lines: int = 10,
-) -> Table:
-    """Build a scrolling conversation feed from the ring buffer."""
-    table = Table(
-        title="Conversation",
-        show_header=False,
-        box=None,
-        padding=(0, 1),
-    )
-    table.add_column("time", width=10, style="dim")
-    table.add_column("agent", min_width=20)
-    table.add_column("message")
-
+) -> Text:
+    """Build a scrolling conversation feed (plain text)."""
+    t = Text()
     visible = entries[-max_lines:] if len(entries) > max_lines else entries
-    for entry in visible:
+    for i, entry in enumerate(visible):
+        if i > 0:
+            t.append("\n")
         ts = _format_time(entry.timestamp)
-        name = escape(entry.display_name or entry.agent_id)
+        name = entry.display_name or entry.agent_id
         if entry.target_agent:
-            name += f" → {escape(entry.target_agent)}"
-        msg = escape(entry.message)
-        table.add_row(ts, name, msg)
-
-    return table
+            name += f" → {entry.target_agent}"
+        t.append("  ", style="dim")
+        t.append(ts, style="dim")
+        t.append(f"  {name}  ")
+        t.append(f'"{entry.message}"', style="dim")
+    return t
 
 
 @dataclass(frozen=True)
@@ -724,90 +862,36 @@ class StreamLogEntry:
     cache_write: int = 0
 
 
-_MAX_STREAM_LOG = 30
+_MAX_STREAM_LOG = 15
 _MAX_STREAM_BUFFER = 2000  # max chars kept per agent in the live buffer
-_EVENT_STYLE: dict[str, str] = {
-    "agent_thinking": "cyan",
-    "agent_message": "green",
-    "agent_stream_chunk": "dim green",
-    "agent_tool_call": "yellow",
-    "agent_handoff": "magenta",
-    "agent_error": "red",
-    "stage_started": "bold blue",
-    "stage_completed": "bold green",
-    "stage_failed": "bold red",
-}
 
 
 def build_live_output_panel(
     buffers: dict[str, str],
     max_lines: int = 12,
-) -> Panel:
-    """Build a panel showing the last N lines of live LLM output per agent."""
-    if not buffers:
-        return Panel(
-            "[dim]Waiting for agent output...[/dim]",
-            title="Live Output",
-            border_style="green",
-        )
-
-    parts: list[str] = []
-    for agent, text in buffers.items():
-        # Show the tail of the buffer.
-        lines = text.split("\n")
-        tail = lines[-max_lines:] if len(lines) > max_lines else lines
-        content = "\n".join(tail)
-        # Truncate very long last lines.
-        if len(content) > 600:
-            content = content[-600:]
-        parts.append(f"[bold cyan]{escape(agent)}[/bold cyan]\n{escape(content)}")
-
-    return Panel(
-        "\n\n".join(parts),
-        title="Live Output",
-        border_style="green",
-    )
+) -> Text:
+    """Build live LLM output with ``> `` prefix (no panel)."""
+    width = shutil.get_terminal_size((80, 24)).columns
+    return _format_live_output(buffers, width=width, max_lines=max_lines)
 
 
 def build_streaming_log(
     entries: tuple[StreamLogEntry, ...],
-    max_lines: int = 20,
-) -> Panel:
-    """Build a scrollable log panel showing real-time agent output."""
-    table = Table(
-        show_header=True,
-        box=None,
-        padding=(0, 1),
-        expand=True,
-    )
-    table.add_column("Time", width=10, style="dim")
-    table.add_column("Agent", width=22, no_wrap=True)
-    table.add_column("Event", width=12, no_wrap=True)
-    table.add_column("Output", ratio=1)
-
+    max_lines: int = 15,
+) -> Text:
+    """Build a plain-text streaming log."""
+    t = Text()
     visible = entries[-max_lines:] if len(entries) > max_lines else entries
-    for entry in visible:
-        ts = _format_time(entry.timestamp)
-        style = _EVENT_STYLE.get(entry.event_type, "")
-        label = entry.event_type.replace("agent_", "").replace("_", " ")
-        msg = escape(entry.message[:200]) if entry.message else ""
+    if not visible:
+        return t
 
-        # Show cache/token info inline
-        suffix = ""
-        if entry.tokens:
-            suffix = f" [dim]({entry.tokens:,}tok"
-            if entry.cache_read:
-                suffix += f", cache:{entry.cache_read:,}"
-            suffix += ")[/dim]"
+    max_agent_len = max((len(e.agent) for e in visible), default=10)
+    for i, entry in enumerate(visible):
+        if i > 0:
+            t.append("\n")
+        t.append_text(_format_log_entry(entry, max_agent_len))
 
-        table.add_row(
-            ts,
-            escape(entry.agent),
-            f"[{style}]{label}[/{style}]" if style else label,
-            msg + suffix,
-        )
-
-    return Panel(table, title="Agent Stream", border_style="dim")
+    return t
 
 
 def _format_time(dt: datetime) -> str:
@@ -818,34 +902,20 @@ def _format_time(dt: datetime) -> str:
 def build_progress_renderable(
     stages: tuple[StageState, ...],
     error_message: str = "",
-) -> Table:
-    """Build a Rich table showing live pipeline stage progression."""
-    table = Table(show_header=False, box=None, padding=(0, 1))
-    table.add_column("icon", width=3, no_wrap=True)
-    table.add_column("stage")
-    table.add_column("elapsed", justify="right", style="dim")
-
-    for stage in stages:
-        icon = _STATUS_ICONS.get(stage.status, " ")
-        label = _STAGE_LABELS.get(stage.name, stage.name)
-        elapsed = f"({stage.elapsed_seconds:.0f}s)" if stage.elapsed_seconds else ""
-
-        if stage.status == "running" and (stage.agent or stage.message):
-            agent = escape(stage.agent)
-            msg = escape(stage.message)
-            activity = " — "
-            if agent and msg:
-                activity += f"{agent}: {msg}"
-            else:
-                activity += agent or msg
-            table.add_row(icon, f"{label}{activity}", elapsed)
-        else:
-            table.add_row(icon, label, elapsed)
+) -> Text:
+    """Build a plain-text stage list (Claude Code-style)."""
+    max_name_len = max(len(s.name) for s in stages) if stages else 14
+    t = Text()
+    for i, stage in enumerate(stages):
+        if i > 0:
+            t.append("\n")
+        t.append_text(_format_stage_line(stage, max_name_len))
 
     if error_message:
-        table.add_row("", f"[red]Error: {escape(error_message)}[/red]", "")
+        t.append("\n\n")
+        t.append(f"  error: {error_message}", style="red")
 
-    return table
+    return t
 
 
 def build_summary_panel(
@@ -853,24 +923,40 @@ def build_summary_panel(
     project_id: str,
     final_status: str,
     error_message: str = "",
-) -> Panel:
-    """Build a final summary panel after pipeline completion."""
-    color = {"completed": "green", "failed": "red"}.get(final_status, "yellow")
-    completed_count = sum(1 for s in stages if s.status == "completed")
-    total_tokens = sum(s.tokens_used for s in stages)
+) -> Text:
+    """Build a plain-text completion summary (Claude Code-style)."""
     total_elapsed = sum(s.elapsed_seconds for s in stages)
+    total_tokens = sum(s.tokens_used for s in stages)
+    completed_count = sum(1 for s in stages if s.status == "completed")
 
-    content = (
-        f"[bold]Project:[/bold] {escape(project_id)}\n"
-        f"[bold]Status:[/bold] [{color}]{final_status}[/{color}]\n"
-        f"[bold]Stages:[/bold] {completed_count}/{len(stages)} completed\n"
-        f"[bold]Tokens:[/bold] {total_tokens:,}\n"
-        f"[bold]Elapsed:[/bold] {total_elapsed:.1f}s"
-    )
+    # Header with final status.
+    if final_status == "completed":
+        status_suffix = f"completed in {_format_elapsed(total_elapsed)}"
+    elif final_status == "failed":
+        failed_stage = next((s.name for s in stages if s.status == "failed"), "unknown")
+        status_suffix = f"failed at {failed_stage}"
+    else:
+        status_suffix = final_status
+
+    t = _format_header(project_id, status=status_suffix)
+    t.append("\n")
+
+    # Stage lines with token counts.
+    max_name_len = max(len(s.name) for s in stages) if stages else 14
+    for stage in stages:
+        t.append("\n")
+        t.append_text(_format_stage_line(stage, max_name_len, show_tokens=True))
+
+    # Totals.
+    t.append("\n\n")
+    t.append(f"  {completed_count}/{len(stages)} completed", style="dim")
+    t.append(f"  total tokens  {total_tokens:,}", style="dim")
+
     if error_message:
-        content += f"\n[bold]Error:[/bold] [red]{escape(error_message)}[/red]"
+        t.append("\n\n")
+        t.append(f"  error: {error_message}", style="red")
 
-    return Panel(content, title="Pipeline Summary", border_style=color)
+    return t
 
 
 class PipelineProgressDisplay:
@@ -1141,25 +1227,61 @@ class PipelineProgressDisplay:
         """Return per-agent live token buffers (read-only snapshot)."""
         return dict(self._stream_buffers)
 
-    def render(self) -> Table | Panel | Group:
+    def render(self) -> Text | Group:
         """Return the current renderable based on activity mode."""
         if self.is_done:
             return build_summary_panel(
                 self._stages, self._project_id, self._final_status, self._error
             )
+
+        # Header + stage list.
+        header = _format_header(self._project_id)
         progress = build_progress_renderable(self._stages, self._error)
+
+        sections: list[Text] = [header, Text(""), progress]
+
         if self._activity_mode == ActivityMode.MINIMAL:
-            return progress
+            return _join_texts(sections)
+
+        # STATUS+: add agent line.
         agents = self._presence.get_agents(self._project_id_for_presence)
-        panel = build_agent_activity_panel(agents)
+        agent_text = build_agent_activity_panel(agents)
+        if agent_text.plain.strip():
+            sections.append(Text(""))
+            sections.append(agent_text)
+
         if self._activity_mode == ActivityMode.STATUS:
-            return Group(progress, panel)
-        # CONVERSATION: progress + agents + live output + streaming log
-        live_out = build_live_output_panel(self._stream_buffers)
+            return _join_texts(sections)
+
+        # CONVERSATION+: add stream log.
         stream = build_streaming_log(self._stream_log)
+        if stream.plain.strip():
+            sections.append(Text(""))
+            sections.append(stream)
+
         if self._activity_mode == ActivityMode.CONVERSATION:
-            return Group(progress, panel, live_out, stream)
-        # VERBOSE: progress + agents + live output + stream log + conversation
+            return _join_texts(sections)
+
+        # VERBOSE: add live output + conversation feed.
+        live_out = build_live_output_panel(self._stream_buffers)
+        if live_out.plain.strip():
+            sections.append(Text(""))
+            sections.append(live_out)
+
         entries = self._presence.get_conversation(self._project_id_for_presence)
         feed = build_conversation_feed(entries)
-        return Group(progress, panel, live_out, stream, feed)
+        if feed.plain.strip():
+            sections.append(Text(""))
+            sections.append(feed)
+
+        return _join_texts(sections)
+
+
+def _join_texts(sections: list[Text]) -> Text:
+    """Join multiple Text objects with newlines into a single Text."""
+    result = Text()
+    for i, section in enumerate(sections):
+        if i > 0:
+            result.append("\n")
+        result.append_text(section)
+    return result

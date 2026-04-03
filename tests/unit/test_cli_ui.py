@@ -7,9 +7,10 @@ from io import StringIO
 from typing import Any
 
 import pytest
-from rich.console import Console, Group
+from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
+from rich.text import Text
 from rich.tree import Tree
 
 from colette.cli_ui import (
@@ -104,23 +105,22 @@ class TestRenderProgressTable:
 
 
 class TestRenderApprovalPrompt:
-    def test_returns_panel(self) -> None:
-        panel = render_approval_prompt({"stage": "deployment", "tier": "T0"})
-        assert isinstance(panel, Panel)
+    def test_returns_text(self) -> None:
+        result = render_approval_prompt({"stage": "deployment", "tier": "T0"})
+        assert isinstance(result, Text)
 
-    def test_includes_stage_and_tier(self) -> None:
-        panel = render_approval_prompt(
+    def test_includes_stage_and_risk(self) -> None:
+        result = render_approval_prompt(
             {"stage": "deployment", "tier": "T0", "risk_assessment": "high"}
         )
-        output = _render_to_str(panel)
+        output = _render_to_str(result)
         assert "deployment" in output
-        assert "T0" in output
         assert "high" in output
 
     def test_handles_missing_fields(self) -> None:
-        panel = render_approval_prompt({})
-        output = _render_to_str(panel)
-        assert "?" in output or "N/A" in output
+        result = render_approval_prompt({})
+        output = _render_to_str(result)
+        assert "?" in output or "approval required" in output
 
 
 # ── render_pipeline_summary ───────────────────────────────────────────
@@ -339,39 +339,41 @@ class TestBuildProgressRenderable:
 
     def test_all_pending(self) -> None:
         stages = self._make_stages()
-        table = build_progress_renderable(stages)
-        output = _render_to_str(table)
-        for label in (
-            "Requirements", "Design", "Implementation",
-            "Testing", "Deployment", "Monitoring",
+        result = build_progress_renderable(stages)
+        output = _render_to_str(result)
+        for name in (
+            "requirements",
+            "design",
+            "implementation",
+            "testing",
+            "deployment",
+            "monitoring",
         ):
-            assert label in output
+            assert name in output
 
-    def test_completed_stage_shows_checkmark(self) -> None:
+    def test_completed_stage_shows_status_word(self) -> None:
         stages = self._make_stages(
             requirements={"status": "completed", "elapsed_seconds": 23.0},
         )
-        table = build_progress_renderable(stages)
-        output = _render_to_str(table)
-        assert "✓" in output or "completed" in output.lower()
+        result = build_progress_renderable(stages)
+        output = _render_to_str(result)
+        assert "completed" in output
 
-    def test_running_stage_shows_arrow(self) -> None:
+    def test_running_stage_shows_running(self) -> None:
         stages = self._make_stages(
-            design={"status": "running", "agent": "System Architect", "message": "Designing..."},
+            design={"status": "running"},
         )
-        table = build_progress_renderable(stages)
-        output = _render_to_str(table)
-        assert ">" in output or "running" in output.lower()
-        assert "System Architect" in output
-        assert "Designing..." in output
+        result = build_progress_renderable(stages)
+        output = _render_to_str(result)
+        assert "running" in output
 
-    def test_failed_stage_shows_x(self) -> None:
+    def test_failed_stage_shows_failed(self) -> None:
         stages = self._make_stages(
             testing={"status": "failed"},
         )
-        table = build_progress_renderable(stages, error_message="Test suite crashed")
-        output = _render_to_str(table)
-        assert "✗" in output or "failed" in output.lower()
+        result = build_progress_renderable(stages, error_message="Test suite crashed")
+        output = _render_to_str(result)
+        assert "failed" in output
         assert "Test suite crashed" in output
 
     def test_elapsed_shown_for_completed(self) -> None:
@@ -381,10 +383,10 @@ class TestBuildProgressRenderable:
         output = _render_to_str(build_progress_renderable(stages))
         assert "23" in output
 
-    def test_returns_table(self) -> None:
+    def test_returns_text(self) -> None:
         stages = self._make_stages()
         result = build_progress_renderable(stages)
-        assert isinstance(result, Table)
+        assert isinstance(result, Text)
 
 
 # ── build_summary_panel ──────────────────────────────────────────────
@@ -399,36 +401,40 @@ class TestBuildSummaryPanel:
 
     def test_completed_summary(self) -> None:
         stages = self._completed_stages()
-        panel = build_summary_panel(stages, "proj-123", "completed")
-        assert isinstance(panel, Panel)
-        output = _render_to_str(panel)
+        result = build_summary_panel(stages, "proj-123", "completed")
+        assert isinstance(result, Text)
+        output = _render_to_str(result)
         assert "proj-123" in output
         assert "completed" in output
         assert "3,000" in output  # 6 stages * 500 tokens
-        assert "60" in output  # 6 stages * 10s
+        assert "60" in output or "1m" in output  # 6 stages * 10s
 
     def test_failed_summary_includes_error(self) -> None:
         stages = (
             StageState(
-                name="requirements", status="completed",
-                elapsed_seconds=10.0, tokens_used=200,
+                name="requirements",
+                status="completed",
+                elapsed_seconds=10.0,
+                tokens_used=200,
             ),
             StageState(name="design", status="failed"),
             *(StageState(name=n) for n in PIPELINE_STAGES[2:]),
         )
-        panel = build_summary_panel(
-            stages, "proj-456", "failed",
+        result = build_summary_panel(
+            stages,
+            "proj-456",
+            "failed",
             error_message="Design agent crashed",
         )
-        output = _render_to_str(panel)
+        output = _render_to_str(result)
         assert "failed" in output
         assert "Design agent crashed" in output
         assert "1/6" in output  # 1 completed out of 6
 
-    def test_returns_panel(self) -> None:
+    def test_returns_text(self) -> None:
         stages = self._completed_stages()
         result = build_summary_panel(stages, "p", "completed")
-        assert isinstance(result, Panel)
+        assert isinstance(result, Text)
 
 
 # ── PipelineProgressDisplay ──────────────────────────────────────────
@@ -450,12 +456,14 @@ class TestPipelineProgressDisplay:
     def test_stage_completed(self) -> None:
         d = PipelineProgressDisplay("p")
         d.process_event({"event_type": "stage_started", "stage": "requirements"})
-        d.process_event({
-            "event_type": "stage_completed",
-            "stage": "requirements",
-            "elapsed_seconds": 23.5,
-            "tokens_used": 1200,
-        })
+        d.process_event(
+            {
+                "event_type": "stage_completed",
+                "stage": "requirements",
+                "elapsed_seconds": 23.5,
+                "tokens_used": 1200,
+            }
+        )
         assert d.stages[0].status == "completed"
         assert d.stages[0].elapsed_seconds == 23.5
         assert d.stages[0].tokens_used == 1200
@@ -463,35 +471,41 @@ class TestPipelineProgressDisplay:
     def test_stage_failed(self) -> None:
         d = PipelineProgressDisplay("p")
         d.process_event({"event_type": "stage_started", "stage": "design"})
-        d.process_event({
-            "event_type": "stage_failed",
-            "stage": "design",
-            "message": "Architect timed out",
-        })
+        d.process_event(
+            {
+                "event_type": "stage_failed",
+                "stage": "design",
+                "message": "Architect timed out",
+            }
+        )
         assert d.stages[1].status == "failed"
         assert d.error_message == "Architect timed out"
 
     def test_agent_started_updates_message(self) -> None:
         d = PipelineProgressDisplay("p")
         d.process_event({"event_type": "stage_started", "stage": "design"})
-        d.process_event({
-            "event_type": "agent_started",
-            "stage": "design",
-            "agent": "System Architect",
-            "message": "Generating architecture...",
-        })
+        d.process_event(
+            {
+                "event_type": "agent_started",
+                "stage": "design",
+                "agent": "System Architect",
+                "message": "Generating architecture...",
+            }
+        )
         assert d.stages[1].agent == "System Architect"
         assert d.stages[1].message == "Generating architecture..."
 
     def test_agent_completed_clears_message(self) -> None:
         d = PipelineProgressDisplay("p")
         d.process_event({"event_type": "stage_started", "stage": "design"})
-        d.process_event({
-            "event_type": "agent_started",
-            "stage": "design",
-            "agent": "Architect",
-            "message": "Working...",
-        })
+        d.process_event(
+            {
+                "event_type": "agent_started",
+                "stage": "design",
+                "agent": "Architect",
+                "message": "Working...",
+            }
+        )
         d.process_event({"event_type": "agent_completed", "stage": "design"})
         assert d.stages[1].agent == ""
         assert d.stages[1].message == ""
@@ -506,11 +520,13 @@ class TestPipelineProgressDisplay:
     def test_pipeline_completed_after_gate_failure_shows_failed(self) -> None:
         """When a gate fails but the graph exits normally, status should be 'failed'."""
         d = PipelineProgressDisplay("p")
-        d.process_event({
-            "event_type": "gate_failed",
-            "stage": "requirements",
-            "message": "Completeness score 0.62 < 0.80",
-        })
+        d.process_event(
+            {
+                "event_type": "gate_failed",
+                "stage": "requirements",
+                "message": "Completeness score 0.62 < 0.80",
+            }
+        )
         terminal = d.process_event({"event_type": "pipeline_completed"})
         assert terminal is True
         assert d.final_status == "failed"
@@ -518,30 +534,32 @@ class TestPipelineProgressDisplay:
 
     def test_pipeline_failed(self) -> None:
         d = PipelineProgressDisplay("p")
-        terminal = d.process_event({
-            "event_type": "pipeline_failed",
-            "message": "Fatal error",
-        })
+        terminal = d.process_event(
+            {
+                "event_type": "pipeline_failed",
+                "message": "Fatal error",
+            }
+        )
         assert terminal is True
         assert d.is_done
         assert d.final_status == "failed"
         assert d.error_message == "Fatal error"
 
-    def test_render_returns_group_when_running_default_mode(self) -> None:
+    def test_render_returns_text_when_running_default_mode(self) -> None:
         d = PipelineProgressDisplay("p")
         result = d.render()
-        assert isinstance(result, Group)
+        assert isinstance(result, Text)
 
-    def test_render_returns_table_when_running_minimal(self) -> None:
+    def test_render_returns_text_when_running_minimal(self) -> None:
         d = PipelineProgressDisplay("p", activity_mode=ActivityMode.MINIMAL)
         result = d.render()
-        assert isinstance(result, Table)
+        assert isinstance(result, Text)
 
-    def test_render_returns_panel_when_done(self) -> None:
+    def test_render_returns_text_when_done(self) -> None:
         d = PipelineProgressDisplay("p")
         d.process_event({"event_type": "pipeline_completed"})
         result = d.render()
-        assert isinstance(result, Panel)
+        assert isinstance(result, Text)
 
     def test_unknown_stage_ignored(self) -> None:
         d = PipelineProgressDisplay("p")
@@ -568,40 +586,49 @@ class TestPipelineProgressDisplay:
 
 
 class TestBuildAgentActivityPanel:
-    def test_returns_table(self) -> None:
-        table = build_agent_activity_panel(())
-        assert isinstance(table, Table)
+    def test_returns_text(self) -> None:
+        result = build_agent_activity_panel(())
+        assert isinstance(result, Text)
 
     def test_renders_active_agents(self) -> None:
         agents = (
             AgentPresence(
-                agent_id="arch", display_name="System Architect",
-                stage="design", state=AgentState.THINKING,
+                agent_id="arch",
+                display_name="System Architect",
+                stage="design",
+                state=AgentState.THINKING,
                 activity="Designing schema",
             ),
             AgentPresence(
-                agent_id="api", display_name="API Designer",
-                stage="design", state=AgentState.IDLE,
+                agent_id="api",
+                display_name="API Designer",
+                stage="design",
+                state=AgentState.IDLE,
             ),
         )
-        table = build_agent_activity_panel(agents)
-        output = _render_to_str(table)
+        result = build_agent_activity_panel(agents)
+        output = _render_to_str(result)
         assert "System Architect" in output
-        assert "API Designer" in output
         assert "thinking" in output
         assert "Designing schema" in output
+        # IDLE agents are not shown in the new style.
+        assert "API Designer" not in output
 
     def test_empty_agents(self) -> None:
-        table = build_agent_activity_panel(())
-        output = _render_to_str(table)
-        assert "Agent Activity" in output
+        result = build_agent_activity_panel(())
+        output = _render_to_str(result)
+        # Empty Text produces empty output.
+        assert output.strip() == ""
 
     def test_handoff_shows_target(self) -> None:
         agents = (
             AgentPresence(
-                agent_id="arch", display_name="Architect",
-                stage="design", state=AgentState.HANDING_OFF,
-                activity="architecture.yaml", target_agent="API Designer",
+                agent_id="arch",
+                display_name="Architect",
+                stage="design",
+                state=AgentState.HANDING_OFF,
+                activity="architecture.yaml",
+                target_agent="API Designer",
             ),
         )
         output = _render_to_str(build_agent_activity_panel(agents))
@@ -612,15 +639,17 @@ class TestBuildAgentActivityPanel:
 
 
 class TestBuildConversationFeed:
-    def test_returns_table(self) -> None:
-        table = build_conversation_feed(())
-        assert isinstance(table, Table)
+    def test_returns_text(self) -> None:
+        result = build_conversation_feed(())
+        assert isinstance(result, Text)
 
     def test_renders_entries(self) -> None:
         entries = (
             ConversationEntry(
-                agent_id="a", display_name="Architect",
-                stage="design", message="Generated schema",
+                agent_id="a",
+                display_name="Architect",
+                stage="design",
+                message="Generated schema",
             ),
         )
         output = _render_to_str(build_conversation_feed(entries))
@@ -630,8 +659,10 @@ class TestBuildConversationFeed:
     def test_respects_max_lines(self) -> None:
         entries = tuple(
             ConversationEntry(
-                agent_id="a", display_name="A",
-                stage="s", message=f"msg-{i}",
+                agent_id="a",
+                display_name="A",
+                stage="s",
+                message=f"msg-{i}",
             )
             for i in range(20)
         )
@@ -642,14 +673,18 @@ class TestBuildConversationFeed:
         assert "msg-0" not in output
 
     def test_empty_entries(self) -> None:
-        output = _render_to_str(build_conversation_feed(()))
-        assert "Conversation" in output
+        result = build_conversation_feed(())
+        output = _render_to_str(result)
+        # Empty Text produces empty output.
+        assert output.strip() == ""
 
     def test_target_agent_shown(self) -> None:
         entries = (
             ConversationEntry(
-                agent_id="a", display_name="Architect",
-                stage="design", message="Handoff",
+                agent_id="a",
+                display_name="Architect",
+                stage="design",
+                message="Handoff",
                 target_agent="API Designer",
             ),
         )
@@ -661,32 +696,32 @@ class TestBuildConversationFeed:
 
 
 class TestPipelineProgressDisplayModes:
-    def test_minimal_mode_no_agent_panel(self) -> None:
+    def test_minimal_mode_returns_text(self) -> None:
         d = PipelineProgressDisplay("p", activity_mode=ActivityMode.MINIMAL)
         result = d.render()
-        assert isinstance(result, Table)
+        assert isinstance(result, Text)
 
-    def test_status_mode_returns_group(self) -> None:
+    def test_status_mode_returns_text(self) -> None:
         d = PipelineProgressDisplay("p", activity_mode=ActivityMode.STATUS)
         result = d.render()
-        assert isinstance(result, Group)
+        assert isinstance(result, Text)
 
-    def test_conversation_mode_returns_group(self) -> None:
+    def test_conversation_mode_returns_text(self) -> None:
         d = PipelineProgressDisplay("p", activity_mode=ActivityMode.CONVERSATION)
         result = d.render()
-        assert isinstance(result, Group)
+        assert isinstance(result, Text)
 
-    def test_verbose_mode_returns_group(self) -> None:
+    def test_verbose_mode_returns_text(self) -> None:
         d = PipelineProgressDisplay("p", activity_mode=ActivityMode.VERBOSE)
         result = d.render()
-        assert isinstance(result, Group)
+        assert isinstance(result, Text)
 
-    def test_done_always_returns_panel(self) -> None:
-        """All modes return summary panel when pipeline is done."""
+    def test_done_always_returns_text(self) -> None:
+        """All modes return summary Text when pipeline is done."""
         for mode in ActivityMode:
             d = PipelineProgressDisplay("p", activity_mode=mode)
             d.process_event({"event_type": "pipeline_completed"})
-            assert isinstance(d.render(), Panel)
+            assert isinstance(d.render(), Text)
 
 
 # ── Phase 7: PipelineProgressDisplay new event handling ─────────────
@@ -695,56 +730,66 @@ class TestPipelineProgressDisplayModes:
 class TestPipelineProgressDisplayPresenceEvents:
     def test_agent_thinking_updates_presence(self) -> None:
         d = PipelineProgressDisplay("p", activity_mode=ActivityMode.STATUS)
-        d.process_event({
-            "event_type": "agent_thinking",
-            "agent": "Architect",
-            "stage": "design",
-            "message": "Thinking about schema...",
-            "model": "claude-sonnet",
-        })
+        d.process_event(
+            {
+                "event_type": "agent_thinking",
+                "agent": "Architect",
+                "stage": "design",
+                "message": "Thinking about schema...",
+                "model": "claude-sonnet",
+            }
+        )
         assert len(d.agents) == 1
         assert d.agents[0].state == AgentState.THINKING
         assert d.agents[0].activity == "Thinking about schema..."
 
     def test_agent_tool_call_updates_presence(self) -> None:
         d = PipelineProgressDisplay("p")
-        d.process_event({
-            "event_type": "agent_tool_call",
-            "agent": "Backend Dev",
-            "stage": "implementation",
-            "message": "Running code generator",
-        })
+        d.process_event(
+            {
+                "event_type": "agent_tool_call",
+                "agent": "Backend Dev",
+                "stage": "implementation",
+                "message": "Running code generator",
+            }
+        )
         assert d.agents[0].state == AgentState.TOOL_USE
 
     def test_agent_reviewing_updates_presence(self) -> None:
         d = PipelineProgressDisplay("p")
-        d.process_event({
-            "event_type": "agent_reviewing",
-            "agent": "Reviewer",
-            "stage": "testing",
-            "message": "Reviewing test output",
-        })
+        d.process_event(
+            {
+                "event_type": "agent_reviewing",
+                "agent": "Reviewer",
+                "stage": "testing",
+                "message": "Reviewing test output",
+            }
+        )
         assert d.agents[0].state == AgentState.REVIEWING
 
     def test_agent_state_changed_with_explicit_state(self) -> None:
         d = PipelineProgressDisplay("p")
-        d.process_event({
-            "event_type": "agent_state_changed",
-            "agent": "Architect",
-            "stage": "design",
-            "agent_state": "done",
-        })
+        d.process_event(
+            {
+                "event_type": "agent_state_changed",
+                "agent": "Architect",
+                "stage": "design",
+                "agent_state": "done",
+            }
+        )
         assert d.agents[0].state == AgentState.DONE
 
     def test_agent_handoff_sets_target(self) -> None:
         d = PipelineProgressDisplay("p")
-        d.process_event({
-            "event_type": "agent_handoff",
-            "agent": "Architect",
-            "stage": "design",
-            "message": "architecture.yaml",
-            "target_agent": "API Designer",
-        })
+        d.process_event(
+            {
+                "event_type": "agent_handoff",
+                "agent": "Architect",
+                "stage": "design",
+                "message": "architecture.yaml",
+                "target_agent": "API Designer",
+            }
+        )
         assert d.agents[0].state == AgentState.HANDING_OFF
         assert d.agents[0].target_agent == "API Designer"
         # Also adds a conversation entry
@@ -752,13 +797,15 @@ class TestPipelineProgressDisplayPresenceEvents:
 
     def test_agent_message_adds_conversation(self) -> None:
         d = PipelineProgressDisplay("p")
-        d.process_event({
-            "event_type": "agent_message",
-            "agent": "Supervisor",
-            "stage": "design",
-            "message": "Please generate the API spec",
-            "target_agent": "API Designer",
-        })
+        d.process_event(
+            {
+                "event_type": "agent_message",
+                "agent": "Supervisor",
+                "stage": "design",
+                "message": "Please generate the API spec",
+                "target_agent": "API Designer",
+            }
+        )
         assert len(d.conversation) == 1
         assert d.conversation[0].message == "Please generate the API spec"
         assert d.conversation[0].target_agent == "API Designer"
@@ -766,12 +813,14 @@ class TestPipelineProgressDisplayPresenceEvents:
     def test_agent_message_ring_buffer_trims(self) -> None:
         d = PipelineProgressDisplay("p")
         for i in range(55):
-            d.process_event({
-                "event_type": "agent_message",
-                "agent": "A",
-                "stage": "s",
-                "message": f"msg-{i}",
-            })
+            d.process_event(
+                {
+                    "event_type": "agent_message",
+                    "agent": "A",
+                    "stage": "s",
+                    "message": f"msg-{i}",
+                }
+            )
         assert len(d.conversation) == 50
 
     def test_unknown_event_type_no_crash(self) -> None:
