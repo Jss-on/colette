@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
+from colette.orchestrator.rework_router import classify_failure
 from colette.schemas.common import QualityGateResult, StageName
 
 
@@ -45,6 +46,19 @@ class ImplementationGate:
         # Gate passes if files were generated (hard requirement).
         passed = criteria["files_changed_non_empty"]
         advisory_score = sum(criteria.values()) / max(len(criteria), 1)
+
+        rework_decision = "pass"
+        rework_target: str | None = None
+        if not passed:
+            all_reasons = failures + warnings
+            classification = classify_failure(all_reasons)
+            if classification == "upstream":
+                rework_decision = "rework_target"
+                rework_target = "design"
+            else:
+                rework_decision = "rework_self"
+                rework_target = "implementation"
+
         return QualityGateResult(
             gate_name=self.name,
             passed=passed,
@@ -52,4 +66,6 @@ class ImplementationGate:
             criteria_results=criteria,
             failure_reasons=failures + warnings,
             evaluated_at=datetime.now(UTC),
+            rework_decision=rework_decision,
+            rework_target_stage=rework_target,
         )

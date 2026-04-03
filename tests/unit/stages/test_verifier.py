@@ -11,7 +11,6 @@ from colette.stages.implementation.backend import BackendResult
 from colette.stages.implementation.database import DatabaseResult
 from colette.stages.implementation.frontend import FrontendResult
 from colette.stages.implementation.verifier import (
-    FixResult,
     VerificationFinding,
     VerificationReport,
     _agents_with_errors,
@@ -20,7 +19,6 @@ from colette.stages.implementation.verifier import (
     verify_and_fix_loop,
     verify_generated_code,
 )
-
 
 # ── Fixtures ──────────────────────────────────────────────────────────
 
@@ -88,19 +86,16 @@ def _failing_report(file_path: str = "src/routes/todos.py") -> VerificationRepor
 
 class TestClassifyFileOwner:
     def test_known_frontend_path(self) -> None:
-        assert _classify_file_owner(
-            "src/App.tsx", {"src/App.tsx"}, set(), set()
-        ) == "frontend"
+        assert _classify_file_owner("src/App.tsx", {"src/App.tsx"}, set(), set()) == "frontend"
 
     def test_known_backend_path(self) -> None:
-        assert _classify_file_owner(
-            "src/main.py", set(), {"src/main.py"}, set()
-        ) == "backend"
+        assert _classify_file_owner("src/main.py", set(), {"src/main.py"}, set()) == "backend"
 
     def test_known_database_path(self) -> None:
-        assert _classify_file_owner(
-            "migrations/001.sql", set(), set(), {"migrations/001.sql"}
-        ) == "database"
+        assert (
+            _classify_file_owner("migrations/001.sql", set(), set(), {"migrations/001.sql"})
+            == "database"
+        )
 
     def test_heuristic_tsx(self) -> None:
         assert _classify_file_owner("src/component/Button.tsx", set(), set(), set()) == "frontend"
@@ -122,12 +117,16 @@ class TestAgentsWithErrors:
         report = VerificationReport(
             findings=[
                 VerificationFinding(
-                    category="lint", severity=Severity.MEDIUM,
-                    file_path="src/App.tsx", message="unused import",
+                    category="lint",
+                    severity=Severity.MEDIUM,
+                    file_path="src/App.tsx",
+                    message="unused import",
                 ),
                 VerificationFinding(
-                    category="type", severity=Severity.HIGH,
-                    file_path="src/main.py", message="wrong type",
+                    category="type",
+                    severity=Severity.HIGH,
+                    file_path="src/main.py",
+                    message="wrong type",
                 ),
             ],
             lint_passed=False,
@@ -177,17 +176,24 @@ async def test_verify_calls_invoke_structured(settings: object) -> None:
 @pytest.mark.asyncio
 async def test_loop_passes_on_first_try(settings: object) -> None:
     """When initial verification passes, no fix is attempted."""
-    with patch(
-        "colette.stages.implementation.verifier.verify_generated_code",
-        new_callable=AsyncMock,
-        return_value=_clean_report(),
-    ), patch(
-        "colette.stages.implementation.verifier.fix_files",
-        new_callable=AsyncMock,
-    ) as mock_fix:
-        fe, be, db, report = await verify_and_fix_loop(
-            _frontend(), _backend(), _database(), "design context",
-            settings=settings, max_retries=3,
+    with (
+        patch(
+            "colette.stages.implementation.verifier.verify_generated_code",
+            new_callable=AsyncMock,
+            return_value=_clean_report(),
+        ),
+        patch(
+            "colette.stages.implementation.verifier.fix_files",
+            new_callable=AsyncMock,
+        ) as mock_fix,
+    ):
+        _fe, _be, _db, report = await verify_and_fix_loop(
+            _frontend(),
+            _backend(),
+            _database(),
+            "design context",
+            settings=settings,
+            max_retries=3,
         )
         assert report.lint_passed is True
         mock_fix.assert_not_awaited()
@@ -199,18 +205,25 @@ async def test_loop_fixes_on_retry(settings: object) -> None:
     failing = _failing_report("src/routes/todos.py")
     passing = _clean_report()
 
-    with patch(
-        "colette.stages.implementation.verifier.verify_generated_code",
-        new_callable=AsyncMock,
-        side_effect=[failing, passing],
-    ), patch(
-        "colette.stages.implementation.verifier.fix_files",
-        new_callable=AsyncMock,
-        return_value=[_file("src/routes/todos.py", "fixed", "python")],
-    ) as mock_fix:
-        fe, be, db, report = await verify_and_fix_loop(
-            _frontend(), _backend(), _database(), "design context",
-            settings=settings, max_retries=3,
+    with (
+        patch(
+            "colette.stages.implementation.verifier.verify_generated_code",
+            new_callable=AsyncMock,
+            side_effect=[failing, passing],
+        ),
+        patch(
+            "colette.stages.implementation.verifier.fix_files",
+            new_callable=AsyncMock,
+            return_value=[_file("src/routes/todos.py", "fixed", "python")],
+        ) as mock_fix,
+    ):
+        _fe, _be, _db, report = await verify_and_fix_loop(
+            _frontend(),
+            _backend(),
+            _database(),
+            "design context",
+            settings=settings,
+            max_retries=3,
         )
         assert report.lint_passed is True
         assert report.type_check_passed is True
@@ -222,18 +235,25 @@ async def test_loop_exhausts_retries(settings: object) -> None:
     """When all retries fail, returns final state with False flags."""
     failing = _failing_report("src/routes/todos.py")
 
-    with patch(
-        "colette.stages.implementation.verifier.verify_generated_code",
-        new_callable=AsyncMock,
-        return_value=failing,
-    ), patch(
-        "colette.stages.implementation.verifier.fix_files",
-        new_callable=AsyncMock,
-        return_value=[_file("src/routes/todos.py", "still broken", "python")],
-    ) as mock_fix:
-        fe, be, db, report = await verify_and_fix_loop(
-            _frontend(), _backend(), _database(), "design context",
-            settings=settings, max_retries=2,
+    with (
+        patch(
+            "colette.stages.implementation.verifier.verify_generated_code",
+            new_callable=AsyncMock,
+            return_value=failing,
+        ),
+        patch(
+            "colette.stages.implementation.verifier.fix_files",
+            new_callable=AsyncMock,
+            return_value=[_file("src/routes/todos.py", "still broken", "python")],
+        ) as mock_fix,
+    ):
+        _fe, _be, _db, report = await verify_and_fix_loop(
+            _frontend(),
+            _backend(),
+            _database(),
+            "design context",
+            settings=settings,
+            max_retries=2,
         )
         assert report.type_check_passed is False
         assert mock_fix.await_count == 2
@@ -247,22 +267,31 @@ async def test_loop_only_fixes_failing_agents(settings: object) -> None:
 
     fix_calls: list[str] = []
 
-    async def _track_fix(files: list[GeneratedFile], report: object, **kw: object) -> list[GeneratedFile]:
+    async def _track_fix(
+        files: list[GeneratedFile], report: object, **kw: object
+    ) -> list[GeneratedFile]:
         fix_calls.extend(f.path for f in files)
         return files
 
-    with patch(
-        "colette.stages.implementation.verifier.verify_generated_code",
-        new_callable=AsyncMock,
-        side_effect=[failing, passing],
-    ), patch(
-        "colette.stages.implementation.verifier.fix_files",
-        new_callable=AsyncMock,
-        side_effect=_track_fix,
+    with (
+        patch(
+            "colette.stages.implementation.verifier.verify_generated_code",
+            new_callable=AsyncMock,
+            side_effect=[failing, passing],
+        ),
+        patch(
+            "colette.stages.implementation.verifier.fix_files",
+            new_callable=AsyncMock,
+            side_effect=_track_fix,
+        ),
     ):
         await verify_and_fix_loop(
-            _frontend(), _backend(), _database(), "design context",
-            settings=settings, max_retries=3,
+            _frontend(),
+            _backend(),
+            _database(),
+            "design context",
+            settings=settings,
+            max_retries=3,
         )
         # Only backend files should be in fix_calls
         assert "src/routes/todos.py" in fix_calls
@@ -273,13 +302,19 @@ async def test_loop_only_fixes_failing_agents(settings: object) -> None:
 @pytest.mark.asyncio
 async def test_loop_handles_exception(settings: object) -> None:
     """If verification raises, the exception propagates (supervisor catches it)."""
-    with patch(
-        "colette.stages.implementation.verifier.verify_generated_code",
-        new_callable=AsyncMock,
-        side_effect=RuntimeError("LLM down"),
+    with (
+        patch(
+            "colette.stages.implementation.verifier.verify_generated_code",
+            new_callable=AsyncMock,
+            side_effect=RuntimeError("LLM down"),
+        ),
+        pytest.raises(RuntimeError, match="LLM down"),
     ):
-        with pytest.raises(RuntimeError, match="LLM down"):
-            await verify_and_fix_loop(
-                _frontend(), _backend(), _database(), "design context",
-                settings=settings, max_retries=3,
-            )
+        await verify_and_fix_loop(
+            _frontend(),
+            _backend(),
+            _database(),
+            "design context",
+            settings=settings,
+            max_retries=3,
+        )

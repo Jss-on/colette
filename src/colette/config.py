@@ -135,6 +135,16 @@ class Settings(BaseSettings):
         description="Max verify-and-fix iterations for generated code.",
     )
 
+    # ── Rework loops (Phase 1) ──────────────────────────────────────────
+    max_stage_rework_attempts: int = Field(
+        default=3,
+        description="Max rework attempts per individual stage before forced pass.",
+    )
+    max_pipeline_rework_total: int = Field(
+        default=10,
+        description="Total rework budget across all stages in a single pipeline run.",
+    )
+
     # ── Pipeline (FR-ORC-003/006/007) ──────────────────────────────────
     checkpoint_backend: str = Field(
         default="memory",

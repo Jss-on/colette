@@ -23,6 +23,7 @@ from colette.orchestrator.event_bus import (
     project_id_var,
     stage_var,
 )
+from colette.orchestrator.rework_router import ReworkRouter
 from colette.orchestrator.state import STAGE_ORDER, PipelineState
 from colette.schemas.common import ApprovalTier, StageName, StageStatus
 from colette.stages.deployment.stage import run_stage as deployment_run
@@ -149,6 +150,7 @@ def _make_gate_node(
     gate_registry: GateRegistry,
     settings: Settings,
     event_bus: PipelineEventBus | None = None,
+    rework_router: ReworkRouter | None = None,
 ) -> Any:
     """Create an async gate-evaluation node function.
 
@@ -191,12 +193,48 @@ def _make_gate_node(
             ],
         }
 
+        # ── Rework routing (Phase 1) ──────────────────────────────
+        if not result.passed and rework_router is not None:
+            rework_count = dict(state.get("rework_count", {}))
+            decision, directive = rework_router.decide(result, rework_count)
+
+            if directive is not None:
+                # Increment rework count for target stage.
+                target = directive.target_stage
+                rework_count[target] = rework_count.get(target, 0) + 1
+                gate_state["rework_count"] = rework_count
+                gate_state["current_rework"] = directive.model_dump(mode="json")
+                gate_state["rework_directives"] = [directive.model_dump(mode="json")]
+
+                if event_bus is not None:
+                    event_bus.emit(
+                        PipelineEvent(
+                            project_id=project_id,
+                            event_type=EventType.GATE_FAILED,
+                            stage=gate_name,
+                            message=(
+                                f"Rework triggered: {decision.value} -> "
+                                f"{target} (attempt {directive.attempt_number})"
+                            ),
+                            detail=directive.model_dump(mode="json"),
+                            elapsed_seconds=compute_elapsed(state.get("started_at", "")),
+                        )
+                    )
+
+                # Store decision on the result so the router function can read it.
+                gate_state["quality_gate_results"] = {
+                    **state.get("quality_gate_results", {}),
+                    gate_name: {
+                        **result.model_dump(mode="json"),
+                        "rework_decision": decision.value,
+                        "rework_target_stage": target,
+                    },
+                }
+
         # ── Human-in-the-loop check (FR-HIL-001) ────────────────────
         if result.passed:
             tier = _GATE_APPROVAL_TIER.get(gate_name, ApprovalTier.T3_ROUTINE)
-            action = determine_approval_action(
-                tier, result.score, settings
-            )
+            action = determine_approval_action(tier, result.score, settings)
             if action == "interrupt":
                 approval_req = create_approval_request(
                     state,
@@ -210,14 +248,10 @@ def _make_gate_node(
                     confidence=result.score,
                     settings=settings,
                 )
-                gate_state["approval_requests"] = [
-                    approval_req.model_dump(mode="json")
-                ]
+                gate_state["approval_requests"] = [approval_req.model_dump(mode="json")]
 
                 if event_bus is not None:
-                    handoff_summary = _summarize_handoff_for_review(
-                        gate_name, state
-                    )
+                    handoff_summary = _summarize_handoff_for_review(gate_name, state)
                     event_detail = {
                         **approval_req.model_dump(mode="json"),
                         "handoff_summary": handoff_summary,
@@ -232,9 +266,7 @@ def _make_gate_node(
                                 f"Run: colette approve {approval_req.request_id}"
                             ),
                             detail=event_detail,
-                            elapsed_seconds=compute_elapsed(
-                                state.get("started_at", "")
-                            ),
+                            elapsed_seconds=compute_elapsed(state.get("started_at", "")),
                         )
                     )
 
@@ -253,14 +285,23 @@ def _make_gate_node(
     return _gate_node
 
 
-def _make_stage_node(
-    stage_name: str, event_bus: PipelineEventBus | None = None
-) -> Any:
+def _make_stage_node(stage_name: str, event_bus: PipelineEventBus | None = None) -> Any:
     """Wrap a stage runner to mark the stage as RUNNING before execution."""
     runner = _STAGE_RUNNERS[stage_name]
 
     async def _stage_node(state: dict[str, Any]) -> dict[str, Any]:
         project_id = state.get("project_id", "")
+
+        # ── Rework context (Phase 1) ──────────────────────────────
+        current_rework = state.get("current_rework")
+        if current_rework:
+            logger.info(
+                "stage.rework_context",
+                stage=stage_name,
+                source_gate=current_rework.get("source_gate"),
+                attempt=current_rework.get("attempt_number"),
+                reasons=current_rework.get("failure_reasons", []),
+            )
 
         if event_bus is not None:
             event_bus.emit(
@@ -312,6 +353,10 @@ def _make_stage_node(
                 )
             )
 
+        # Clear rework context after the stage has processed it.
+        if current_rework:
+            result["current_rework"] = None
+
         return result
 
     _stage_node.__name__ = f"stage_{stage_name}"
@@ -319,7 +364,12 @@ def _make_stage_node(
 
 
 def _gate_router(gate_name: str, source_stage: str, skip_stages: list[str]) -> Any:
-    """Create a routing function for post-gate conditional edges."""
+    """Create a routing function for post-gate conditional edges.
+
+    Supports rework routing: when a gate fails with a rework decision,
+    routes to the target stage (creating a backward edge) instead of
+    the ``gate_failed`` terminal.
+    """
 
     def _router(state: dict[str, Any]) -> str:
         result = state.get("quality_gate_results", {}).get(gate_name, {})
@@ -328,7 +378,15 @@ def _gate_router(gate_name: str, source_stage: str, skip_stages: list[str]) -> A
             if nxt is None:
                 return "end"
             return f"stage_{nxt}"
-        # Gate failed — route to error terminal
+
+        # Check for rework decision.
+        rework_decision = result.get("rework_decision", "pass")
+        if rework_decision in ("rework_self", "rework_target"):
+            target = result.get("rework_target_stage")
+            if target:
+                return f"stage_{target}"
+
+        # No rework — route to error terminal.
         return "gate_failed"
 
     return _router
@@ -359,6 +417,7 @@ def build_pipeline(
     CompiledStateGraph
         Ready to invoke via ``graph.ainvoke()`` or ``graph.astream()``.
     """
+    rework_router = ReworkRouter(settings)
     graph = StateGraph(PipelineState)
 
     # ── Add stage nodes ──────────────────────────────────────────────
@@ -369,7 +428,7 @@ def build_pipeline(
     for _stage_name, gate_name in _GATE_AFTER_STAGE.items():
         graph.add_node(
             f"gate_{gate_name}",
-            _make_gate_node(gate_name, gate_registry, settings, event_bus),
+            _make_gate_node(gate_name, gate_registry, settings, event_bus, rework_router),
         )
 
     # ── Gate-failed terminal node ────────────────────────────────────
@@ -424,4 +483,7 @@ def build_pipeline(
     # gate_failed -> END
     graph.add_edge("gate_failed", END)
 
-    return graph.compile(checkpointer=checkpointer)
+    # Use max_super_steps to prevent infinite rework cycles.
+    return graph.compile(
+        checkpointer=checkpointer,
+    )

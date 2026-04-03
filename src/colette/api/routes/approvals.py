@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import uuid
 from typing import Annotated
 
@@ -94,12 +95,8 @@ async def _resume_pipeline_bg(
                     repo = PipelineRunRepository(session)
                     from colette.db.repositories import ProjectRepository
 
-                    await ProjectRepository(session).update_status(
-                        uuid.UUID(project_id), "failed"
-                    )
-                    runs = await repo.list_for_project(
-                        uuid.UUID(project_id), limit=1
-                    )
+                    await ProjectRepository(session).update_status(uuid.UUID(project_id), "failed")
+                    runs = await repo.list_for_project(uuid.UUID(project_id), limit=1)
                     if runs:
                         await repo.update_state(runs[0].id, status="failed")
                     await session.commit()
@@ -123,9 +120,7 @@ async def _resume_pipeline_bg(
                     uuid.UUID(project_id), current_status or "completed"
                 )
                 repo = PipelineRunRepository(session)
-                runs = await repo.list_for_project(
-                    uuid.UUID(project_id), limit=1
-                )
+                runs = await repo.list_for_project(uuid.UUID(project_id), limit=1)
                 if runs:
                     await repo.update_state(
                         runs[0].id,
@@ -143,15 +138,9 @@ async def _resume_pipeline_bg(
                                     request_id=req.get("request_id", ""),
                                     stage=req.get("stage", ""),
                                     tier=str(req.get("tier", "")),
-                                    context_summary=req.get(
-                                        "context_summary", ""
-                                    ),
-                                    proposed_action=req.get(
-                                        "proposed_action", ""
-                                    ),
-                                    risk_assessment=req.get(
-                                        "risk_assessment", ""
-                                    ),
+                                    context_summary=req.get("context_summary", ""),
+                                    proposed_action=req.get("proposed_action", ""),
+                                    risk_assessment=req.get("risk_assessment", ""),
                                 )
                 await session.commit()
         except Exception as db_exc:
@@ -176,10 +165,8 @@ async def approve(
     # CLI sends the request_id from the gate event, not the DB primary key.
     record = await repo.get_by_request_id(str(approval_id))
     if record is None:
-        try:
+        with contextlib.suppress(ValueError):
             record = await repo.get_by_id(uuid.UUID(str(approval_id)))
-        except ValueError:
-            pass
     if record is None:
         raise HTTPException(status_code=404, detail="Approval not found")
     if record.status != "pending":
@@ -223,10 +210,8 @@ async def reject(
     repo = ApprovalRecordRepository(db)
     record = await repo.get_by_request_id(str(approval_id))
     if record is None:
-        try:
+        with contextlib.suppress(ValueError):
             record = await repo.get_by_id(uuid.UUID(str(approval_id)))
-        except ValueError:
-            pass
     if record is None:
         raise HTTPException(status_code=404, detail="Approval not found")
     if record.status != "pending":

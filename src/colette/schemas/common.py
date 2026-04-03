@@ -120,6 +120,14 @@ class QualityGateResult(BaseModel):
     criteria_results: dict[str, bool] = Field(default_factory=dict)
     failure_reasons: list[str] = Field(default_factory=list)
     evaluated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    rework_decision: str = Field(
+        default="pass",
+        description="Rework action: 'pass', 'rework_self', or 'rework_target'.",
+    )
+    rework_target_stage: str | None = Field(
+        default=None,
+        description="Target stage name when rework_decision is 'rework_target'.",
+    )
 
 
 class FileDiff(BaseModel):

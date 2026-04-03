@@ -51,6 +51,13 @@ class RequirementsGate:
             ]
         )
 
+        rework_decision = "pass"
+        rework_target: str | None = None
+        if not passed:
+            # Requirements gate always reworks self.
+            rework_decision = "rework_self"
+            rework_target = "requirements"
+
         return QualityGateResult(
             gate_name=self.name,
             passed=passed,
@@ -58,4 +65,6 @@ class RequirementsGate:
             criteria_results=criteria,
             failure_reasons=failures,
             evaluated_at=datetime.now(UTC),
+            rework_decision=rework_decision,
+            rework_target_stage=rework_target,
         )
