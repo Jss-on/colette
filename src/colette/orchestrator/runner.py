@@ -279,3 +279,29 @@ class PipelineRunner:
     def is_active(self, project_id: str) -> bool:
         """Check whether *project_id* has an active pipeline."""
         return project_id in self._active
+
+    def is_awaiting_approval(self, project_id: str) -> bool:
+        """Check whether *project_id* is paused at an approval gate."""
+        return (
+            project_id in self._active
+            and project_status_registry.get(project_id) == "awaiting_approval"
+        )
+
+    def rehydrate(self, project_id: str, thread_id: str) -> None:
+        """Re-register a paused pipeline in ``_active`` (e.g. after server restart).
+
+        This allows ``resume()`` to find the pipeline's thread_id without
+        requiring it to still be in the in-memory dict.  The checkpointer
+        must still hold the graph state for this to work.
+        """
+        self._active[project_id] = thread_id
+        project_status_registry.mark(project_id, "awaiting_approval")
+        logger.info(
+            "pipeline.rehydrated",
+            project_id=project_id,
+            thread_id=thread_id,
+        )
+
+    def get_thread_id(self, project_id: str) -> str | None:
+        """Return the thread_id for *project_id*, or ``None``."""
+        return self._active.get(project_id)

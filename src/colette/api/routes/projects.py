@@ -67,7 +67,7 @@ async def _run_pipeline_bg(
 
     # runner.run() manages the registry state machine (running → completed/failed).
     try:
-        await runner.run(project_id, user_request=user_request)
+        state = await runner.run(project_id, user_request=user_request)
     except Exception as exc:
         # Pipeline failed — runner.run() already emitted PIPELINE_FAILED
         # and marked the registry. We just need to update the DB.
@@ -96,6 +96,35 @@ async def _run_pipeline_bg(
             )
         return
 
+    # Check if pipeline paused for approval (not actually completed).
+    current_status = project_status_registry.get(project_id)
+    if current_status == "awaiting_approval":
+        log.info("pipeline.awaiting_approval", project_id=project_id)
+        thread_id = runner.get_thread_id(project_id)
+        try:
+            async with session_factory() as session:
+                repo = ProjectRepository(session)
+                await repo.update_status(uuid.UUID(project_id), "awaiting_approval")
+                run_repo = PipelineRunRepository(session)
+                runs = await run_repo.list_for_project(
+                    uuid.UUID(project_id), limit=1
+                )
+                if runs:
+                    await run_repo.update_state(
+                        runs[0].id,
+                        status="awaiting_approval",
+                        state_snapshot=state,
+                        thread_id=thread_id,
+                    )
+                await session.commit()
+        except Exception as db_exc:
+            log.critical(
+                "pipeline.status_update_failed",
+                project_id=project_id,
+                error=str(db_exc),
+            )
+        return
+
     # Pipeline completed — update DB and registry.
     project_status_registry.mark(project_id, "completed")
     try:
@@ -107,7 +136,9 @@ async def _run_pipeline_bg(
                 uuid.UUID(project_id), limit=1
             )
             if runs:
-                await run_repo.update_state(runs[0].id, status="completed")
+                await run_repo.update_state(
+                    runs[0].id, status="completed", state_snapshot=state,
+                )
             await session.commit()
         log.info("pipeline.completed", project_id=project_id)
     except Exception as db_exc:

@@ -69,14 +69,30 @@ async def download_artifacts(
         raise HTTPException(status_code=404, detail="No pipeline run found")
 
     state = runs[0].state_snapshot or {}
-    handoffs = state.get("handoffs", {})
 
-    # Collect generated files from implementation handoff.
+    # Collect generated files from both metadata and handoffs.
     generated_files: list[dict[str, str]] = []
-    for stage_data in handoffs.values():
-        for f in stage_data.get("generated_files", []):
-            if isinstance(f, dict) and "path" in f and "content" in f:
-                generated_files.append(f)
+    seen_paths: set[str] = set()
+
+    # Primary source: metadata.generated_files (has full file content).
+    metadata_files = state.get("metadata", {}).get("generated_files", {})
+    def _is_valid_file(f: object) -> bool:
+        return isinstance(f, dict) and "path" in f and "content" in f
+
+    for stage_files in metadata_files.values():
+        if isinstance(stage_files, list):
+            for f in stage_files:
+                if _is_valid_file(f) and f["path"] not in seen_paths:
+                    generated_files.append(f)
+                    seen_paths.add(f["path"])
+
+    # Fallback: handoffs.*.generated_files (older format).
+    for stage_data in state.get("handoffs", {}).values():
+        if isinstance(stage_data, dict):
+            for f in stage_data.get("generated_files", []):
+                if _is_valid_file(f) and f["path"] not in seen_paths:
+                    generated_files.append(f)
+                    seen_paths.add(f["path"])
 
     if not generated_files:
         raise HTTPException(status_code=404, detail="No generated files found")

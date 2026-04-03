@@ -195,10 +195,19 @@ async def resume_pipeline(
     project_id: uuid.UUID,
     user: Annotated[CurrentUser, Depends(require_role(Permission.APPROVE_DECISION))],
     runner: PipelineRunner = Depends(get_pipeline_runner),  # noqa: B008
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> dict[str, str]:
     """Resume a paused pipeline (after approval)."""
     pid = str(project_id)
+
     if not runner.is_active(pid):
-        raise HTTPException(status_code=404, detail="No active pipeline to resume")
+        # Fallback: check DB for a paused pipeline (handles server restart).
+        run_repo = PipelineRunRepository(db)
+        runs = await run_repo.list_for_project(project_id, limit=1)
+        if runs and runs[0].status == "awaiting_approval" and runs[0].thread_id:
+            runner.rehydrate(pid, runs[0].thread_id)
+        else:
+            raise HTTPException(status_code=404, detail="No active pipeline to resume")
+
     await runner.resume(pid)
     return {"status": "resumed", "project_id": pid}

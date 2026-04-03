@@ -120,6 +120,7 @@ class PipelineRunRepository:
         status: str | None = None,
         current_stage: str | None = None,
         total_tokens: int | None = None,
+        thread_id: str | None = None,
     ) -> None:
         values: dict[str, Any] = {}
         if state_snapshot is not None:
@@ -130,6 +131,8 @@ class PipelineRunRepository:
             values["current_stage"] = current_stage
         if total_tokens is not None:
             values["total_tokens"] = total_tokens
+        if thread_id is not None:
+            values["thread_id"] = thread_id
         if values:
             stmt = update(PipelineRun).where(PipelineRun.id == run_id).values(**values)
             await self._session.execute(stmt)
