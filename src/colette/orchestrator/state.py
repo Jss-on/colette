@@ -60,6 +60,11 @@ class PipelineState(TypedDict, total=False):
     rework_directives: Annotated[list[dict[str, Any]], operator.add]
     current_rework: dict[str, Any] | None
 
+    # ── Backlog & sprints (Phase 3) ────────────────────────────────
+    backlog: dict[str, Any] | None
+    current_sprint: dict[str, Any] | None
+    work_items: list[dict[str, Any]]
+
     # ── Extensible bag ───────────────────────────────────────────────
     metadata: dict[str, Any]
 
@@ -91,5 +96,8 @@ def create_initial_state(
         rework_count={},
         rework_directives=[],
         current_rework=None,
+        backlog=None,
+        current_sprint=None,
+        work_items=[],
         metadata={},
     )
