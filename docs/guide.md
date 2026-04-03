@@ -169,7 +169,28 @@ uv run colette status <project-id> --follow
 
 **Step 4 -- Handle approvals**
 
-When the pipeline hits a T0/T1 gate (e.g., production deployment), it pauses:
+When the pipeline hits a quality gate, it pauses and launches an interactive TUI where you can review the deliverables before deciding:
+
+```
+╭─── Review Required ──────────────────────────────────────────────────────╮
+│ Stage:  Design                                                           │
+│ Score:  1.00                                                             │
+│                                                                          │
+│   API Endpoints:     13                                                  │
+│   DB Entities:       3                                                   │
+│   UI Components:     40                                                  │
+│                                                                          │
+│  [1] API Endpoints (13)                                                  │
+│  [2] DB Entities (3)                                                     │
+│  [3] Source Files (24)                                                   │
+│                                                                          │
+│  [A] Approve   [R] Reject                                                │
+╰──────────────────────────────────────────────────────────────────────────╯
+```
+
+The TUI (powered by Textual) lets you browse API endpoints, DB entities, UI components, source code files with syntax highlighting, and architecture decisions before approving or rejecting. Press `A` to approve, `R` to reject, or `Q` to quit.
+
+You can also approve/reject via separate commands:
 
 ```bash
 # Approve
@@ -345,8 +366,8 @@ The `--activity` flag controls how much agent detail is shown during live progre
 |------|-------|----------|
 | `minimal` | Stage progress only (checkmarks, spinners) | CI/scripting |
 | `status` (default) | Stage progress + active agent panel | Normal use |
-| `conversation` | Stage progress + agent panel + message feed | Debugging/curiosity |
-| `verbose` | Full detail including agent interactions | Deep debugging |
+| `conversation` | Stage progress + agent panel + streaming log | Debugging/curiosity |
+| `verbose` | Full detail: progress + agents + streaming log + conversation feed | Deep debugging |
 
 **Example: `--activity=status` (default)**
 
@@ -365,7 +386,28 @@ The `--activity` flag controls how much agent detail is shown during live progre
 
 **Example: `--activity=conversation`**
 
-Adds a scrolling conversation feed below the agent panel, showing agent-to-agent handoffs and messages:
+Adds a real-time streaming log panel below the agent panel, showing agent thinking, output, tool calls, token usage, and cache hit info:
+
+```
+ ╭─ Agent Stream ──────────────────────────────────────────────────────────╮
+ │ Time       Agent                  Event        Output                   │
+ │ 14:02:31   ArchitectureResult     thinking     Analyzing: System: You   │
+ │                                                are the System Archit... │
+ │ 14:02:58   ArchitectureResult     message      3 services, 12 endpoi   │
+ │                                                nts (4,230tok, cache:    │
+ │                                                3,100)                   │
+ │ 14:03:01   APIDesignResult        thinking     Analyzing: Given a PRD   │
+ │                                                and architecture...      │
+ │ 14:03:15   APIDesignResult        tool call    Using tool: openapi_va   │
+ │                                                lidator                  │
+ ╰─────────────────────────────────────────────────────────────────────────╯
+```
+
+The streaming log shows up to 30 entries and displays token counts with cache savings inline.
+
+**Example: `--activity=verbose`**
+
+Shows everything from `conversation` mode plus a scrolling conversation feed with agent-to-agent handoffs:
 
 ```
  Conversation
@@ -374,9 +416,6 @@ Adds a scrolling conversation feed below the agent panel, showing agent-to-agent
 
  14:02:58  System Architect → API Designer
            Handed off: system_architecture.yaml (3 services, 12 endpoints)
-
- 14:03:01  API Designer
-           Generating OpenAPI spec from architecture...
 ```
 
 The conversation feed is a ring buffer (last 50 messages) to keep memory bounded.
@@ -564,6 +603,23 @@ All settings use the `COLETTE_` prefix and load from `.env` or environment varia
 | Execution | Claude Sonnet | GPT-5.4 Mini | Gemini 2.5 Flash |
 | Validation | Claude Haiku | GPT-5.4 Mini | Gemini 2.5 Flash |
 
+### LLM Cost Optimization
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `COLETTE_PROMPT_CACHING_ENABLED` | Enable Anthropic prompt caching (90% savings on cached reads) | `true` |
+| `COLETTE_LLM_TIMEOUT_SECONDS` | LLM request timeout | `120` |
+| `COLETTE_LLM_MAX_RETRIES` | Retries on transient failure | `2` |
+| `COLETTE_LLM_MAX_CONCURRENCY` | Max concurrent LLM calls (prevents rate-limit storms) | `2` |
+| `COLETTE_COST_OVERRUN_MULTIPLIER` | Alert when agent cost exceeds baseline x this | `2.0` |
+
+**Prompt caching:** When enabled, system prompts (including JSON schemas) are marked with Anthropic's `cache_control: ephemeral`. The first call writes to cache (1.25x cost), subsequent calls within 5 minutes read from cache at 0.1x cost. This is especially effective for Colette's agents since each output type uses the same system prompt + schema across calls.
+
+**Three-tier model selection** automatically routes to the right cost/capability tradeoff:
+- **Planning tier** (Opus): supervisors, architects -- highest reasoning quality
+- **Execution tier** (Sonnet): all code-generating agents -- best code quality/cost ratio
+- **Validation tier** (Haiku): scanners, validators -- cheapest for simple checks
+
 ### Infrastructure
 
 | Variable | Description | Default |
@@ -611,7 +667,7 @@ All settings use the `COLETTE_` prefix and load from `.env` or environment varia
 |----------|-------------|---------|
 | `COLETTE_CHECKPOINT_BACKEND` | `memory` (dev) or `postgres` (prod) | `memory` |
 | `COLETTE_CHECKPOINT_DB_URL` | Checkpoint DB (falls back to DATABASE_URL) | *(empty)* |
-| `COLETTE_HANDOFF_MAX_CHARS` | Max handoff size | `32000` |
+| `COLETTE_HANDOFF_MAX_CHARS` | Max handoff size | `128000` |
 
 ### Security
 
@@ -938,7 +994,8 @@ make docs-build       # Build static docs site
 src/colette/
   __init__.py           # Package root, __version__
   cli.py                # CLI entry point (Click)
-  cli_ui.py             # Rich terminal rendering
+  cli_ui.py             # Rich terminal rendering + streaming log panel
+  cli_review.py         # Textual TUI for interactive approval review
   config.py             # Settings via pydantic-settings
   schemas/              # Typed handoff schemas between stages
     requirements.py     # RequirementsToDesignHandoff
@@ -972,7 +1029,7 @@ src/colette/
   gates/                # Quality gate implementations
   human/                # Approval routing, confidence scoring
   tools/                # MCP tool wrappers
-  llm/                  # LiteLLM gateway, structured output
+  llm/                  # LiteLLM gateway, structured output, prompt caching
   security/             # RBAC, audit, secret filtering
   observability/        # Logging, OpenTelemetry tracing
 tests/
@@ -1005,5 +1062,6 @@ docker run -p 8000:8000 --env-file .env colette:latest
 | 5. Implementation | Done | Frontend, Backend, DB Engineer agents |
 | 6. Testing + Deployment | Done | Testing and Deployment agents |
 | 7. Monitoring | Planned | Observability and incident response agents |
-| 8. REST API + CLI | Done | FastAPI server, Click CLI, Rich UI |
-| 9. Hardening | Planned | Performance, security audit, documentation |
+| 8. REST API + CLI | Done | FastAPI server, Click CLI, Rich UI, Textual TUI for approvals |
+| 9. Cost Optimization | Done | Anthropic prompt caching, three-tier models, token budgets, streaming agent log |
+| 10. Hardening | Planned | Performance tuning, security audit, batch API |
