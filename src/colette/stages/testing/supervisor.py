@@ -7,6 +7,9 @@ from typing import TYPE_CHECKING
 
 import structlog
 
+# Deterministic evaluators (lazy: only used when feature flag is on)
+from colette.eval.contract_checker import check_contracts
+from colette.eval.coverage_estimator import estimate_coverage
 from colette.schemas.common import GeneratedFile, SecurityFinding, Severity, SuiteResult
 from colette.schemas.implementation import ImplementationToTestingHandoff
 from colette.schemas.testing import TestingToDeploymentHandoff
@@ -89,13 +92,16 @@ def _format_test_context(
 def _compute_coverage(
     unit: UnitTestResult,
     integration: IntegrationTestResult,
+    *,
+    deterministic_coverage: tuple[float, float] | None = None,
 ) -> tuple[float, float]:
     """Compute overall line and branch coverage from unit test reports.
 
-    Coverage metrics come from unit tests, which are the authoritative
-    source of code coverage data. Integration tests verify behavior
-    but do not report coverage percentages.
+    When *deterministic_coverage* is provided (from the AST-based
+    estimator), it is used instead of LLM self-assessed values.
     """
+    if deterministic_coverage is not None:
+        return deterministic_coverage
     return unit.estimated_line_coverage, unit.estimated_branch_coverage
 
 
@@ -134,13 +140,18 @@ def _compute_readiness_score(
 # ── Quality evaluation ────────────────────────────────────────────────
 
 
-def _derive_contract_passed(integration: IntegrationTestResult) -> bool:
+def _derive_contract_passed(
+    integration: IntegrationTestResult,
+    *,
+    deterministic_passed: bool | None = None,
+) -> bool:
     """Derive contract pass status, falling back to deviations list.
 
-    The LLM sometimes leaves ``contract_tests_passed`` as its default
-    (``False``) even when zero deviations are reported.  Use the
-    deviations list as a deterministic fallback.
+    When *deterministic_passed* is provided (from the contract checker),
+    it is used as the authoritative result.
     """
+    if deterministic_passed is not None:
+        return deterministic_passed
     if integration.contract_tests_passed:
         return True
     if len(integration.contract_deviations) == 0:
@@ -221,9 +232,28 @@ def assemble_handoff(
     unit: UnitTestResult,
     integration: IntegrationTestResult,
     security: SecurityScanResult | None,
+    *,
+    settings: Settings | None = None,
 ) -> TestingToDeploymentHandoff:
     """Assemble the Testing-to-Deployment handoff from agent outputs."""
-    line_cov, branch_cov = _compute_coverage(unit, integration)
+    det_coverage: tuple[float, float] | None = None
+    det_contract: bool | None = None
+
+    if settings and settings.use_deterministic_eval:
+        # Build file dicts from test files for the estimator
+        source_files = [
+            {"path": f.path, "content": f.content}
+            for f in [*unit.test_files, *integration.test_files]
+        ]
+        cov = estimate_coverage(source_files, source_files)
+        det_coverage = (cov.line_coverage, cov.branch_coverage)
+
+        contract_result = check_contracts("", source_files, source_files)
+        det_contract = contract_result.passed
+
+    line_cov, branch_cov = _compute_coverage(
+        unit, integration, deterministic_coverage=det_coverage
+    )
     readiness = _compute_readiness_score(unit, integration, security)
     gate_passed = _evaluate_quality(unit, integration, security)
     blocking = _collect_blocking_issues(unit, integration, security)
@@ -253,7 +283,9 @@ def assemble_handoff(
         overall_branch_coverage=branch_cov,
         security_findings=all_security,
         dependency_vulnerabilities=dep_vulns,
-        contract_tests_passed=_derive_contract_passed(integration),
+        contract_tests_passed=_derive_contract_passed(
+            integration, deterministic_passed=det_contract
+        ),
         contract_deviations=list(integration.contract_deviations),
         deploy_readiness_score=readiness,
         blocking_issues=blocking,
@@ -299,7 +331,7 @@ async def supervise_testing(
             error=str(exc)[:200],
         )
 
-    handoff = assemble_handoff(project_id, unit, integration, security)
+    handoff = assemble_handoff(project_id, unit, integration, security, settings=settings)
 
     all_test_files = [*unit.test_files, *integration.test_files]
 

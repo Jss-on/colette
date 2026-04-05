@@ -144,6 +144,12 @@ class Settings(BaseSettings):
         description="Max verify-and-fix iterations for generated code.",
     )
 
+    # ── Deterministic evaluation ────────────────────────────────────────
+    use_deterministic_eval: bool = Field(
+        default=False,
+        description="Use deterministic evaluators instead of LLM-as-judge.",
+    )
+
     # ── Atomic code generation ──────────────────────────────────────────
     use_atomic_generation: bool = Field(
         default=False,

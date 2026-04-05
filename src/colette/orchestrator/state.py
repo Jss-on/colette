@@ -70,6 +70,9 @@ class PipelineState(TypedDict, total=False):
     sprint_number: int
     evolving_requirements: dict[str, Any] | None
 
+    # ── Generated files (for deterministic eval) ─────────────────────
+    generated_files: list[dict[str, str]]
+
     # ── Extensible bag ───────────────────────────────────────────────
     metadata: dict[str, Any]
 
@@ -107,5 +110,6 @@ def create_initial_state(
         sprint_context=None,
         sprint_number=1,
         evolving_requirements=None,
+        generated_files=[],
         metadata={},
     )

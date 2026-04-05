@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 import structlog
 
+from colette.eval.completeness_scorer import score_completeness
 from colette.schemas.common import UserStory
 from colette.schemas.requirements import RequirementsToDesignHandoff
 from colette.stages.requirements.analyst import AnalysisResult, run_analyst
@@ -27,12 +28,29 @@ def _ensure_story_ids(stories: list[UserStory]) -> list[UserStory]:
     return result
 
 
-def _compute_completeness(analysis: AnalysisResult) -> float:
+def _compute_completeness(
+    analysis: AnalysisResult,
+    *,
+    use_deterministic: bool = False,
+) -> float:
     """Compute adjusted completeness score (FR-REQ-006).
 
-    Starts from the analyst's self-assessed score and applies
-    penalties for missing or low-quality content.
+    When *use_deterministic* is True, delegates entirely to the
+    deterministic completeness scorer instead of using the LLM
+    self-assessed score.
     """
+    if use_deterministic:
+        breakdown = score_completeness(
+            project_overview=analysis.project_overview,
+            user_stories=[s.model_dump() for s in analysis.user_stories],
+            nfrs=[n.model_dump() for n in analysis.nfrs],
+            tech_constraints=[c.model_dump() for c in analysis.tech_constraints],
+            assumptions=[{"description": a} for a in analysis.assumptions],
+            out_of_scope=[{"description": s} for s in analysis.out_of_scope],
+            open_questions=[{"question": q} for q in analysis.open_questions],
+        )
+        return breakdown.final_score
+
     penalties = 0.0
 
     if not analysis.user_stories:
@@ -57,6 +75,8 @@ def assemble_handoff(
     project_id: str,
     analysis: AnalysisResult,
     research: ResearchResult | None,
+    *,
+    use_deterministic_eval: bool = False,
 ) -> RequirementsToDesignHandoff:
     """Assemble the Requirements-to-Design handoff from specialist outputs."""
     stories = _ensure_story_ids(analysis.user_stories)
@@ -67,7 +87,7 @@ def assemble_handoff(
         c for c in (research.suggested_constraints if research else []) if c.id not in existing_ids
     ]
 
-    completeness = _compute_completeness(analysis)
+    completeness = _compute_completeness(analysis, use_deterministic=use_deterministic_eval)
 
     return RequirementsToDesignHandoff(
         project_id=project_id,
@@ -106,7 +126,12 @@ async def supervise_requirements(
     except Exception as exc:
         logger.warning("researcher.failed", error_type=type(exc).__name__, error=str(exc)[:200])
 
-    handoff = assemble_handoff(project_id, analysis, research)
+    handoff = assemble_handoff(
+        project_id,
+        analysis,
+        research,
+        use_deterministic_eval=settings.use_deterministic_eval,
+    )
 
     logger.info(
         "requirements_supervisor.complete",
