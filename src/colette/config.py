@@ -239,6 +239,13 @@ class Settings(BaseSettings):
     ws_heartbeat_seconds: float = 15.0
     sse_heartbeat_seconds: float = 15.0
 
+    # ── GitHub ────────────────────────────────────────────────────────
+    github_token: str = ""
+    github_owner: str = ""
+    github_repo_prefix: str = "colette"
+    github_repo_visibility: str = "private"
+    github_api_url: str = "https://api.github.com"
+
     # ── Server ────────────────────────────────────────────────────────
     host: str = "0.0.0.0"  # noqa: S104
     port: int = 8000

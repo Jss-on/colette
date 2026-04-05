@@ -17,6 +17,8 @@ def _fake_project(status: str = "interrupted") -> MagicMock:
     p.status = status
     p.user_request = "Build something"
     p.description = "Build something"
+    p.repo_url = None
+    p.repo_name = None
     p.created_at = "2026-04-05T10:00:00Z"
     p.updated_at = "2026-04-05T10:00:00Z"
     return p

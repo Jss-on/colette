@@ -66,6 +66,16 @@ class ProjectRepository:
         stmt = update(Project).where(Project.id == project_id).values(status=status)
         await self._session.execute(stmt)
 
+    async def update_repo_info(
+        self, project_id: uuid.UUID, *, repo_url: str, repo_name: str
+    ) -> None:
+        stmt = (
+            update(Project)
+            .where(Project.id == project_id)
+            .values(repo_url=repo_url, repo_name=repo_name)
+        )
+        await self._session.execute(stmt)
+
 
 # ---------------------------------------------------------------------------
 # PipelineRun

@@ -47,6 +47,8 @@ def _project_to_response(p: Project) -> ProjectResponse:
         description=p.description,
         user_request=p.user_request,
         status=p.status,
+        repo_url=p.repo_url,
+        repo_name=p.repo_name,
         created_at=p.created_at,
         updated_at=p.updated_at,
     )
@@ -176,6 +178,46 @@ async def _run_pipeline_bg(
                 )
             await session.commit()
         log.info("pipeline.completed", project_id=project_id)
+
+        # ── GitHub push (non-fatal) ──────────────────────────
+        try:
+            from colette.artifacts import collect_generated_files
+            from colette.config import Settings as _Settings
+            from colette.services.github import GitHubService
+
+            gh = GitHubService(_Settings())
+            if gh.is_configured:
+                files = collect_generated_files(safe_state)
+                if files:
+                    async with session_factory() as gh_session:
+                        proj_repo = ProjectRepository(gh_session)
+                        project_obj = await proj_repo.get_by_id(uuid.UUID(project_id))
+                        proj_name = project_obj.name if project_obj else "unnamed"
+                        proj_desc = project_obj.description if project_obj else ""
+
+                    repo_url, repo_name = await gh.create_and_push(
+                        proj_name,
+                        project_id,
+                        proj_desc,
+                        files,
+                    )
+                    async with session_factory() as gh_session:
+                        proj_repo = ProjectRepository(gh_session)
+                        await proj_repo.update_repo_info(
+                            uuid.UUID(project_id),
+                            repo_url=repo_url,
+                            repo_name=repo_name,
+                        )
+                        await gh_session.commit()
+                    log.info(
+                        "github.repo_created",
+                        project_id=project_id,
+                        repo_url=repo_url,
+                        repo_name=repo_name,
+                    )
+        except Exception:
+            log.warning("github.push_failed", project_id=project_id, exc_info=True)
+
     except Exception as db_exc:
         # Pipeline succeeded but DB update failed — emit PIPELINE_FAILED
         # so SSE consumers know something went wrong.

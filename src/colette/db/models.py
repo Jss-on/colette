@@ -57,6 +57,8 @@ class Project(Base):
     description: Mapped[str] = mapped_column(Text, nullable=False, default="")
     user_request: Mapped[str] = mapped_column(Text, nullable=False, default="")
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="created")
+    repo_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+    repo_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     owner_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
     )

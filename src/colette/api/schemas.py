@@ -42,6 +42,8 @@ class ProjectResponse(BaseModel, frozen=True):
     description: str
     user_request: str
     status: str
+    repo_url: str | None = None
+    repo_name: str | None = None
     created_at: datetime
     updated_at: datetime
 

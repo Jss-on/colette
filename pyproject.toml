@@ -148,6 +148,7 @@ ignore = [
 "tests/**/*.py" = ["S101", "S105", "S106", "S108"]
 "src/colette/tools/*.py" = ["S602", "S607"]  # tool wrappers legitimately run subprocesses
 "src/colette/build_info.py" = ["S603", "S607"]  # git subprocess calls for build metadata
+"src/colette/services/github.py" = ["S607"]  # git subprocess calls for repo push
 
 [tool.ruff.lint.isort]
 known-first-party = ["colette"]
