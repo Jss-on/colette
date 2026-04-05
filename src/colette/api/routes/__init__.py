@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from colette.api.routes.agents import router as agents_router
 from colette.api.routes.approvals import router as approvals_router
 from colette.api.routes.artifacts import router as artifacts_router
 from colette.api.routes.backlog import router as backlog_router
@@ -15,6 +16,7 @@ from colette.api.routes.sprints import router as sprints_router
 from colette.api.routes.ws import router as ws_router
 
 api_router = APIRouter(prefix="/api/v1")
+api_router.include_router(agents_router, prefix="/projects", tags=["agents"])
 api_router.include_router(projects_router, prefix="/projects", tags=["projects"])
 api_router.include_router(pipelines_router, tags=["pipelines"])
 api_router.include_router(approvals_router, prefix="/approvals", tags=["approvals"])
