@@ -18,9 +18,9 @@ function getWsUrl(projectId: string): string {
   const protocol = loc.protocol === 'https:' ? 'wss:' : 'ws:'
 
   if (isDev) {
-    return `${protocol}//${loc.hostname}:8000/projects/${projectId}/ws`
+    return `${protocol}//${loc.hostname}:8000/api/v1/projects/${projectId}/ws`
   }
-  return `${protocol}//${loc.host}/projects/${projectId}/ws`
+  return `${protocol}//${loc.host}/api/v1/projects/${projectId}/ws`
 }
 
 export function useWebSocket(projectId: string | undefined): WebSocketState {

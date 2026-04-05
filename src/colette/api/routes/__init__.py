@@ -26,5 +26,4 @@ api_router.include_router(bugs_router, prefix="/projects", tags=["bugs"])
 api_router.include_router(sprints_router, prefix="/projects", tags=["sprints"])
 api_router.include_router(ws_router, tags=["websocket"])
 
-# Health routes are at root level (no /api/v1 prefix).
 __all__ = ["api_router", "health_router"]

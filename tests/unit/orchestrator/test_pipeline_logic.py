@@ -124,33 +124,39 @@ class TestSummarizeHandoff:
         state: dict[str, Any] = {
             "handoffs": {
                 "testing": {
-                    "test_files": [{"path": "test_a.py"}],
-                    "coverage_metrics": {"line_coverage_pct": 85},
+                    "test_results": [{"suite": "unit", "passed": 10}],
+                    "overall_line_coverage": 85,
+                    "overall_branch_coverage": 72,
                     "security_findings": [
                         {"severity": "HIGH", "description": "XSS"},
                     ],
+                    "deploy_readiness_score": 80,
+                    "blocking_issues": [],
                 },
             },
             "metadata": {},
         }
         result = _summarize_handoff_for_review("testing", state)
-        assert result["line_coverage"] == 85
+        assert result["overall_line_coverage"] == 85
         assert len(result["security_findings"]) == 1
+        assert result["deploy_readiness_score"] == 80
 
     def test_deployment_stage(self) -> None:
         state: dict[str, Any] = {
             "handoffs": {
                 "deployment": {
-                    "deploy_target": "k8s",
-                    "container_image": "app:latest",
+                    "deployment_id": "dep-001",
+                    "targets": [{"name": "k8s"}],
+                    "docker_images": ["app:latest"],
                     "deployment_configs": [{"name": "prod"}],
+                    "slo_targets": {"availability": "99.9%"},
                 },
             },
             "metadata": {},
         }
         result = _summarize_handoff_for_review("staging", state)
-        assert result["deploy_target"] == "k8s"
-        assert result["container_image"] == "app:latest"
+        assert result["deployment_id"] == "dep-001"
+        assert result["docker_images"] == ["app:latest"]
 
     def test_unknown_gate_no_crash(self) -> None:
         state: dict[str, Any] = {"handoffs": {"unknown": {"foo": "bar"}}}

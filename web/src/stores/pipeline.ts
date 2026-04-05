@@ -36,6 +36,30 @@ export const usePipelineStore = create<PipelineStore>((set, get) => ({
 
     const updates: Partial<PipelineStore> = { events }
 
+    // Helper: upsert an agent entry from any agent-level event
+    const upsertAgent = (
+      agentId: string,
+      agentState: AgentPresence['state'],
+      extra?: Partial<AgentPresence>,
+    ) => {
+      const existing = (updates.agents ?? state.agents)[agentId]
+      updates.agents = {
+        ...(updates.agents ?? state.agents),
+        [agentId]: {
+          agent_id: agentId,
+          display_name: existing?.display_name ?? agentId,
+          stage: event.stage ?? existing?.stage ?? '',
+          state: agentState,
+          activity: event.message ?? existing?.activity ?? '',
+          model: event.model ?? existing?.model ?? '',
+          tokens_used: event.tokens_used ?? existing?.tokens_used ?? 0,
+          target_agent: existing?.target_agent ?? '',
+          started_at: existing?.started_at ?? event.timestamp,
+          ...extra,
+        },
+      }
+    }
+
     if (eventType === EventType.STAGE_STARTED && event.stage) {
       updates.stages = {
         ...state.stages,
@@ -82,25 +106,62 @@ export const usePipelineStore = create<PipelineStore>((set, get) => ({
       }
     }
 
+    // Build agent presence from actual backend events
+    if (eventType === EventType.AGENT_THINKING && event.agent) {
+      upsertAgent(event.agent, 'thinking')
+    }
+
+    if (eventType === EventType.AGENT_TOOL_CALL && event.agent) {
+      upsertAgent(event.agent, 'tool_use')
+    }
+
+    if (eventType === EventType.AGENT_REVIEWING && event.agent) {
+      upsertAgent(event.agent, 'reviewing')
+    }
+
+    if (eventType === EventType.AGENT_HANDOFF && event.agent) {
+      const detail = event.detail ?? {}
+      upsertAgent(event.agent, 'handing_off', {
+        target_agent: (detail.target_agent as string) ?? '',
+      })
+    }
+
+    if (eventType === EventType.AGENT_STARTED && event.agent) {
+      upsertAgent(event.agent, 'thinking')
+    }
+
+    if (eventType === EventType.AGENT_COMPLETED && event.agent) {
+      upsertAgent(event.agent, 'done')
+    }
+
+    if (eventType === EventType.AGENT_ERROR && event.agent) {
+      upsertAgent(event.agent, 'error')
+    }
+
     if (eventType === EventType.AGENT_STATE_CHANGED && event.agent) {
       const detail = event.detail ?? {}
-      updates.agents = {
-        ...state.agents,
-        [event.agent]: {
-          agent_id: event.agent,
+      upsertAgent(
+        event.agent,
+        (detail.state as AgentPresence['state']) ?? 'idle',
+        {
           display_name: (detail.display_name as string) || event.agent,
-          stage: event.stage ?? '',
-          state: (detail.state as AgentPresence['state']) ?? 'idle',
-          activity: event.message ?? '',
-          model: event.model ?? '',
-          tokens_used: event.tokens_used ?? 0,
           target_agent: (detail.target_agent as string) ?? '',
           started_at: (detail.started_at as string) ?? event.timestamp,
         },
+      )
+    }
+
+    if (eventType === EventType.AGENT_STREAM_CHUNK && event.agent) {
+      // Keep agent visible during streaming — don't overwrite activity with chunk text
+      const existing = (updates.agents ?? state.agents)[event.agent]
+      if (existing) {
+        upsertAgent(event.agent, 'thinking', { activity: existing.activity })
       }
     }
 
     if (eventType === EventType.AGENT_MESSAGE && event.agent) {
+      // Update agent presence with latest activity + token info
+      upsertAgent(event.agent, (updates.agents ?? state.agents)[event.agent]?.state ?? 'thinking')
       updates.conversation = [
         ...state.conversation,
         {

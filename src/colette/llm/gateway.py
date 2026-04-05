@@ -96,7 +96,7 @@ def _build_chat_model(
     kwargs: dict[str, Any] = {
         "model": model_name,
         "max_retries": max_retries,
-        "timeout": timeout,
+        "timeout": timeout * 1000,  # ChatOpenRouter expects milliseconds
     }
     if api_key:
         kwargs["openrouter_api_key"] = api_key

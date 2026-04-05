@@ -57,12 +57,12 @@ _GATE_AFTER_STAGE: dict[str, str] = {
 
 
 # Which approval tier each gate requires before proceeding.
-# T0/T1 always interrupt; T2 interrupts if confidence < threshold; T3 auto-approves.
+# T1_HIGH always interrupts for human review at every stage.
 _GATE_APPROVAL_TIER: dict[str, ApprovalTier] = {
-    "requirements": ApprovalTier.T2_MODERATE,
+    "requirements": ApprovalTier.T1_HIGH,
     "design": ApprovalTier.T1_HIGH,
-    "implementation": ApprovalTier.T2_MODERATE,
-    "testing": ApprovalTier.T2_MODERATE,
+    "implementation": ApprovalTier.T1_HIGH,
+    "testing": ApprovalTier.T1_HIGH,
     "staging": ApprovalTier.T1_HIGH,
 }
 
@@ -77,14 +77,10 @@ def _next_stage(current: str, skip_stages: list[str]) -> str | None:
 
 
 def _summarize_handoff_for_review(gate_name: str, state: dict[str, Any]) -> dict[str, Any]:
-    """Extract a human-readable deliverable summary from the stage handoff.
+    """Extract a comprehensive deliverable summary from the stage handoff.
 
-    The gate name maps to the stage that just completed.  We pull key
-    fields from its handoff dict so the CLI can show drill-down detail
-    views in the interactive approval panel.
-
-    Each section carries both a short label list (``*_labels``) for the
-    summary panel **and** the full dicts (``*_detail``) for drill-down.
+    Returns all relevant handoff fields so the human reviewer gets full
+    documentation for each stage before approving.
     """
     gate_to_stage = {
         "requirements": "requirements",
@@ -101,46 +97,65 @@ def _summarize_handoff_for_review(gate_name: str, state: dict[str, Any]) -> dict
     summary: dict[str, Any] = {"stage": stage}
 
     if stage == "requirements":
-        stories = handoff.get("functional_requirements", [])
-        summary["user_stories"] = stories  # full dicts
-        nfrs = handoff.get("nonfunctional_requirements", [])
-        summary["nfrs"] = nfrs
+        summary["project_overview"] = handoff.get("project_overview", "")
+        summary["user_stories"] = handoff.get("functional_requirements", [])
+        summary["nfrs"] = handoff.get("nonfunctional_requirements", [])
         summary["tech_constraints"] = handoff.get("tech_constraints", [])
+        summary["assumptions"] = handoff.get("assumptions", [])
+        summary["out_of_scope"] = handoff.get("out_of_scope", [])
         summary["completeness_score"] = handoff.get("completeness_score", 0)
+        summary["open_questions"] = handoff.get("open_questions", [])
 
     elif stage == "design":
+        summary["architecture_summary"] = handoff.get("architecture_summary", "")
         summary["tech_stack"] = handoff.get("tech_stack", {})
+        summary["openapi_spec"] = handoff.get("openapi_spec", "")
         summary["endpoints"] = handoff.get("endpoints", [])
         summary["db_entities"] = handoff.get("db_entities", [])
+        summary["migration_strategy"] = handoff.get("migration_strategy", "")
         summary["ui_components"] = handoff.get("ui_components", [])
+        summary["navigation_flows"] = handoff.get("navigation_flows", [])
         summary["adrs"] = handoff.get("adrs", [])
-        # Full document artifacts for review
-        summary["openapi_spec"] = handoff.get("openapi_spec", "")
-        summary["architecture_summary"] = handoff.get("architecture_summary", "")
         summary["security_design"] = handoff.get("security_design", "")
+        summary["tasks"] = handoff.get("tasks", [])
 
     elif stage == "implementation":
         files = handoff.get("files_changed", handoff.get("files", []))
         summary["files"] = files[:50]
         summary["file_count"] = len(files)
+        summary["implemented_endpoints"] = handoff.get("implemented_endpoints", [])
         summary["packages"] = handoff.get("packages", [])
+        summary["env_vars"] = handoff.get("env_vars", [])
+        summary["lint_passed"] = handoff.get("lint_passed", False)
+        summary["type_check_passed"] = handoff.get("type_check_passed", False)
+        summary["build_passed"] = handoff.get("build_passed", False)
+        summary["test_hints"] = handoff.get("test_hints", [])
+        summary["git_ref"] = handoff.get("git_ref", "")
+
+    elif stage == "testing":
+        summary["test_results"] = handoff.get("test_results", [])[:30]
+        summary["overall_line_coverage"] = handoff.get("overall_line_coverage", 0)
+        summary["overall_branch_coverage"] = handoff.get("overall_branch_coverage", 0)
+        summary["security_findings"] = handoff.get("security_findings", [])[:20]
+        summary["dependency_vulnerabilities"] = handoff.get("dependency_vulnerabilities", [])[:10]
+        summary["contract_tests_passed"] = handoff.get("contract_tests_passed", False)
+        summary["contract_deviations"] = handoff.get("contract_deviations", [])
+        summary["deploy_readiness_score"] = handoff.get("deploy_readiness_score", 0)
+        summary["blocking_issues"] = handoff.get("blocking_issues", [])
+
+    elif stage == "deployment":
+        summary["deployment_id"] = handoff.get("deployment_id", "")
+        summary["targets"] = handoff.get("targets", [])
+        summary["docker_images"] = handoff.get("docker_images", [])
+        summary["ci_pipeline_url"] = handoff.get("ci_pipeline_url", "")
+        summary["rollback_command"] = handoff.get("rollback_command", "")
+        summary["slo_targets"] = handoff.get("slo_targets", {})
+        summary["deployment_configs"] = handoff.get("deployment_configs", [])[:10]
 
     # ── Attach generated file contents from state metadata ───────────
     generated = state.get("metadata", {}).get("generated_files", {}).get(stage, [])
     if generated:
         summary["generated_files"] = generated
-
-    elif stage == "testing":
-        summary["test_files"] = handoff.get("test_files", [])[:30]
-        coverage = handoff.get("coverage_metrics", {})
-        summary["line_coverage"] = coverage.get("line_coverage_pct", 0)
-        findings = handoff.get("security_findings", [])
-        summary["security_findings"] = findings[:20]
-
-    elif stage == "deployment":
-        summary["deploy_target"] = handoff.get("deploy_target", "?")
-        summary["container_image"] = handoff.get("container_image", "")
-        summary["deployment_configs"] = handoff.get("deployment_configs", [])[:10]
 
     return summary
 
