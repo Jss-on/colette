@@ -71,14 +71,9 @@ Limit to the top 5 most critical unknowns. Each question must be specific \
 enough to unblock a concrete design decision. Do NOT list nice-to-have \
 clarifications — fold those into Assumptions with [ASSUMPTION] tags instead.
 
-9. **Completeness Score** (0.0-1.0):
-   - 0.90-1.0: Well-specified project with clear requirements and minimal ambiguity
-   - 0.80-0.89: Adequately specified — can proceed to design with assumptions noted
-   - <0.80: Genuinely incomplete — critical information is missing, list blocking unknowns
-   Score based on how much of the core functionality is clear, not on \
-   whether every edge case is specified. If you can derive reasonable \
-   defaults from the domain (e.g., standard auth flows, REST conventions), \
-   those are assumptions, not unknowns.
+9. **Completeness Score**: Generate content only — completeness scoring \
+is handled separately by deterministic structural analysis. Focus on \
+producing thorough, well-structured requirements.
 
 Be thorough but practical. Derive implicit requirements from the description \
 (e.g., a todo app implies CRUD, authentication, persistence). Tag every \

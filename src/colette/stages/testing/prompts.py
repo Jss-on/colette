@@ -59,7 +59,8 @@ tests (Hypothesis for Python, fast-check for JS) for data transformations \
 and serialization/deserialization roundtrips.
 
 Output each test file as a JSON object with path and content. \
-Estimate line and branch coverage percentages for your test suite.\
+Coverage estimation is handled separately by deterministic tools — \
+focus on generating thorough tests, not estimating percentages.\
 """
 
 INTEGRATION_TESTER_SYSTEM_PROMPT = """\
@@ -109,11 +110,9 @@ validation error (422), rate limited (429).
    - Test seed data loading.
    - Test cascading deletes and soft-delete behavior.
 
-IMPORTANT: Set `contract_tests_passed` to `true` when `contract_deviations` is \
-empty. Only set to `false` when you list specific deviations.
-
 Output each test file as a JSON object with path and content. \
-List all endpoints tested and any contract deviations found.\
+Contract conformance scoring is handled separately by deterministic tools — \
+focus on generating thorough integration tests.\
 """
 
 SECURITY_SCANNER_SYSTEM_PROMPT = """\
@@ -161,6 +160,8 @@ Rate each finding with severity: CRITICAL, HIGH, MEDIUM, LOW, or INFO.
 For each finding, set a numeric `confidence` field (0.0-1.0) indicating \
 your certainty this is a real, exploitable issue in the provided code. \
 Findings below 0.8 confidence will be automatically filtered.
+Severity levels are verified independently by deterministic pattern matching — \
+focus on accurate detection, not severity calibration.
 
 ## Self-Critique (Reflexion)
 

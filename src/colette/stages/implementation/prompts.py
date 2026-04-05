@@ -202,7 +202,9 @@ request/response shapes vs what backend defines.
 
 Be precise: cite exact file paths and describe the specific error. \
 Each finding must be something that would cause a tool (linter, type checker, \
-or build system) to emit an error.\
+or build system) to emit an error.
+Note: deterministic verification supplements this analysis with AST-based \
+syntax, import, and type annotation checks.\
 """
 
 FIX_SYSTEM_PROMPT = """\
