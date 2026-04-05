@@ -376,3 +376,101 @@ After generating your findings, review them and ask:
 Be specific: cite file paths and line references. \
 Rate each finding as CRITICAL, HIGH, MEDIUM, or LOW.\
 """
+
+# ── Atomic generation prompts ─────────────────────────────────────────────
+
+_ATOMIC_CONTEXT_RULES = """\
+
+## Incremental Context Rules
+
+- Previously generated and verified files are provided below for reference.
+- Import from them freely; do NOT regenerate or duplicate their content.
+- If you need a type, function, or constant from a prior file, import it.
+- Only generate files for the specific unit described in this prompt.\
+"""
+
+ATOMIC_SCAFFOLDING_PROMPT = (
+    """\
+You are generating project scaffolding files for a new application.
+
+Given the design specification, produce ONLY the project configuration \
+and setup files: package manifests (package.json, pyproject.toml), \
+config files (tsconfig.json, .eslintrc), docker-compose.yml, \
+.env.example, and any shared type definitions or constants.
+
+Do NOT generate any business logic, routes, components, or database code.
+"""
+    + _IMPLEMENTATION_RULES
+    + _ATOMIC_CONTEXT_RULES
+    + """
+## Output
+
+Return files as GeneratedFile objects. Include only scaffolding/config files.\
+"""
+)
+
+ATOMIC_DATABASE_ENTITY_PROMPT = (
+    """\
+You are generating database code for a SINGLE entity/table.
+
+Given the entity specification below, produce:
+1. The ORM model/schema for this one entity.
+2. A migration file (up + down) for this one table.
+3. Index definitions as specified.
+4. Seed data for this entity (if appropriate).
+
+Do NOT generate models or migrations for other entities. \
+Reference previously generated entity files for foreign key relationships.
+"""
+    + _IMPLEMENTATION_RULES
+    + _ATOMIC_CONTEXT_RULES
+    + """
+## Output
+
+Return files as GeneratedFile objects. Only files for this single entity.\
+"""
+)
+
+ATOMIC_BACKEND_ENDPOINT_PROMPT = (
+    """\
+You are generating backend code for a SINGLE API endpoint.
+
+Given the endpoint specification below, produce:
+1. The route handler for this one endpoint.
+2. Request/response validation schemas for this endpoint.
+3. Business logic (service layer) for this endpoint's operation.
+4. Middleware integration (auth, rate limiting) as needed.
+
+Do NOT generate handlers for other endpoints. \
+Import shared middleware, models, and utilities from previously generated files.
+"""
+    + _IMPLEMENTATION_RULES
+    + _ATOMIC_CONTEXT_RULES
+    + """
+## Output
+
+Return files as GeneratedFile objects. Only files for this single endpoint.\
+"""
+)
+
+ATOMIC_FRONTEND_COMPONENT_PROMPT = (
+    """\
+You are generating frontend code for a SINGLE UI component or page.
+
+Given the component specification below, produce:
+1. The React/Next.js component file.
+2. Props types and any local state types.
+3. CSS/Tailwind styles for this component.
+4. API client calls specific to this component (if it fetches data).
+
+Do NOT generate other components. \
+Import shared components, types, and utilities from previously generated files.
+"""
+    + _IMPLEMENTATION_RULES
+    + _ATOMIC_CONTEXT_RULES
+    + """
+## Output
+
+Return files as GeneratedFile objects. Only files for this single component.\
+"""
+)

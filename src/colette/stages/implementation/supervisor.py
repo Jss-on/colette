@@ -10,12 +10,14 @@ from pydantic import BaseModel, Field
 
 from colette.llm.structured import invoke_structured
 from colette.schemas.agent_config import ModelTier
+from colette.schemas.atomic import AtomicGenerationProgress
 from colette.schemas.common import EndpointSpec, FileDiff, GeneratedFile, Severity
 from colette.schemas.design import DesignToImplementationHandoff
 from colette.schemas.implementation import ImplementationToTestingHandoff
 from colette.schemas.module_design import ModuleDesign
 from colette.schemas.rework import ReworkDirective
 from colette.stages.implementation.architect_agent import run_architect
+from colette.stages.implementation.atomic import run_atomic_generation
 from colette.stages.implementation.backend import BackendResult, run_backend
 from colette.stages.implementation.database import DatabaseResult, run_database
 from colette.stages.implementation.frontend import FrontendResult, run_frontend
@@ -285,6 +287,129 @@ def _apply_refactored(
     return agent_result.model_copy(update={"files": new_files})
 
 
+# ── Atomic path helpers ────────────────────────────────────────────────
+
+
+def _progress_to_agent_results(
+    progress: AtomicGenerationProgress,
+) -> tuple[FrontendResult, BackendResult, DatabaseResult]:
+    """Classify atomic unit files into the three agent result types.
+
+    This converts atomic generation output back to the existing result
+    types so that downstream code (refactor, cross-review, handoff
+    assembly, gates) sees no difference.
+    """
+    from colette.schemas.atomic import AtomicUnitKind
+
+    frontend_files: list[GeneratedFile] = []
+    backend_files: list[GeneratedFile] = []
+    database_files: list[GeneratedFile] = []
+    frontend_pkgs: list[str] = []
+    backend_pkgs: list[str] = []
+    database_pkgs: list[str] = []
+    frontend_env: list[str] = []
+    backend_env: list[str] = []
+    implemented_endpoints: list[str] = []
+    entities_created: list[str] = []
+
+    for result in [*progress.completed, *progress.failed]:
+        kind = result.spec.kind
+        out = result.output
+        if kind == AtomicUnitKind.FRONTEND_COMPONENT:
+            frontend_files.extend(out.files)
+            frontend_pkgs.extend(out.packages)
+            frontend_env.extend(out.env_vars)
+        elif kind == AtomicUnitKind.BACKEND_ENDPOINT:
+            backend_files.extend(out.files)
+            backend_pkgs.extend(out.packages)
+            backend_env.extend(out.env_vars)
+            if result.spec.endpoint_spec:
+                ep = result.spec.endpoint_spec
+                implemented_endpoints.append(f"{ep.method} {ep.path}")
+        elif kind == AtomicUnitKind.DATABASE_ENTITY:
+            database_files.extend(out.files)
+            database_pkgs.extend(out.packages)
+            if result.spec.entity_spec:
+                entities_created.append(result.spec.entity_spec.name)
+        elif kind == AtomicUnitKind.SCAFFOLDING:
+            # Scaffolding files go to backend by convention
+            backend_files.extend(out.files)
+            backend_pkgs.extend(out.packages)
+            backend_env.extend(out.env_vars)
+
+    return (
+        FrontendResult(
+            files=frontend_files,
+            packages=list(dict.fromkeys(frontend_pkgs)),
+            env_vars=list(dict.fromkeys(frontend_env)),
+        ),
+        BackendResult(
+            files=backend_files,
+            packages=list(dict.fromkeys(backend_pkgs)),
+            env_vars=list(dict.fromkeys(backend_env)),
+            implemented_endpoints=list(dict.fromkeys(implemented_endpoints)),
+        ),
+        DatabaseResult(
+            files=database_files,
+            packages=list(dict.fromkeys(database_pkgs)),
+            entities_created=list(dict.fromkeys(entities_created)),
+        ),
+    )
+
+
+async def _run_atomic_path(
+    project_id: str,
+    design_handoff: DesignToImplementationHandoff,
+    design_context: str,
+    module_design: ModuleDesign | None,
+    test_result: object | None,
+    *,
+    settings: Settings,
+) -> ImplementationStageResult:
+    """Atomic generation path: generate per-unit, then refactor + cross-review + assemble."""
+    progress = await run_atomic_generation(
+        design_handoff, design_context, module_design, settings=settings
+    )
+
+    frontend, backend, database = _progress_to_agent_results(progress)
+
+    # Refactor (same as bulk path)
+    all_impl_files = [*frontend.files, *backend.files, *database.files]
+    test_files = (
+        test_result.test_files if test_result and hasattr(test_result, "test_files") else []
+    )
+
+    if all_impl_files and test_files:
+        try:
+            refactor_result = await run_refactor(all_impl_files, test_files, settings=settings)
+            if refactor_result.refactored_files:
+                rf = refactor_result.refactored_files
+                frontend = cast(FrontendResult, _apply_refactored(frontend, rf))
+                backend = cast(BackendResult, _apply_refactored(backend, rf))
+                database = cast(DatabaseResult, _apply_refactored(database, rf))
+        except Exception as exc:
+            logger.warning("atomic.refactor_failed", error=str(exc)[:200])
+
+    # Cross-review
+    review: CrossReviewResult | None = None
+    try:
+        review = await _run_cross_review(frontend, backend, settings=settings)
+    except Exception as exc:
+        logger.warning("atomic.cross_review_failed", error=str(exc)[:200])
+
+    handoff = assemble_handoff(project_id, design_handoff, frontend, backend, database, review)
+    all_files = [*frontend.files, *backend.files, *database.files]
+
+    logger.info(
+        "atomic_path.complete",
+        project_id=project_id,
+        files=len(handoff.files_changed),
+        completed_units=len(progress.completed),
+        failed_units=len(progress.failed),
+    )
+    return ImplementationStageResult(handoff=handoff, generated_files=all_files)
+
+
 # ── Main supervisor ─────────────────────────────────────────────────────
 
 
@@ -363,6 +488,17 @@ async def supervise_implementation(
                 error_type=type(exc).__name__,
                 error=str(exc)[:200],
             )
+
+    # ── Atomic generation path (feature flag) ────────────────────────
+    if settings.use_atomic_generation:
+        return await _run_atomic_path(
+            project_id,
+            design_handoff,
+            augmented_context,
+            module_design,
+            test_result,
+            settings=settings,
+        )
 
     # ── Step 3: TDD GREEN — implementation agents in parallel ──────
     frontend, backend, database = await asyncio.gather(

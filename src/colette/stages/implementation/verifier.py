@@ -183,6 +183,24 @@ def _replace_files(
     return merged
 
 
+def filter_findings_to_paths(
+    report: VerificationReport,
+    paths: set[str],
+) -> VerificationReport:
+    """Return a copy of *report* with findings filtered to the given file paths."""
+    filtered = [f for f in report.findings if f.file_path in paths]
+    has_lint = any(f.category == "lint" for f in filtered)
+    has_type = any(f.category == "type" for f in filtered)
+    has_build = any(f.category == "build" for f in filtered)
+    return VerificationReport(
+        findings=filtered,
+        lint_passed=not has_lint,
+        type_check_passed=not has_type,
+        build_passed=not has_build,
+        summary=f"{len(filtered)} findings for {len(paths)} files.",
+    )
+
+
 async def verify_and_fix_loop(
     frontend: FrontendResult,
     backend: BackendResult,

@@ -692,7 +692,13 @@ class TestRunStage:
                 new_callable=AsyncMock,
                 return_value=_make_review_result(),
             ),
-            patch("colette.stages.implementation.stage.Settings"),
+            patch(
+                "colette.stages.implementation.stage.Settings",
+                return_value=AsyncMock(
+                    use_atomic_generation=False,
+                    impl_verify_max_retries=3,
+                ),
+            ),
         ):
             result = await run_stage(state)
 

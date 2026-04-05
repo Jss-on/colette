@@ -135,6 +135,16 @@ class Settings(BaseSettings):
         description="Max verify-and-fix iterations for generated code.",
     )
 
+    # ── Atomic code generation ──────────────────────────────────────────
+    use_atomic_generation: bool = Field(
+        default=False,
+        description="Use atomic (per-entity/endpoint/component) generation instead of bulk.",
+    )
+    atomic_max_fix_attempts: int = Field(
+        default=2,
+        description="Max fix attempts per atomic unit before moving on.",
+    )
+
     # ── Rework loops (Phase 1) ──────────────────────────────────────────
     max_stage_rework_attempts: int = Field(
         default=3,
