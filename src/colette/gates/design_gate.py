@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
+from colette.orchestrator.rework_router import classify_failure
 from colette.schemas.common import QualityGateResult, StageName
 
 
@@ -45,6 +46,18 @@ class DesignGate:
             failures.append("No database entities defined")
 
         passed = all(criteria.values())
+
+        rework_decision = "pass"
+        rework_target: str | None = None
+        if not passed:
+            classification = classify_failure(failures)
+            if classification == "upstream":
+                rework_decision = "rework_target"
+                rework_target = "requirements"
+            else:
+                rework_decision = "rework_self"
+                rework_target = "design"
+
         return QualityGateResult(
             gate_name=self.name,
             passed=passed,
@@ -52,4 +65,6 @@ class DesignGate:
             criteria_results=criteria,
             failure_reasons=failures,
             evaluated_at=datetime.now(UTC),
+            rework_decision=rework_decision,
+            rework_target_stage=rework_target,
         )

@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
+from colette.orchestrator.rework_router import classify_failure
 from colette.schemas.common import QualityGateResult, StageName
 
 if TYPE_CHECKING:
@@ -26,7 +27,8 @@ class TestingGate:
 
     def _threshold(self, attr: str, default: float | int) -> float | int:
         if self._settings is not None:
-            return getattr(self._settings, attr, default)  # type: ignore[no-any-return]
+            val: float | int = getattr(self._settings, attr, default)
+            return val
         return default
 
     async def evaluate(self, state: dict[str, Any]) -> QualityGateResult:
@@ -70,6 +72,18 @@ class TestingGate:
             failures.append(f"Deploy readiness {readiness} < {min_readiness}")
 
         passed = all(criteria.values())
+
+        rework_decision = "pass"
+        rework_target: str | None = None
+        if not passed:
+            classification = classify_failure(failures)
+            if classification == "upstream":
+                rework_decision = "rework_target"
+                rework_target = "design"
+            else:
+                rework_decision = "rework_target"
+                rework_target = "implementation"
+
         return QualityGateResult(
             gate_name=self.name,
             passed=passed,
@@ -77,4 +91,6 @@ class TestingGate:
             criteria_results=criteria,
             failure_reasons=failures,
             evaluated_at=datetime.now(UTC),
+            rework_decision=rework_decision,
+            rework_target_stage=rework_target,
         )

@@ -135,6 +135,30 @@ class Settings(BaseSettings):
         description="Max verify-and-fix iterations for generated code.",
     )
 
+    # ── Rework loops (Phase 1) ──────────────────────────────────────────
+    max_stage_rework_attempts: int = Field(
+        default=3,
+        description="Max rework attempts per individual stage before forced pass.",
+    )
+    max_pipeline_rework_total: int = Field(
+        default=10,
+        description="Total rework budget across all stages in a single pipeline run.",
+    )
+
+    # ── Context summarization (Phase 7b) ────────────────────────────────
+    context_summarization_trigger: float = Field(
+        default=0.80,
+        description="Fraction of context window that triggers summarization.",
+    )
+    context_summarization_keep: float = Field(
+        default=0.15,
+        description="Fraction of recent messages to keep after summarization.",
+    )
+    context_summarization_model: str = Field(
+        default="anthropic:claude-haiku-4-5",
+        description="Model for context summarization.",
+    )
+
     # ── Pipeline (FR-ORC-003/006/007) ──────────────────────────────────
     checkpoint_backend: str = Field(
         default="memory",

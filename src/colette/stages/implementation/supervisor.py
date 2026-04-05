@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import structlog
 from pydantic import BaseModel, Field
@@ -13,10 +13,15 @@ from colette.schemas.agent_config import ModelTier
 from colette.schemas.common import EndpointSpec, FileDiff, GeneratedFile, Severity
 from colette.schemas.design import DesignToImplementationHandoff
 from colette.schemas.implementation import ImplementationToTestingHandoff
+from colette.schemas.module_design import ModuleDesign
+from colette.schemas.rework import ReworkDirective
+from colette.stages.implementation.architect_agent import run_architect
 from colette.stages.implementation.backend import BackendResult, run_backend
 from colette.stages.implementation.database import DatabaseResult, run_database
 from colette.stages.implementation.frontend import FrontendResult, run_frontend
 from colette.stages.implementation.prompts import CROSS_REVIEW_PROMPT
+from colette.stages.implementation.refactor_agent import run_refactor
+from colette.stages.implementation.test_agent import run_test_agent
 from colette.stages.implementation.verifier import VerificationReport, verify_and_fix_loop
 
 _MAX_SPEC_CHARS = 20_000
@@ -256,6 +261,30 @@ def assemble_handoff(
     )
 
 
+# ── Refactor merge helper ──────────────────────────────────────────────
+
+
+_AgentResult = FrontendResult | BackendResult | DatabaseResult
+
+
+def _apply_refactored(
+    agent_result: _AgentResult,
+    refactored: list[GeneratedFile],
+) -> _AgentResult:
+    """Return a copy of *agent_result* with refactored files merged in.
+
+    Only replaces files whose paths match; does not add new files.
+    """
+    refactored_by_path = {f.path: f for f in refactored}
+    original_paths = {f.path for f in agent_result.files}
+
+    if not original_paths & refactored_by_path.keys():
+        return agent_result
+
+    new_files = [refactored_by_path.get(f.path, f) for f in agent_result.files]
+    return agent_result.model_copy(update={"files": new_files})
+
+
 # ── Main supervisor ─────────────────────────────────────────────────────
 
 
@@ -278,26 +307,90 @@ async def supervise_implementation(
     design_handoff: DesignToImplementationHandoff,
     *,
     settings: Settings,
+    rework_directive: ReworkDirective | None = None,
+    prior_module_design: ModuleDesign | None = None,
 ) -> ImplementationStageResult:
     """Orchestrate the Implementation stage (FR-IMP-*).
 
-    Runs frontend, backend, and database agents, performs cross-review,
-    then assembles the handoff to the Testing stage.  Returns both the
-    handoff and the full ``GeneratedFile`` list so the stage runner can
-    persist file contents for human review.
+    Follows the TDD workflow: Design → RED → GREEN → REFACTOR → Verify.
+
+    When *rework_directive* is present, the architect refines the prior
+    design and the test agent adds regression tests.
     """
     logger.info("implementation_supervisor.start", project_id=project_id)
 
-    design_context = _design_to_context(design_handoff)
+    # Lazy import to avoid circular: supervisor -> orchestrator -> pipeline -> stage -> supervisor
+    from colette.orchestrator.feedback_augmenter import FeedbackAugmenter
 
-    # Run all three agents in parallel (FR-IMP-010)
+    design_context = _design_to_context(design_handoff)
+    augmenter = FeedbackAugmenter()
+
+    # ── Step 1: System Design (architect agent) ─────────────────────
+    augmented_context = augmenter.augment_prompt(design_context, rework_directive, None)
+
+    module_design: ModuleDesign | None = None
+    try:
+        module_design = await run_architect(
+            augmented_context,
+            settings=settings,
+            prior_design=prior_module_design,
+        )
+    except Exception as exc:
+        logger.warning(
+            "architect_agent.failed",
+            error_type=type(exc).__name__,
+            error=str(exc)[:200],
+        )
+
+    # ── Step 2: TDD RED — generate tests (non-blocking) ────────────
+    acceptance_criteria: list[str] = []
+    regression_context = ""
+    if rework_directive and rework_directive.failure_reasons:
+        regression_context = "\n".join(rework_directive.failure_reasons)
+
+    test_result = None
+    if module_design is not None:
+        try:
+            test_result = await run_test_agent(
+                module_design,
+                acceptance_criteria,
+                settings=settings,
+                regression_context=regression_context,
+            )
+        except Exception as exc:
+            logger.warning(
+                "test_agent.failed",
+                error_type=type(exc).__name__,
+                error=str(exc)[:200],
+            )
+
+    # ── Step 3: TDD GREEN — implementation agents in parallel ──────
     frontend, backend, database = await asyncio.gather(
-        run_frontend(design_context, settings=settings),
-        run_backend(design_context, settings=settings),
-        run_database(design_context, settings=settings),
+        run_frontend(augmented_context, settings=settings),
+        run_backend(augmented_context, settings=settings),
+        run_database(augmented_context, settings=settings),
     )
 
-    # Verify-and-fix loop (FR-IMP-012 — non-blocking on failure)
+    # ── Step 4: TDD REFACTOR (non-blocking) ────────────────────────
+    all_impl_files = [*frontend.files, *backend.files, *database.files]
+    test_files = test_result.test_files if test_result else []
+
+    if all_impl_files and test_files:
+        try:
+            refactor_result = await run_refactor(all_impl_files, test_files, settings=settings)
+            if refactor_result.refactored_files:
+                rf = refactor_result.refactored_files
+                frontend = cast(FrontendResult, _apply_refactored(frontend, rf))
+                backend = cast(BackendResult, _apply_refactored(backend, rf))
+                database = cast(DatabaseResult, _apply_refactored(database, rf))
+        except Exception as exc:
+            logger.warning(
+                "refactor_agent.failed",
+                error_type=type(exc).__name__,
+                error=str(exc)[:200],
+            )
+
+    # ── Step 5: Verify-and-fix loop (FR-IMP-012) ──────────────────
     verification: VerificationReport | None = None
     try:
         frontend, backend, database, verification = await verify_and_fix_loop(
@@ -315,7 +408,7 @@ async def supervise_implementation(
             error=str(exc)[:200],
         )
 
-    # Cross-review (FR-IMP-011, SHOULD — non-blocking on failure)
+    # ── Cross-review (FR-IMP-011, SHOULD — non-blocking) ──────────
     review: CrossReviewResult | None = None
     try:
         review = await _run_cross_review(frontend, backend, settings=settings)

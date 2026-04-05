@@ -5,6 +5,7 @@ from colette.schemas.deployment import DeploymentToMonitoringHandoff
 from colette.schemas.design import DesignToImplementationHandoff
 from colette.schemas.implementation import ImplementationToTestingHandoff
 from colette.schemas.requirements import RequirementsToDesignHandoff
+from colette.schemas.rework import ReworkDecision, ReworkDirective
 from colette.schemas.testing import TestingToDeploymentHandoff
 
 __all__ = [
@@ -13,5 +14,7 @@ __all__ = [
     "HandoffSchema",
     "ImplementationToTestingHandoff",
     "RequirementsToDesignHandoff",
+    "ReworkDecision",
+    "ReworkDirective",
     "TestingToDeploymentHandoff",
 ]

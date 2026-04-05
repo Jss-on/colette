@@ -55,6 +55,21 @@ class PipelineState(TypedDict, total=False):
     # ── User input ───────────────────────────────────────────────────
     user_request: str
 
+    # ── Rework loops (Phase 1) ──────────────────────────────────────
+    rework_count: dict[str, int]
+    rework_directives: Annotated[list[dict[str, Any]], operator.add]
+    current_rework: dict[str, Any] | None
+
+    # ── Backlog & sprints (Phase 3) ────────────────────────────────
+    backlog: dict[str, Any] | None
+    current_sprint: dict[str, Any] | None
+    work_items: list[dict[str, Any]]
+
+    # ── Sprint lifecycle (Phase 4) ──────────────────────────────────
+    sprint_context: dict[str, Any] | None
+    sprint_number: int
+    evolving_requirements: dict[str, Any] | None
+
     # ── Extensible bag ───────────────────────────────────────────────
     metadata: dict[str, Any]
 
@@ -83,5 +98,14 @@ def create_initial_state(
         started_at=now,
         completed_at=None,
         total_tokens_used=0,
+        rework_count={},
+        rework_directives=[],
+        current_rework=None,
+        backlog=None,
+        current_sprint=None,
+        work_items=[],
+        sprint_context=None,
+        sprint_number=1,
+        evolving_requirements=None,
         metadata={},
     )
