@@ -12,6 +12,19 @@ const INITIAL_RETRY_MS = 1000
 const MAX_RETRY_MS = 30_000
 const BATCH_INTERVAL_MS = 100
 
+function getWsUrl(projectId: string): string {
+  // In production, WS goes through the same host.
+  // In dev (Vite on port 3000), connect directly to the backend on port 8000.
+  const loc = window.location
+  const isDev = loc.port === '3000'
+  const protocol = loc.protocol === 'https:' ? 'wss:' : 'ws:'
+
+  if (isDev) {
+    return `${protocol}//${loc.hostname}:8000/projects/${projectId}/ws`
+  }
+  return `${protocol}//${loc.host}/projects/${projectId}/ws`
+}
+
 export function useWebSocket(projectId: string | undefined): WebSocketState {
   const [state, setState] = useState<WebSocketState>({
     connected: false,
@@ -42,9 +55,8 @@ export function useWebSocket(projectId: string | undefined): WebSocketState {
     if (!projectId) return
 
     const connect = () => {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-      const host = window.location.host
-      const ws = new WebSocket(`${protocol}//${host}/projects/${projectId}/ws`)
+      const url = getWsUrl(projectId)
+      const ws = new WebSocket(url)
       wsRef.current = ws
 
       ws.onopen = async () => {
