@@ -242,6 +242,21 @@ class ApprovalRecordRepository:
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
 
+    async def list_pending_by_run(
+        self, pipeline_run_id: uuid.UUID, *, limit: int = 50
+    ) -> list[ApprovalRecord]:
+        stmt = (
+            select(ApprovalRecord)
+            .where(
+                ApprovalRecord.pipeline_run_id == pipeline_run_id,
+                ApprovalRecord.status == "pending",
+            )
+            .order_by(ApprovalRecord.created_at.asc())
+            .limit(limit)
+        )
+        result = await self._session.execute(stmt)
+        return list(result.scalars().all())
+
     async def decide(
         self,
         record_id: uuid.UUID,

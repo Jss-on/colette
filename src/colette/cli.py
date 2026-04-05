@@ -388,6 +388,61 @@ def status(ctx: click.Context, project_id: str, follow: bool, activity: str) -> 
         )
 
 
+# ── Approvals ──────────────────────────────────────────────────────────
+
+
+@main.command()
+@click.option("--project", "-p", default=None, help="Filter by project ID.")
+@click.pass_context
+def approvals(ctx: click.Context, project: str | None) -> None:
+    """List pending approval requests."""
+    import httpx
+    from rich.console import Console
+    from rich.table import Table
+
+    from colette.cli_ui import render_error
+
+    api_url = ctx.obj["api_url"]
+    console = Console()
+    try:
+        params: dict[str, str] = {}
+        if project:
+            params["project_id"] = project
+        with httpx.Client(timeout=30) as client:
+            resp = client.get(
+                f"{api_url}/api/v1/approvals",
+                params=params,
+                headers={"X-API-Key": "default"},
+            )
+            resp.raise_for_status()
+            items = resp.json()
+            if not items:
+                console.print("[dim]No pending approvals.[/dim]")
+                return
+            table = Table(title="Pending Approvals")
+            table.add_column("Request ID", style="cyan", no_wrap=True)
+            table.add_column("Stage", style="green")
+            table.add_column("Tier", style="yellow")
+            table.add_column("Summary")
+            table.add_column("Created", style="dim")
+            for item in items:
+                table.add_row(
+                    item.get("request_id", str(item.get("id", ""))),
+                    item.get("stage", ""),
+                    item.get("tier", ""),
+                    (item.get("context_summary", "") or "")[:60],
+                    item.get("created_at", "")[:19],
+                )
+            console.print(table)
+            console.print(
+                "\n[dim]Approve:[/dim] colette approve <request-id>"
+                "\n[dim]Reject:[/dim]  colette reject <request-id>"
+            )
+    except httpx.HTTPError as exc:
+        render_error(f"API request failed: {exc}")
+        raise SystemExit(1) from exc
+
+
 # ── Approve / Reject ────────────────────────────────────────────────────
 
 

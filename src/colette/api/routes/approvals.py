@@ -7,7 +7,7 @@ import uuid
 from typing import Annotated
 
 import structlog
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from colette.api.deps import CurrentUser, get_db, get_pipeline_runner, require_role
@@ -44,10 +44,18 @@ def _record_to_response(r: ApprovalRecordModel) -> ApprovalResponse:
 async def list_pending_approvals(
     user: Annotated[CurrentUser, Depends(require_role(Permission.VIEW_PROJECT))],
     db: AsyncSession = Depends(get_db),  # noqa: B008
+    project_id: uuid.UUID | None = Query(default=None, description="Filter by project ID"),  # noqa: B008
 ) -> list[ApprovalResponse]:
-    """List all pending approval requests."""
+    """List all pending approval requests, optionally filtered by project."""
     repo = ApprovalRecordRepository(db)
-    records = await repo.list_pending()
+    if project_id is not None:
+        run_repo = PipelineRunRepository(db)
+        runs = await run_repo.list_for_project(project_id)
+        records: list[ApprovalRecordModel] = []
+        for run in runs:
+            records.extend(await repo.list_pending_by_run(run.id))
+    else:
+        records = await repo.list_pending()
     return [_record_to_response(r) for r in records]
 
 

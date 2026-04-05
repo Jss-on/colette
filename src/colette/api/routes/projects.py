@@ -260,17 +260,43 @@ async def resume_project(
             status_code=status.HTTP_409_CONFLICT,
             detail="Project is already running.",
         )
-    if project.status not in ("interrupted", "failed"):
+    if project.status == "awaiting_approval":
+        # Crash recovery: allow resume only when approval records are missing.
+        approval_repo = ApprovalRecordRepository(db)
+        run_repo = PipelineRunRepository(db)
+        runs = await run_repo.list_for_project(project_id)
+        has_pending = False
+        for run in runs:
+            pending = await approval_repo.list_pending_by_run(run.id)
+            if pending:
+                has_pending = True
+                break
+        if has_pending:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    "Project is awaiting approval. "
+                    "Use 'colette approvals' to list pending approvals, "
+                    "then 'colette approve <approval-id>' to continue."
+                ),
+            )
+        # No pending approvals found — treat as crash recovery.
+    elif project.status not in ("interrupted", "failed"):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Cannot resume a project with status '{project.status}'.",
         )
 
+    # Look up the latest pipeline run to find the checkpoint thread_id.
+    run_repo = PipelineRunRepository(db)
+    runs = await run_repo.list_for_project(project_id, limit=1)
+    thread_id = runs[0].thread_id if runs else None
+
     # Re-mark as running in DB and registry.
     pid = str(project_id)
     await repo.update_status(project_id, "running")
     project_status_registry.mark(pid, "running")
-    runner._active[pid] = f"{pid}-pipeline"
+    runner._active[pid] = thread_id or f"{pid}-pipeline"
     await db.commit()
 
     # Re-fetch to return updated state.
@@ -278,12 +304,18 @@ async def resume_project(
     if project is None:  # pragma: no cover
         raise HTTPException(status_code=404, detail="Project not found")
 
-    # Re-start the pipeline in background.
-    from colette.db.session import _session_factory
+    if thread_id:
+        # Resume from checkpoint — continues where the pipeline left off.
+        from colette.api.routes.approvals import _resume_pipeline_bg
 
-    background_tasks.add_task(
-        _run_pipeline_bg, runner, pid, project.user_request, _session_factory
-    )
+        background_tasks.add_task(_resume_pipeline_bg, runner, pid, thread_id)
+    else:
+        # No prior run found — start fresh.
+        from colette.db.session import _session_factory
+
+        background_tasks.add_task(
+            _run_pipeline_bg, runner, pid, project.user_request, _session_factory
+        )
 
     return _project_to_response(project)
 

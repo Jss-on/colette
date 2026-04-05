@@ -92,6 +92,68 @@ class TestRejectCommand:
         assert result.exit_code != 0
 
 
+# ── Approvals command ────────────────────────────────────────────────
+
+
+class TestApprovalsCommand:
+    @patch("httpx.Client")
+    def test_approvals_empty(self, mock_cls: MagicMock, runner: CliRunner) -> None:
+        mock_cls.return_value = _mock_httpx_client(response_json=[])
+        # Override .get to return a list
+        client = mock_cls.return_value.__enter__.return_value
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = []
+        mock_resp.raise_for_status = MagicMock()
+        client.get.return_value = mock_resp
+        result = runner.invoke(main, ["approvals"])
+        assert result.exit_code == 0
+        assert "no pending" in result.output.lower()
+
+    @patch("httpx.Client")
+    def test_approvals_with_results(self, mock_cls: MagicMock, runner: CliRunner) -> None:
+        items = [
+            {
+                "id": "db-id-1",
+                "request_id": "req-001",
+                "stage": "requirements",
+                "tier": "T1",
+                "status": "pending",
+                "context_summary": "Requirements analysis complete",
+                "created_at": "2026-04-05T10:30:00Z",
+            }
+        ]
+        client = mock_cls.return_value.__enter__.return_value
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = items
+        mock_resp.raise_for_status = MagicMock()
+        client.get.return_value = mock_resp
+        result = runner.invoke(main, ["approvals"])
+        assert result.exit_code == 0
+        assert "req-001" in result.output
+
+    @patch("httpx.Client")
+    def test_approvals_with_project_filter(self, mock_cls: MagicMock, runner: CliRunner) -> None:
+        client = mock_cls.return_value.__enter__.return_value
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = []
+        mock_resp.raise_for_status = MagicMock()
+        client.get.return_value = mock_resp
+        result = runner.invoke(main, ["approvals", "-p", "proj-123"])
+        assert result.exit_code == 0
+        # Verify project_id was passed as query param.
+        call_kwargs = client.get.call_args
+        assert call_kwargs[1]["params"]["project_id"] == "proj-123"
+
+    @patch("httpx.Client")
+    def test_approvals_http_error(self, mock_cls: MagicMock, runner: CliRunner) -> None:
+        import httpx
+
+        client = mock_cls.return_value.__enter__.return_value
+        client.get.side_effect = httpx.HTTPError("connection refused")
+        result = runner.invoke(main, ["approvals"])
+        assert result.exit_code != 0
+
+
 # ── Resume command ───────────────────────────────────────────────────
 
 
