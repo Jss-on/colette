@@ -3,6 +3,7 @@ import { Layout } from '../components/shared/Layout'
 import { MetricsBar } from '../components/shared/MetricsBar'
 import { ViewSwitcher } from '../components/shared/ViewSwitcher'
 import { AgentBoard } from '../components/board/AgentBoard'
+import { PipelineView } from '../components/pipeline/PipelineView'
 import { useWebSocket } from '../hooks/useWebSocket'
 import { useUIStore } from '../stores/ui'
 
@@ -38,9 +39,7 @@ export function ProjectDashboard() {
       <MetricsBar />
 
       {activeView === 'board' && <AgentBoard />}
-      {activeView === 'pipeline' && (
-        <p style={{ color: 'var(--text-secondary)' }}>Pipeline view coming in Phase 3.</p>
-      )}
+      {activeView === 'pipeline' && <PipelineView />}
       {activeView === 'activity' && (
         <p style={{ color: 'var(--text-secondary)' }}>Activity feed coming in Phase 4.</p>
       )}
