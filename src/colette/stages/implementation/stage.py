@@ -48,9 +48,7 @@ async def run_stage(state: dict[str, Any]) -> dict[str, Any]:
     # Persist generated file contents in metadata so gate reviews can
     # show actual source code to the user.
     existing_gen = state.get("metadata", {}).get("generated_files", {})
-    generated_files_serialized = [
-        f.model_dump(mode="json") for f in result.generated_files
-    ]
+    generated_files_serialized = [f.model_dump(mode="json") for f in result.generated_files]
 
     return {
         "current_stage": StageName.IMPLEMENTATION.value,

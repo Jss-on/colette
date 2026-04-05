@@ -166,6 +166,11 @@ async def test_supervisor_calls_architect(settings: object) -> None:
             return_value=_database(),
         ),
         patch(
+            "colette.stages.implementation.supervisor.run_refactor",
+            new_callable=AsyncMock,
+            return_value=RefactorResult(refactored_files=[], changes_made=[]),
+        ),
+        patch(
             "colette.stages.implementation.supervisor.verify_and_fix_loop",
             new_callable=AsyncMock,
             return_value=(_frontend(), _backend(), _database(), _clean_report()),
@@ -209,6 +214,11 @@ async def test_supervisor_calls_test_agent(settings: object) -> None:
             "colette.stages.implementation.supervisor.run_database",
             new_callable=AsyncMock,
             return_value=_database(),
+        ),
+        patch(
+            "colette.stages.implementation.supervisor.run_refactor",
+            new_callable=AsyncMock,
+            return_value=RefactorResult(refactored_files=[], changes_made=[]),
         ),
         patch(
             "colette.stages.implementation.supervisor.verify_and_fix_loop",
@@ -259,6 +269,11 @@ async def test_supervisor_with_rework_directive(settings: object) -> None:
             "colette.stages.implementation.supervisor.run_database",
             new_callable=AsyncMock,
             return_value=_database(),
+        ),
+        patch(
+            "colette.stages.implementation.supervisor.run_refactor",
+            new_callable=AsyncMock,
+            return_value=RefactorResult(refactored_files=[], changes_made=[]),
         ),
         patch(
             "colette.stages.implementation.supervisor.verify_and_fix_loop",

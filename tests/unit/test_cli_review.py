@@ -84,9 +84,7 @@ class TestApprovalReviewAppInit:
 class TestBuildTabs:
     """Test _build_tabs returns correct panes for each stage."""
 
-    def _app_with_stage(
-        self, stage: str, summary: dict[str, Any]
-    ) -> ApprovalReviewApp:
+    def _app_with_stage(self, stage: str, summary: dict[str, Any]) -> ApprovalReviewApp:
         data = _make_approval(stage=stage, summary={**summary, "stage": stage})
         return ApprovalReviewApp(data)
 
@@ -96,147 +94,218 @@ class TestBuildTabs:
         assert len(panes) == 1  # fallback "Info" pane
 
     def test_requirements_with_stories(self) -> None:
-        app = self._app_with_stage("requirements", {
-            "user_stories": [
-                {"id": "US-1", "title": "Login", "priority": "MUST",
-                 "acceptance_criteria": ["AC1", "AC2"]},
-            ],
-        })
+        app = self._app_with_stage(
+            "requirements",
+            {
+                "user_stories": [
+                    {
+                        "id": "US-1",
+                        "title": "Login",
+                        "priority": "MUST",
+                        "acceptance_criteria": ["AC1", "AC2"],
+                    },
+                ],
+            },
+        )
         panes = app._build_tabs()
         assert len(panes) >= 1
 
     def test_requirements_with_nfrs(self) -> None:
-        app = self._app_with_stage("requirements", {
-            "nfrs": [{"id": "NFR-1", "category": "perf",
-                       "description": "desc", "target": "99%"}],
-        })
+        app = self._app_with_stage(
+            "requirements",
+            {
+                "nfrs": [
+                    {"id": "NFR-1", "category": "perf", "description": "desc", "target": "99%"}
+                ],
+            },
+        )
         panes = app._build_tabs()
         assert len(panes) >= 1
 
     def test_requirements_with_constraints(self) -> None:
-        app = self._app_with_stage("requirements", {
-            "tech_constraints": [
-                {"id": "TC-1", "description": "Use Python",
-                 "rationale": "Team expertise"},
-            ],
-        })
+        app = self._app_with_stage(
+            "requirements",
+            {
+                "tech_constraints": [
+                    {"id": "TC-1", "description": "Use Python", "rationale": "Team expertise"},
+                ],
+            },
+        )
         panes = app._build_tabs()
         assert len(panes) >= 1
 
     def test_design_with_endpoints(self) -> None:
-        app = self._app_with_stage("design", {
-            "endpoints": [
-                {"method": "GET", "path": "/api/v1/items",
-                 "summary": "List items", "auth_required": True},
-            ],
-        })
+        app = self._app_with_stage(
+            "design",
+            {
+                "endpoints": [
+                    {
+                        "method": "GET",
+                        "path": "/api/v1/items",
+                        "summary": "List items",
+                        "auth_required": True,
+                    },
+                ],
+            },
+        )
         panes = app._build_tabs()
         assert len(panes) >= 1
 
     def test_design_with_entities(self) -> None:
-        app = self._app_with_stage("design", {
-            "db_entities": [
-                {"name": "User", "fields": [{"name": "id", "type": "uuid"}],
-                 "indexes": ["pk_user"], "relationships": ["has_many posts"]},
-            ],
-        })
+        app = self._app_with_stage(
+            "design",
+            {
+                "db_entities": [
+                    {
+                        "name": "User",
+                        "fields": [{"name": "id", "type": "uuid"}],
+                        "indexes": ["pk_user"],
+                        "relationships": ["has_many posts"],
+                    },
+                ],
+            },
+        )
         panes = app._build_tabs()
         assert len(panes) >= 1
 
     def test_design_with_components(self) -> None:
-        app = self._app_with_stage("design", {
-            "ui_components": [
-                {"name": "LoginForm", "description": "A form",
-                 "route": "/login", "children": ["Button"]},
-            ],
-        })
+        app = self._app_with_stage(
+            "design",
+            {
+                "ui_components": [
+                    {
+                        "name": "LoginForm",
+                        "description": "A form",
+                        "route": "/login",
+                        "children": ["Button"],
+                    },
+                ],
+            },
+        )
         panes = app._build_tabs()
         assert len(panes) >= 1
 
     def test_design_with_tech_stack(self) -> None:
-        app = self._app_with_stage("design", {
-            "tech_stack": {"backend": "Python", "db": "Postgres"},
-        })
+        app = self._app_with_stage(
+            "design",
+            {
+                "tech_stack": {"backend": "Python", "db": "Postgres"},
+            },
+        )
         panes = app._build_tabs()
         assert len(panes) >= 1
 
     def test_design_with_adrs(self) -> None:
-        app = self._app_with_stage("design", {
-            "adrs": [{"id": "ADR-1", "title": "Use REST",
-                       "status": "accepted", "context": "...",
-                       "decision": "REST API", "alternatives": ["GraphQL"]}],
-        })
+        app = self._app_with_stage(
+            "design",
+            {
+                "adrs": [
+                    {
+                        "id": "ADR-1",
+                        "title": "Use REST",
+                        "status": "accepted",
+                        "context": "...",
+                        "decision": "REST API",
+                        "alternatives": ["GraphQL"],
+                    }
+                ],
+            },
+        )
         panes = app._build_tabs()
         assert len(panes) >= 1
 
     def test_design_with_openapi_spec(self) -> None:
-        app = self._app_with_stage("design", {
-            "openapi_spec": '{"openapi":"3.0.0"}',
-        })
+        app = self._app_with_stage(
+            "design",
+            {
+                "openapi_spec": '{"openapi":"3.0.0"}',
+            },
+        )
         panes = app._build_tabs()
         assert len(panes) >= 1
 
     def test_design_with_text_panes(self) -> None:
-        app = self._app_with_stage("design", {
-            "architecture_summary": "Microservices arch",
-            "security_design": "OAuth 2.0",
-        })
+        app = self._app_with_stage(
+            "design",
+            {
+                "architecture_summary": "Microservices arch",
+                "security_design": "OAuth 2.0",
+            },
+        )
         panes = app._build_tabs()
         assert len(panes) == 2
 
     def test_implementation_with_gen_files(self) -> None:
-        app = self._app_with_stage("implementation", {
-            "generated_files": [
-                {"path": "main.py", "language": "python",
-                 "content": "print('hi')"},
-            ],
-        })
+        app = self._app_with_stage(
+            "implementation",
+            {
+                "generated_files": [
+                    {"path": "main.py", "language": "python", "content": "print('hi')"},
+                ],
+            },
+        )
         panes = app._build_tabs()
         assert len(panes) >= 1
 
     def test_implementation_with_files(self) -> None:
-        app = self._app_with_stage("implementation", {
-            "files": [{"path": "x.py", "language": "python",
-                        "lines_added": 10}],
-        })
+        app = self._app_with_stage(
+            "implementation",
+            {
+                "files": [{"path": "x.py", "language": "python", "lines_added": 10}],
+            },
+        )
         panes = app._build_tabs()
         assert len(panes) >= 1
 
     def test_testing_with_gen_files(self) -> None:
-        app = self._app_with_stage("testing", {
-            "generated_files": [
-                {"path": "test_x.py", "language": "python", "content": ""},
-            ],
-        })
+        app = self._app_with_stage(
+            "testing",
+            {
+                "generated_files": [
+                    {"path": "test_x.py", "language": "python", "content": ""},
+                ],
+            },
+        )
         panes = app._build_tabs()
         assert len(panes) >= 1
 
     def test_testing_with_findings(self) -> None:
-        app = self._app_with_stage("testing", {
-            "security_findings": [
-                {"severity": "HIGH", "category": "XSS",
-                 "description": "Reflected XSS"},
-            ],
-        })
+        app = self._app_with_stage(
+            "testing",
+            {
+                "security_findings": [
+                    {"severity": "HIGH", "category": "XSS", "description": "Reflected XSS"},
+                ],
+            },
+        )
         panes = app._build_tabs()
         assert len(panes) >= 1
 
     def test_deployment_with_gen_files(self) -> None:
-        app = self._app_with_stage("deployment", {
-            "generated_files": [
-                {"path": "Dockerfile", "language": "dockerfile",
-                 "content": "FROM python:3.12"},
-            ],
-        })
+        app = self._app_with_stage(
+            "deployment",
+            {
+                "generated_files": [
+                    {
+                        "path": "Dockerfile",
+                        "language": "dockerfile",
+                        "content": "FROM python:3.12",
+                    },
+                ],
+            },
+        )
         panes = app._build_tabs()
         assert len(panes) >= 1
 
     def test_staging_with_gen_files(self) -> None:
-        app = self._app_with_stage("staging", {
-            "generated_files": [
-                {"path": "k8s.yaml", "language": "yaml", "content": ""},
-            ],
-        })
+        app = self._app_with_stage(
+            "staging",
+            {
+                "generated_files": [
+                    {"path": "k8s.yaml", "language": "yaml", "content": ""},
+                ],
+            },
+        )
         panes = app._build_tabs()
         assert len(panes) >= 1
 
@@ -251,9 +320,7 @@ class TestBuildTabs:
 
 class TestPaneFactories:
     def test_table_pane(self) -> None:
-        pane = ApprovalReviewApp._table_pane(
-            "Test", "t1", ["Col1", "Col2"], [("a", "b")]
-        )
+        pane = ApprovalReviewApp._table_pane("Test", "t1", ["Col1", "Col2"], [("a", "b")])
         assert pane.id == "t1"
 
     def test_richlog_pane(self) -> None:
@@ -261,9 +328,7 @@ class TestPaneFactories:
         assert pane.id == "r1"
 
     def test_syntax_pane(self) -> None:
-        pane = ApprovalReviewApp._syntax_pane(
-            "Code", "s1", "print('hi')", "python"
-        )
+        pane = ApprovalReviewApp._syntax_pane("Code", "s1", "print('hi')", "python")
         assert pane.id == "s1"
 
     def test_text_pane(self) -> None:
@@ -272,16 +337,24 @@ class TestPaneFactories:
 
     def test_files_pane(self) -> None:
         app = ApprovalReviewApp(_make_approval())
-        pane = app._files_pane("Files", "f1", [
-            {"path": "a.py", "language": "python", "content": "x = 1"},
-        ])
+        pane = app._files_pane(
+            "Files",
+            "f1",
+            [
+                {"path": "a.py", "language": "python", "content": "x = 1"},
+            ],
+        )
         assert pane.id == "f1"
 
     def test_files_pane_empty_content(self) -> None:
         app = ApprovalReviewApp(_make_approval())
-        pane = app._files_pane("Files", "f2", [
-            {"path": "empty.py", "language": "python"},
-        ])
+        pane = app._files_pane(
+            "Files",
+            "f2",
+            [
+                {"path": "empty.py", "language": "python"},
+            ],
+        )
         assert pane.id == "f2"
 
 
@@ -290,26 +363,41 @@ class TestPaneFactories:
 
 class TestFormatAdrs:
     def test_basic_adr(self) -> None:
-        result = ApprovalReviewApp._format_adrs([
-            {"id": "ADR-1", "title": "Use REST", "status": "accepted"},
-        ])
+        result = ApprovalReviewApp._format_adrs(
+            [
+                {"id": "ADR-1", "title": "Use REST", "status": "accepted"},
+            ]
+        )
         assert "ADR-1" in result
         assert "Use REST" in result
         assert "accepted" in result
 
     def test_adr_with_context_and_decision(self) -> None:
-        result = ApprovalReviewApp._format_adrs([
-            {"id": "ADR-2", "title": "DB Choice", "status": "proposed",
-             "context": "Need ACID", "decision": "PostgreSQL"},
-        ])
+        result = ApprovalReviewApp._format_adrs(
+            [
+                {
+                    "id": "ADR-2",
+                    "title": "DB Choice",
+                    "status": "proposed",
+                    "context": "Need ACID",
+                    "decision": "PostgreSQL",
+                },
+            ]
+        )
         assert "Need ACID" in result
         assert "PostgreSQL" in result
 
     def test_adr_with_alternatives(self) -> None:
-        result = ApprovalReviewApp._format_adrs([
-            {"id": "ADR-3", "title": "API", "status": "accepted",
-             "alternatives": ["gRPC", "WebSocket"]},
-        ])
+        result = ApprovalReviewApp._format_adrs(
+            [
+                {
+                    "id": "ADR-3",
+                    "title": "API",
+                    "status": "accepted",
+                    "alternatives": ["gRPC", "WebSocket"],
+                },
+            ]
+        )
         assert "gRPC" in result
         assert "WebSocket" in result
 
@@ -319,9 +407,11 @@ class TestFormatAdrs:
 
     def test_adr_context_truncated(self) -> None:
         long_ctx = "x" * 500
-        formatted = ApprovalReviewApp._format_adrs([
-            {"id": "A", "title": "T", "status": "s", "context": long_ctx},
-        ])
+        formatted = ApprovalReviewApp._format_adrs(
+            [
+                {"id": "A", "title": "T", "status": "s", "context": long_ctx},
+            ]
+        )
         # Context should be truncated to 300 chars in the output
         assert long_ctx[:300] in formatted
         assert long_ctx[:301] not in formatted

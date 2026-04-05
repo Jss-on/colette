@@ -122,9 +122,7 @@ def test_submit_ctrl_c_shows_project_id(
 
 
 @patch("colette.cli._stream_progress")
-def test_status_follow_uses_stream_progress(
-    mock_stream: MagicMock, runner: CliRunner
-) -> None:
+def test_status_follow_uses_stream_progress(mock_stream: MagicMock, runner: CliRunner) -> None:
     """status --follow should delegate to _stream_progress."""
     result = runner.invoke(main, ["status", "proj-ccc", "--follow"])
     assert result.exit_code == 0
@@ -157,9 +155,7 @@ def test_submit_with_activity_flag(
     mock_client.post.return_value = mock_resp
     mock_client_cls.return_value = mock_client
 
-    result = runner.invoke(
-        main, ["submit", "-d", "Build app", "--activity", "conversation"]
-    )
+    result = runner.invoke(main, ["submit", "-d", "Build app", "--activity", "conversation"])
     assert result.exit_code == 0
     mock_stream.assert_called_once()
     _, kwargs = mock_stream.call_args
@@ -167,13 +163,9 @@ def test_submit_with_activity_flag(
 
 
 @patch("colette.cli._stream_progress")
-def test_status_follow_with_activity_flag(
-    mock_stream: MagicMock, runner: CliRunner
-) -> None:
+def test_status_follow_with_activity_flag(mock_stream: MagicMock, runner: CliRunner) -> None:
     """status --follow --activity=verbose should pass mode through."""
-    result = runner.invoke(
-        main, ["status", "proj-v", "--follow", "--activity", "verbose"]
-    )
+    result = runner.invoke(main, ["status", "proj-v", "--follow", "--activity", "verbose"])
     assert result.exit_code == 0
     mock_stream.assert_called_once()
     _, kwargs = mock_stream.call_args

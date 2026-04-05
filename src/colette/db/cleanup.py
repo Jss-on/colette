@@ -32,9 +32,7 @@ async def cleanup_stale_runs(session: AsyncSession) -> int:
     now = datetime.now(UTC)
 
     # ── 1. Find running pipeline runs before updating ──────────────────
-    stmt = select(PipelineRun.id, PipelineRun.project_id).where(
-        PipelineRun.status == "running"
-    )
+    stmt = select(PipelineRun.id, PipelineRun.project_id).where(PipelineRun.status == "running")
     result = await session.execute(stmt)
     stale_runs = result.all()
 
@@ -53,9 +51,7 @@ async def cleanup_stale_runs(session: AsyncSession) -> int:
 
     # ── 3. Bulk-update projects ────────────────────────────────────────
     await session.execute(
-        update(Project)
-        .where(Project.status == "running")
-        .values(status="interrupted")
+        update(Project).where(Project.status == "running").values(status="interrupted")
     )
 
     await session.commit()

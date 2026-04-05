@@ -629,7 +629,7 @@ All settings use the `COLETTE_` prefix and load from `.env` or environment varia
 | `COLETTE_DEFAULT_PLANNING_MODEL` | Planning/architecture (Opus) | `claude-opus-4-6-20250610` |
 | `COLETTE_DEFAULT_EXECUTION_MODEL` | Code generation (Sonnet) | `claude-sonnet-4-6-20250514` |
 | `COLETTE_DEFAULT_VALIDATION_MODEL` | Scanning/validation (Haiku) | `claude-haiku-4-5-20251001` |
-| `COLETTE_LITELLM_BASE_URL` | LiteLLM proxy URL | `http://localhost:4000` |
+| `COLETTE_OPENROUTER_API_KEY` | OpenRouter API key | `` |
 
 **Fallback chains** (tried in order on primary model failure):
 
@@ -1067,7 +1067,7 @@ src/colette/
   gates/                # Quality gate implementations
   human/                # Approval routing, confidence scoring
   tools/                # MCP tool wrappers
-  llm/                  # LiteLLM gateway, structured output, prompt caching, streaming
+  llm/                  # OpenRouter gateway, structured output, prompt caching, streaming
   security/             # RBAC, audit, secret filtering
   observability/        # Logging, OpenTelemetry tracing
 tests/

@@ -76,7 +76,7 @@ result = await invoke_structured(
 )
 ```
 
-This function: augments the system prompt with the JSON schema of `output_type`, sends the request via `llm/gateway.py` (LiteLLM-backed, with fallback chains), extracts JSON from the response, and validates it into the Pydantic model. A `ColletteCallbackHandler` is auto-attached for event emission.
+This function: augments the system prompt with the JSON schema of `output_type`, sends the request via `llm/gateway.py` (OpenRouter-backed, with fallback chains), extracts JSON from the response, and validates it into the Pydantic model. A `ColletteCallbackHandler` is auto-attached for event emission.
 
 ### LLM Gateway & Model Tiers
 
@@ -113,7 +113,7 @@ Each gate in `gates/` implements the `QualityGate` Protocol (async `evaluate(sta
 ## Key Directories
 
 - `src/colette/stages/<name>/` — each has `stage.py` (entry), `supervisor.py` (orchestrates agents), specialist agents, `prompts.py`
-- `src/colette/llm/` — gateway.py (LiteLLM + fallbacks), structured.py (typed output), registry.py (project status guard)
+- `src/colette/llm/` — gateway.py (OpenRouter + fallbacks), structured.py (typed output), registry.py (project status guard), embeddings.py (httpx-based)
 - `src/colette/orchestrator/` — pipeline.py (LangGraph DAG), runner.py (execution manager), state.py, event_bus.py, circuit_breaker.py
 - `src/colette/memory/` — manager.py (facade), project_memory.py (Mem0), knowledge_graph.py (Neo4j, null fallback), rag/ (indexer, retriever, evaluator, chunker), context/ (budget tracker, compactor)
 - `src/colette/api/` — FastAPI app with routes for projects, pipelines (SSE), approvals, artifacts, WebSocket

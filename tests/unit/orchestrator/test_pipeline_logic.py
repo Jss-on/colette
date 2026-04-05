@@ -217,9 +217,7 @@ class TestMakeStageNode:
             {"requirements": AsyncMock(return_value={"result": "ok"})},
         ):
             node = _make_stage_node("requirements", event_bus=bus)
-            result = await node(
-                {"project_id": "p1", "stage_statuses": {}, "started_at": ""}
-            )
+            result = await node({"project_id": "p1", "stage_statuses": {}, "started_at": ""})
         assert result == {"result": "ok"}
         assert bus.emit.call_count == 2  # STARTED + COMPLETED
 
@@ -232,9 +230,7 @@ class TestMakeStageNode:
         ):
             node = _make_stage_node("requirements", event_bus=bus)
             with pytest.raises(RuntimeError, match="boom"):
-                await node(
-                    {"project_id": "p1", "stage_statuses": {}, "started_at": ""}
-                )
+                await node({"project_id": "p1", "stage_statuses": {}, "started_at": ""})
         # STARTED + FAILED
         assert bus.emit.call_count == 2
 
@@ -245,9 +241,7 @@ class TestMakeStageNode:
             {"requirements": AsyncMock(return_value={"ok": True})},
         ):
             node = _make_stage_node("requirements", event_bus=None)
-            result = await node(
-                {"project_id": "p1", "stage_statuses": {}, "started_at": ""}
-            )
+            result = await node({"project_id": "p1", "stage_statuses": {}, "started_at": ""})
         assert result == {"ok": True}
 
 
@@ -268,7 +262,8 @@ class TestMakeGateNode:
         mock_result.failure_reasons = []
         mock_result.criteria_results = {}
         mock_result.model_dump.return_value = {
-            "passed": True, "score": 0.95,
+            "passed": True,
+            "score": 0.95,
         }
 
         registry = MagicMock(spec=GateRegistry)
@@ -276,19 +271,24 @@ class TestMakeGateNode:
         settings = Settings()
         bus = MagicMock()
 
-        with patch(
-            "colette.orchestrator.pipeline.evaluate_gate",
-            return_value=mock_result,
-        ), patch(
-            "colette.orchestrator.pipeline.determine_approval_action",
-            return_value="auto_approve",
+        with (
+            patch(
+                "colette.orchestrator.pipeline.evaluate_gate",
+                return_value=mock_result,
+            ),
+            patch(
+                "colette.orchestrator.pipeline.determine_approval_action",
+                return_value="auto_approve",
+            ),
         ):
             node = _make_gate_node("requirements", registry, settings, bus)
-            result = await node({
-                "project_id": "p1",
-                "quality_gate_results": {},
-                "started_at": "",
-            })
+            result = await node(
+                {
+                    "project_id": "p1",
+                    "quality_gate_results": {},
+                    "started_at": "",
+                }
+            )
 
         assert "requirements" in result["quality_gate_results"]
         # Should emit GATE_PASSED
@@ -304,7 +304,8 @@ class TestMakeGateNode:
         mock_result.score = 0.3
         mock_result.failure_reasons = ["low quality"]
         mock_result.model_dump.return_value = {
-            "passed": False, "score": 0.3,
+            "passed": False,
+            "score": 0.3,
         }
 
         registry = MagicMock(spec=GateRegistry)
@@ -316,11 +317,13 @@ class TestMakeGateNode:
             return_value=mock_result,
         ):
             node = _make_gate_node("requirements", registry, settings, bus)
-            result = await node({
-                "project_id": "p1",
-                "quality_gate_results": {},
-                "started_at": "",
-            })
+            result = await node(
+                {
+                    "project_id": "p1",
+                    "quality_gate_results": {},
+                    "started_at": "",
+                }
+            )
 
         gate_result = result["quality_gate_results"]["requirements"]
         assert gate_result["passed"] is False
@@ -337,7 +340,8 @@ class TestMakeGateNode:
         mock_result.failure_reasons = []
         mock_result.criteria_results = {}
         mock_result.model_dump.return_value = {
-            "passed": True, "score": 0.7,
+            "passed": True,
+            "score": 0.7,
         }
 
         registry = MagicMock(spec=GateRegistry)
@@ -348,25 +352,32 @@ class TestMakeGateNode:
         mock_approval.request_id = "req-123"
         mock_approval.model_dump.return_value = {"request_id": "req-123"}
 
-        with patch(
-            "colette.orchestrator.pipeline.evaluate_gate",
-            return_value=mock_result,
-        ), patch(
-            "colette.orchestrator.pipeline.determine_approval_action",
-            return_value="interrupt",
-        ), patch(
-            "colette.orchestrator.pipeline.create_approval_request",
-            return_value=mock_approval,
-        ), patch(
-            "colette.orchestrator.pipeline.interrupt",
-        ) as mock_interrupt:
+        with (
+            patch(
+                "colette.orchestrator.pipeline.evaluate_gate",
+                return_value=mock_result,
+            ),
+            patch(
+                "colette.orchestrator.pipeline.determine_approval_action",
+                return_value="interrupt",
+            ),
+            patch(
+                "colette.orchestrator.pipeline.create_approval_request",
+                return_value=mock_approval,
+            ),
+            patch(
+                "colette.orchestrator.pipeline.interrupt",
+            ) as mock_interrupt,
+        ):
             node = _make_gate_node("design", registry, settings, bus)
-            result = await node({
-                "project_id": "p1",
-                "quality_gate_results": {},
-                "started_at": "",
-                "handoffs": {},
-            })
+            result = await node(
+                {
+                    "project_id": "p1",
+                    "quality_gate_results": {},
+                    "started_at": "",
+                    "handoffs": {},
+                }
+            )
 
         mock_interrupt.assert_called_once()
         assert "approval_requests" in result
@@ -385,18 +396,23 @@ class TestMakeGateNode:
         registry = MagicMock(spec=GateRegistry)
         settings = Settings()
 
-        with patch(
-            "colette.orchestrator.pipeline.evaluate_gate",
-            return_value=mock_result,
-        ), patch(
-            "colette.orchestrator.pipeline.determine_approval_action",
-            return_value="auto_approve",
+        with (
+            patch(
+                "colette.orchestrator.pipeline.evaluate_gate",
+                return_value=mock_result,
+            ),
+            patch(
+                "colette.orchestrator.pipeline.determine_approval_action",
+                return_value="auto_approve",
+            ),
         ):
             node = _make_gate_node("testing", registry, settings, None)
-            result = await node({
-                "project_id": "p1",
-                "quality_gate_results": {},
-                "started_at": "",
-            })
+            result = await node(
+                {
+                    "project_id": "p1",
+                    "quality_gate_results": {},
+                    "started_at": "",
+                }
+            )
 
         assert result["quality_gate_results"]["testing"]["passed"] is True

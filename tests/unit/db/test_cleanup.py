@@ -37,9 +37,7 @@ def fresh_registry():
 
 class TestCleanupStaleRuns:
     @pytest.mark.asyncio
-    async def test_no_stale_runs_returns_zero(
-        self, fresh_registry: ProjectStatusRegistry
-    ) -> None:
+    async def test_no_stale_runs_returns_zero(self, fresh_registry: ProjectStatusRegistry) -> None:
         session = AsyncMock()
         result = MagicMock()
         result.all.return_value = []
@@ -49,9 +47,7 @@ class TestCleanupStaleRuns:
         assert count == 0
 
     @pytest.mark.asyncio
-    async def test_cleans_stale_runs(
-        self, fresh_registry: ProjectStatusRegistry
-    ) -> None:
+    async def test_cleans_stale_runs(self, fresh_registry: ProjectStatusRegistry) -> None:
         pid = uuid.uuid4()
         stale = [_FakeRow(uuid.uuid4(), pid)]
 
@@ -66,9 +62,7 @@ class TestCleanupStaleRuns:
         assert fresh_registry.get(str(pid)) == "interrupted"
 
     @pytest.mark.asyncio
-    async def test_marks_multiple_projects(
-        self, fresh_registry: ProjectStatusRegistry
-    ) -> None:
+    async def test_marks_multiple_projects(self, fresh_registry: ProjectStatusRegistry) -> None:
         pid1, pid2 = uuid.uuid4(), uuid.uuid4()
         stale = [
             _FakeRow(uuid.uuid4(), pid1),
@@ -88,9 +82,7 @@ class TestCleanupStaleRuns:
         assert fresh_registry.get(str(pid2)) == "interrupted"
 
     @pytest.mark.asyncio
-    async def test_calls_commit(
-        self, fresh_registry: ProjectStatusRegistry
-    ) -> None:
+    async def test_calls_commit(self, fresh_registry: ProjectStatusRegistry) -> None:
         stale = [_FakeRow(uuid.uuid4(), uuid.uuid4())]
 
         session = AsyncMock()

@@ -155,15 +155,12 @@ class HybridRetriever:
 
     async def _get_query_embedding(self, query: str) -> list[float]:
         """Generate embedding for the query text."""
-        try:
-            import litellm
+        from colette.llm.embeddings import generate_embeddings
 
-            response = await litellm.aembedding(
-                model=self._settings.embedding_model,
-                input=[query],
-            )
-            return list(response.data[0]["embedding"])
-        except Exception as exc:
-            from colette.memory.exceptions import MemoryBackendError
-
-            raise MemoryBackendError("embedding", str(exc)) from exc
+        vectors = await generate_embeddings(
+            [query],
+            model=self._settings.embedding_model,
+            api_key=self._settings.embeddings_api_key,
+            base_url=self._settings.embeddings_base_url,
+        )
+        return vectors[0]

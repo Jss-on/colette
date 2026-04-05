@@ -76,9 +76,7 @@ class TestConversationEntry:
         assert isinstance(e.timestamp, datetime)
 
     def test_frozen(self) -> None:
-        e = ConversationEntry(
-            agent_id="a", display_name="A", stage="design", message="hi"
-        )
+        e = ConversationEntry(agent_id="a", display_name="A", stage="design", message="hi")
         with pytest.raises(dataclasses.FrozenInstanceError):
             e.message = "changed"  # type: ignore[misc]
 
@@ -90,8 +88,11 @@ class TestAgentPresenceTracker:
     def test_update_agent_creates_new(self) -> None:
         tracker = AgentPresenceTracker()
         result = tracker.update_agent(
-            "proj-1", "agent.arch",
-            display_name="Architect", stage="design", state=AgentState.THINKING,
+            "proj-1",
+            "agent.arch",
+            display_name="Architect",
+            stage="design",
+            state=AgentState.THINKING,
         )
         assert result.agent_id == "agent.arch"
         assert result.state == AgentState.THINKING
@@ -101,10 +102,18 @@ class TestAgentPresenceTracker:
     def test_update_agent_replaces_existing(self) -> None:
         tracker = AgentPresenceTracker()
         tracker.update_agent(
-            "p", "a1", display_name="A1", stage="design", state=AgentState.THINKING,
+            "p",
+            "a1",
+            display_name="A1",
+            stage="design",
+            state=AgentState.THINKING,
         )
         tracker.update_agent(
-            "p", "a1", display_name="A1", stage="design", state=AgentState.DONE,
+            "p",
+            "a1",
+            display_name="A1",
+            stage="design",
+            state=AgentState.DONE,
         )
         agents = tracker.get_agents("p")
         assert len(agents) == 1
@@ -137,9 +146,7 @@ class TestAgentPresenceTracker:
         for i in range(55):
             tracker.add_conversation(
                 "p",
-                ConversationEntry(
-                    agent_id="a", display_name="A", stage="s", message=f"msg-{i}"
-                ),
+                ConversationEntry(agent_id="a", display_name="A", stage="s", message=f"msg-{i}"),
             )
         convo = tracker.get_conversation("p")
         assert len(convo) == 50
@@ -152,9 +159,7 @@ class TestAgentPresenceTracker:
         for i in range(60):
             tracker.add_conversation(
                 "p",
-                ConversationEntry(
-                    agent_id="a", display_name="A", stage="s", message=f"m{i}"
-                ),
+                ConversationEntry(agent_id="a", display_name="A", stage="s", message=f"m{i}"),
             )
         assert len(tracker.get_conversation("p")) == 50
 
@@ -163,9 +168,7 @@ class TestAgentPresenceTracker:
         for i in range(10):
             tracker.add_conversation(
                 "p",
-                ConversationEntry(
-                    agent_id="a", display_name="A", stage="s", message=f"m{i}"
-                ),
+                ConversationEntry(agent_id="a", display_name="A", stage="s", message=f"m{i}"),
             )
         convo = tracker.get_conversation("p")
         assert len(convo) == 5

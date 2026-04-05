@@ -65,9 +65,7 @@ def cli_console_renderer(
         tag_str += " "
 
     # Format remaining context as key=value (skip internal keys).
-    extra_parts = [
-        f"{k}={v}" for k, v in sorted(event_dict.items()) if not k.startswith("_")
-    ]
+    extra_parts = [f"{k}={v}" for k, v in sorted(event_dict.items()) if not k.startswith("_")]
     extra = " ".join(extra_parts)
 
     # Compose the line.
@@ -131,5 +129,5 @@ def configure_logging(
     root.setLevel(log_level.upper())
 
     # Quiet noisy third-party loggers
-    for name in ("httpx", "httpcore", "litellm", "opentelemetry"):
+    for name in ("httpx", "httpcore", "opentelemetry"):
         logging.getLogger(name).setLevel(logging.WARNING)

@@ -35,9 +35,7 @@ class TestProjectRepository:
     async def test_create(self) -> None:
         session = _mock_session()
         repo = ProjectRepository(session)
-        await repo.create(
-            name="Test", description="desc", user_request="build app"
-        )
+        await repo.create(name="Test", description="desc", user_request="build app")
         session.add.assert_called_once()
         session.flush.assert_awaited_once()
 
@@ -95,9 +93,7 @@ class TestPipelineRunRepository:
     async def test_create(self) -> None:
         session = _mock_session()
         repo = PipelineRunRepository(session)
-        await repo.create(
-            project_id=uuid.uuid4(), thread_id="t-1"
-        )
+        await repo.create(project_id=uuid.uuid4(), thread_id="t-1")
         session.add.assert_called_once()
 
     @pytest.mark.asyncio
@@ -307,9 +303,7 @@ class TestUserRepository:
     async def test_create(self) -> None:
         session = _mock_session()
         repo = UserRepository(session)
-        await repo.create(
-            username="alice", role="admin", api_key_hash="hash123"
-        )
+        await repo.create(username="alice", role="admin", api_key_hash="hash123")
         session.add.assert_called_once()
 
     @pytest.mark.asyncio

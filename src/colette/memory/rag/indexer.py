@@ -183,14 +183,12 @@ class PgVectorIndexer:
         self,
         texts: list[str],
     ) -> list[list[float]]:
-        """Generate embeddings via LiteLLM."""
-        try:
-            import litellm
+        """Generate embeddings via OpenAI-compatible API."""
+        from colette.llm.embeddings import generate_embeddings
 
-            response = await litellm.aembedding(
-                model=self._settings.embedding_model,
-                input=texts,
-            )
-            return [item["embedding"] for item in response.data]
-        except Exception as exc:
-            raise MemoryBackendError("embedding", str(exc)) from exc
+        return await generate_embeddings(
+            texts,
+            model=self._settings.embedding_model,
+            api_key=self._settings.embeddings_api_key,
+            base_url=self._settings.embeddings_base_url,
+        )

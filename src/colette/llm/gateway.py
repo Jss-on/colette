@@ -5,6 +5,8 @@ All LLM access in Colette goes through `create_chat_model()`.  This ensures:
 - Automatic failover via `with_fallbacks()` (FR-ORC-014)
 - Consistent configuration (timeout, retries, caching)
 - **Project status guard** — LLM calls are blocked for non-running projects
+
+All chat models are backed by OpenRouter via ``langchain-openrouter``.
 """
 
 from __future__ import annotations
@@ -71,72 +73,42 @@ class GuardedChatModel(BaseChatModel):
         return await self.inner._agenerate(messages, stop, run_manager, **kwargs)
 
 
-_litellm_configured = False
-
-
-def _ensure_litellm_configured() -> None:
-    """Set LiteLLM-level config (once).
-
-    We set ``num_retries=0`` at the LiteLLM layer to avoid double-retrying
-    (ChatLiteLLM already handles retries via its own ``max_retries``).
-    We also lower the default timeout and enable dropping params so
-    provider-specific kwargs don't cause errors on fallback models.
-    """
-    global _litellm_configured
-    if _litellm_configured:
-        return
-
-    import litellm
-
-    litellm.num_retries = 0  # prevent double-retry with ChatLiteLLM
-    litellm.request_timeout = 120  # type: ignore[attr-defined]
-    litellm.drop_params = True
-    _litellm_configured = True
-    logger.info("litellm_configured", num_retries=0)
-
-
 def _build_chat_model(
     model_name: str,
     *,
-    base_url: str | None = None,
+    api_key: str = "",
     timeout: int = 120,
     max_retries: int = 6,
 ) -> BaseChatModel:
-    """Instantiate a single ChatLiteLLM model.
-
-    We import inside the function so the module stays importable even
-    when ``langchain_community`` is not installed (e.g. during type-checking).
+    """Instantiate a single ChatOpenRouter model.
 
     Args:
-        model_name: LiteLLM model identifier (e.g. ``"anthropic/claude-sonnet-4-6"``).
-        base_url: Optional LiteLLM proxy base URL.
+        model_name: OpenRouter model identifier (e.g. ``"anthropic/claude-sonnet-4-6"``).
+        api_key: OpenRouter API key. Falls back to ``OPENROUTER_API_KEY`` env var.
         timeout: Request timeout in seconds.
         max_retries: Number of retries on transient failures.
 
     Returns:
         A configured :class:`BaseChatModel` instance.
     """
-    from langchain_community.chat_models import ChatLiteLLM
-
-    _ensure_litellm_configured()
+    from langchain_openrouter import ChatOpenRouter
 
     kwargs: dict[str, Any] = {
         "model": model_name,
         "max_retries": max_retries,
-        "request_timeout": timeout,
+        "timeout": timeout,
     }
-    if base_url:
-        kwargs["api_base"] = base_url
+    if api_key:
+        kwargs["openrouter_api_key"] = api_key
 
     logger.debug("building_chat_model", model=model_name, timeout=timeout)
-    model: BaseChatModel = ChatLiteLLM(**kwargs)
-    return model
+    return ChatOpenRouter(**kwargs)
 
 
 def _build_chain_with_fallbacks(
     chain: ModelChain,
     *,
-    base_url: str | None = None,
+    api_key: str = "",
     timeout: int = 120,
     max_retries: int = 2,
 ) -> BaseChatModel:
@@ -144,7 +116,7 @@ def _build_chain_with_fallbacks(
 
     Args:
         chain: Primary model name plus fallback alternatives.
-        base_url: Optional LiteLLM proxy base URL.
+        api_key: OpenRouter API key.
         timeout: Request timeout in seconds.
         max_retries: Number of retries on transient failures.
 
@@ -152,7 +124,7 @@ def _build_chain_with_fallbacks(
         A :class:`BaseChatModel`, optionally wrapped with fallback models.
     """
     primary = _build_chat_model(
-        chain.primary, base_url=base_url, timeout=timeout, max_retries=max_retries
+        chain.primary, api_key=api_key, timeout=timeout, max_retries=max_retries
     )
     if not chain.fallbacks:
         return primary
@@ -163,7 +135,7 @@ def _build_chain_with_fallbacks(
         fallbacks=chain.fallbacks,
     )
     fallback_models = [
-        _build_chat_model(name, base_url=base_url, timeout=timeout, max_retries=max_retries)
+        _build_chat_model(name, api_key=api_key, timeout=timeout, max_retries=max_retries)
         for name in chain.fallbacks
     ]
     return primary.with_fallbacks(fallback_models)  # type: ignore[return-value]
@@ -222,7 +194,7 @@ def create_chat_model(
         )
         model = _build_chat_model(
             agent_config.model_name,
-            base_url=settings.litellm_base_url,
+            api_key=settings.openrouter_api_key,
             timeout=settings.llm_timeout_seconds,
             max_retries=settings.llm_max_retries,
         )
@@ -240,7 +212,7 @@ def create_chat_model(
     )
     model = _build_chain_with_fallbacks(
         chain,
-        base_url=settings.litellm_base_url,
+        api_key=settings.openrouter_api_key,
         timeout=settings.llm_timeout_seconds,
         max_retries=settings.llm_max_retries,
     )
@@ -283,7 +255,7 @@ def create_chat_model_for_tier(
     )
     model = _build_chain_with_fallbacks(
         chain,
-        base_url=settings.litellm_base_url,
+        api_key=settings.openrouter_api_key,
         timeout=settings.llm_timeout_seconds,
         max_retries=settings.llm_max_retries,
     )

@@ -73,7 +73,7 @@ sequenceDiagram
     participant Struct as invoke_structured()
     participant Guard as GuardedChatModel
     participant Reg as ProjectStatusRegistry
-    participant LLM as LLM API (LiteLLM)
+    participant LLM as LLM API (OpenRouter)
     participant CB as ColletteCallbackHandler
 
     Graph->>SN: _stage_node(state)

@@ -46,9 +46,7 @@ class TestCliConsoleRenderer:
         result = cli_console_renderer(
             None,
             "info",
-            self._make_event(
-                stage="design", agent="architect", model="claude-sonnet"
-            ),
+            self._make_event(stage="design", agent="architect", model="claude-sonnet"),
         )
         assert "[stage:design]" in result
         assert "[agent:architect]" in result
@@ -81,9 +79,7 @@ class TestCliConsoleRenderer:
     def test_includes_log_level(self) -> None:
         from colette.observability.logging import cli_console_renderer
 
-        result = cli_console_renderer(
-            None, "info", self._make_event(log_level="warning")
-        )
+        result = cli_console_renderer(None, "info", self._make_event(log_level="warning"))
         assert "WARNING" in result
 
     def test_returns_string(self) -> None:
@@ -96,9 +92,7 @@ class TestCliConsoleRenderer:
         """Keys starting with _ should not appear in output."""
         from colette.observability.logging import cli_console_renderer
 
-        result = cli_console_renderer(
-            None, "info", self._make_event(_internal="secret")
-        )
+        result = cli_console_renderer(None, "info", self._make_event(_internal="secret"))
         assert "_internal" not in result
         assert "secret" not in result
 
@@ -135,12 +129,10 @@ class TestStageContextBinding:
         """requirements stage should call bind_contextvars with stage + project_id."""
         from unittest.mock import MagicMock
 
-        with patch(
-            "colette.stages.requirements.stage.structlog"
-        ) as mock_sl, patch(
-            "colette.stages.requirements.stage.supervise_requirements"
-        ) as mock_sup, patch(
-            "colette.stages.requirements.stage.Settings"
+        with (
+            patch("colette.stages.requirements.stage.structlog") as mock_sl,
+            patch("colette.stages.requirements.stage.supervise_requirements") as mock_sup,
+            patch("colette.stages.requirements.stage.Settings"),
         ):
             mock_sl.get_logger.return_value = MagicMock()
             mock_handoff = MagicMock()
@@ -150,30 +142,23 @@ class TestStageContextBinding:
 
             from colette.stages.requirements.stage import run_stage
 
-            await run_stage(
-                {"project_id": "proj-ctx", "user_request": "test"}
-            )
+            await run_stage({"project_id": "proj-ctx", "user_request": "test"})
 
         mock_sl.contextvars.bind_contextvars.assert_called_once_with(
             stage="requirements", project_id="proj-ctx"
         )
-        mock_sl.contextvars.unbind_contextvars.assert_called_once_with(
-            "stage", "project_id"
-        )
+        mock_sl.contextvars.unbind_contextvars.assert_called_once_with("stage", "project_id")
 
     @pytest.mark.asyncio
     async def test_design_stage_binds_context(self) -> None:
         """design stage should call bind_contextvars with stage + project_id."""
         from unittest.mock import MagicMock
 
-        with patch(
-            "colette.stages.design.stage.structlog"
-        ) as mock_sl, patch(
-            "colette.stages.design.stage.supervise_design"
-        ) as mock_sup, patch(
-            "colette.stages.design.stage.RequirementsToDesignHandoff"
-        ), patch(
-            "colette.stages.design.stage.Settings"
+        with (
+            patch("colette.stages.design.stage.structlog") as mock_sl,
+            patch("colette.stages.design.stage.supervise_design") as mock_sup,
+            patch("colette.stages.design.stage.RequirementsToDesignHandoff"),
+            patch("colette.stages.design.stage.Settings"),
         ):
             mock_sl.get_logger.return_value = MagicMock()
             mock_handoff = MagicMock()
@@ -192,32 +177,26 @@ class TestStageContextBinding:
         mock_sl.contextvars.bind_contextvars.assert_called_once_with(
             stage="design", project_id="proj-ctx2"
         )
-        mock_sl.contextvars.unbind_contextvars.assert_called_once_with(
-            "stage", "project_id"
-        )
+        mock_sl.contextvars.unbind_contextvars.assert_called_once_with("stage", "project_id")
 
     @pytest.mark.asyncio
     async def test_unbind_called_even_on_error(self) -> None:
         """contextvars should be unbound even if stage raises."""
         from unittest.mock import MagicMock
 
-        with patch(
-            "colette.stages.requirements.stage.structlog"
-        ) as mock_sl, patch(
-            "colette.stages.requirements.stage.supervise_requirements",
-            side_effect=RuntimeError("LLM failed"),
-        ), patch(
-            "colette.stages.requirements.stage.Settings"
+        with (
+            patch("colette.stages.requirements.stage.structlog") as mock_sl,
+            patch(
+                "colette.stages.requirements.stage.supervise_requirements",
+                side_effect=RuntimeError("LLM failed"),
+            ),
+            patch("colette.stages.requirements.stage.Settings"),
         ):
             mock_sl.get_logger.return_value = MagicMock()
 
             from colette.stages.requirements.stage import run_stage
 
             with pytest.raises(RuntimeError, match="LLM failed"):
-                await run_stage(
-                    {"project_id": "proj-err", "user_request": "test"}
-                )
+                await run_stage({"project_id": "proj-err", "user_request": "test"})
 
-        mock_sl.contextvars.unbind_contextvars.assert_called_once_with(
-            "stage", "project_id"
-        )
+        mock_sl.contextvars.unbind_contextvars.assert_called_once_with("stage", "project_id")

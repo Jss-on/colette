@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     )
 
     # ── LLM — primary models ────────────────────────────────────────
-    litellm_base_url: str = ""
+    openrouter_api_key: str = ""
     default_planning_model: str = "anthropic/claude-opus-4-6"
     default_execution_model: str = "anthropic/claude-sonnet-4-6"
     default_validation_model: str = "anthropic/claude-haiku-4-5"

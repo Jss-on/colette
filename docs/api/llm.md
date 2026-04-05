@@ -1,6 +1,6 @@
 # LLM Gateway
 
-Provider-agnostic LLM access via LiteLLM with fallback chains (FR-TL-006, FR-ORC-014).
+Provider-agnostic LLM access via OpenRouter with fallback chains (FR-TL-006, FR-ORC-014).
 
 ## Gateway Factory
 

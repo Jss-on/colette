@@ -80,7 +80,4 @@ class TestMonitoringStage:
             patch("colette.stages.monitoring.stage.Settings"),
         ):
             result = await monitoring_run(state)
-        assert (
-            result["stage_statuses"][StageName.MONITORING.value]
-            == StageStatus.COMPLETED.value
-        )
+        assert result["stage_statuses"][StageName.MONITORING.value] == StageStatus.COMPLETED.value
