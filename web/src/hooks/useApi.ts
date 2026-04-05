@@ -9,7 +9,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export function fetchProjects() {
-  return apiFetch<{ projects: Record<string, unknown>[] }>('/projects')
+  return apiFetch<{ data: Record<string, unknown>[]; total: number }>('/projects')
 }
 
 export function fetchAgents(projectId: string) {

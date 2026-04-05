@@ -18,10 +18,10 @@ export function ProjectList() {
 
   useEffect(() => {
     fetchProjects()
-      .then((data) => {
+      .then((res) => {
         setProjects(
-          (data.projects ?? []).map((p) => ({
-            id: (p.id as string) ?? '',
+          (res.data ?? []).map((p) => ({
+            id: String(p.id ?? ''),
             name: (p.name as string) ?? 'Untitled',
             description: (p.description as string) ?? '',
             status: (p.status as string) ?? 'unknown',
@@ -29,7 +29,10 @@ export function ProjectList() {
           }))
         )
       })
-      .catch(() => setProjects([]))
+      .catch((err) => {
+        console.error('Failed to fetch projects:', err)
+        setProjects([])
+      })
       .finally(() => setLoading(false))
   }, [])
 
