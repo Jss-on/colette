@@ -20,6 +20,7 @@ def settings() -> Settings:
         redis_url="redis://localhost:6379/1",
         debug=True,
         log_level="DEBUG",
+        use_atomic_generation=False,
     )
 
 
