@@ -1,0 +1,3453 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Multi-agent AI system for autonomous end-to-end software development">
+      
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Colette User Guide - Colette</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#colette-user-guide" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Colette" class="md-header__button md-logo" aria-label="Colette" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Colette
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Colette User Guide
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="deep-purple" data-md-color-accent="amber"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Jss-on/colette" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Jss-on/colette
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../getting-started/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Getting Started
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../architecture/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Architecture
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../api/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../Colette_Software_Requirements_Specification.md" class="md-tabs__link">
+          
+  
+  
+  Specifications
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Colette" class="md-nav__button md-logo" aria-label="Colette" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Colette
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Jss-on/colette" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Jss-on/colette
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/schemas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Schemas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/llm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LLM Gateway
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/orchestrator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Orchestrator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tools
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/observability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Observability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/config/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Specifications
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Specifications
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Colette_Software_Requirements_Specification.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Software Requirements
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../MultiAgent_SDLC_System_Architecture.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    System Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Complete_Guide_to_Building_AI_Agent_Systems.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implementation Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../development_phase_plan.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Phases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../requirements_traceability_matrix.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Requirements Traceability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#table-of-contents" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Table of Contents
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-it-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How It Works
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Installation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Installation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-clone-and-install" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Clone and install
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-create-environment-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Create environment file
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-configure-api-keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Configure API keys
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-start-backing-services" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Start backing services
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-verify-installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Verify installation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quick-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick Start
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Quick Start">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#example-build-a-todo-app" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: Build a Todo App
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cli-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CLI Reference
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="CLI Reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#global-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Global Options
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Commands
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Commands">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#colette-submit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        colette submit
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#colette-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        colette status
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#colette-approve" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        colette approve
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#colette-reject" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        colette reject
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#colette-resume" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        colette resume
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#colette-cancel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        colette cancel
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#colette-download" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        colette download
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#colette-logs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        colette logs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#colette-config-show" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        colette config show
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#colette-config-validate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        colette config validate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#colette-serve" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        colette serve
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#agent-activity-display" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Agent Activity Display
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#live-llm-output-streaming" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Live LLM Output Streaming
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#api-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Reference
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="API Reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentication
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#endpoints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Endpoints
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Endpoints">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#health" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Health
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#projects" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Projects
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pipelines" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pipelines
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#approvals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Approvals
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#artifacts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Artifacts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#websocket" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WebSocket
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#programmatic-usage-python" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Programmatic Usage (Python)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Programmatic Usage (Python)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#run-a-pipeline-directly" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Run a pipeline directly
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#skip-stages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Skip stages
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#monitor-progress" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Monitor progress
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resume-after-human-approval" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resume after human approval
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#custom-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom settings
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration Reference
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Configuration Reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#llm-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LLM Models
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#llm-cost-optimization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LLM Cost Optimization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#infrastructure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Infrastructure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#agent-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Agent Behavior
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#memory-rag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Memory &amp; RAG
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#human-in-the-loop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Human-in-the-Loop
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pipeline
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#security" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Security
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#api-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Server
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#observability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Observability
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pipeline-stages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pipeline Stages
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Pipeline Stages">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-requirements-stage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Requirements Stage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-design-stage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Design Stage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-implementation-stage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Implementation Stage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-testing-stage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Testing Stage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-deployment-stage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Deployment Stage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-monitoring-stage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Monitoring Stage
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#human-oversight" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Human Oversight
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Human Oversight">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#confidence-gating-t2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Confidence Gating (T2)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#responding-to-approvals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Responding to Approvals
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quality-gates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quality Gates
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#extending-colette" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Extending Colette
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Extending Colette">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#adding-a-new-agent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding a New Agent
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adding-a-new-quality-gate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding a New Quality Gate
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Troubleshooting
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pipeline-fails-at-a-stage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pipeline fails at a stage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quality-gate-blocks-progression" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quality gate blocks progression
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#llm-calls-fail" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LLM calls fail
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#server-wont-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Server won't start
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tests-fail-locally" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tests fail locally
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#docker-services-wont-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Docker services won't start
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#development" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Development
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Development">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#make-targets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Make targets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#project-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Project structure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#running-with-docker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running with Docker
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#current-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current Status
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="colette-user-guide">Colette User Guide<a class="headerlink" href="#colette-user-guide" title="Permanent link">&para;</a></h1>
+<p>Colette is a multi-agent AI system that turns a natural language description into a fully built web application -- from requirements through deployment. You interact with it via a CLI (like Claude Code) or REST API.</p>
+<h2 id="table-of-contents">Table of Contents<a class="headerlink" href="#table-of-contents" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="#how-it-works">How It Works</a></li>
+<li><a href="#prerequisites">Prerequisites</a></li>
+<li><a href="#installation">Installation</a></li>
+<li><a href="#quick-start">Quick Start</a></li>
+<li><a href="#cli-reference">CLI Reference</a></li>
+<li><a href="#agent-activity-display">Agent Activity Display</a></li>
+<li><a href="#live-llm-output-streaming">Live LLM Output Streaming</a></li>
+<li><a href="#api-reference">API Reference</a></li>
+<li><a href="#programmatic-usage-python">Programmatic Usage (Python)</a></li>
+<li><a href="#configuration-reference">Configuration Reference</a></li>
+<li><a href="#pipeline-stages">Pipeline Stages</a></li>
+<li><a href="#human-oversight">Human Oversight</a></li>
+<li><a href="#quality-gates">Quality Gates</a></li>
+<li><a href="#extending-colette">Extending Colette</a></li>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
+<li><a href="#development">Development</a></li>
+<li><a href="#current-status">Current Status</a></li>
+</ul>
+<hr />
+<h2 id="how-it-works">How It Works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h2>
+<p>You provide a description of the app you want. Colette runs it through a six-stage pipeline, each managed by a supervisor agent with specialist agents:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Your Request
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    |
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    v
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>1. Requirements --- Analyst + Domain Researcher
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    |                Produces: PRD, user stories, NFRs
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    v
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>2. Design --------- System Architect + API Designer + UI/UX Designer
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    |                Produces: architecture, OpenAPI spec, DB schema, UI components
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    v
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>3. Implementation -- Frontend Dev + Backend Dev + DB Engineer
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    |                Produces: React/Next.js code, API routes, migrations, seed data
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    v
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>4. Testing -------- Unit Tester + Integration Tester + Security Scanner
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    |                Produces: test suites, coverage report, security findings
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    v
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>5. Deployment ----- CI/CD Engineer + Infrastructure Engineer
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>    |                Produces: GitHub Actions, Dockerfiles, K8s manifests
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>    v
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>6. Monitoring ----- Observability Agent + Incident Response
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>                     Produces: dashboards, alerts, SLO tracking
+</code></pre></div>
+<p>Each stage passes its output to the next via a <strong>typed handoff schema</strong> -- structured Pydantic models, not free text. Quality gates between stages enforce minimum standards (coverage thresholds, no critical security findings, etc.).</p>
+<hr />
+<h2 id="prerequisites">Prerequisites<a class="headerlink" href="#prerequisites" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Version</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Python</td>
+<td>3.13+</td>
+<td>Runtime</td>
+</tr>
+<tr>
+<td><a href="https://docs.astral.sh/uv/">uv</a></td>
+<td>latest</td>
+<td>Package manager</td>
+</tr>
+<tr>
+<td>Docker + Docker Compose</td>
+<td>latest</td>
+<td>Dev services (PostgreSQL, Redis, Neo4j)</td>
+</tr>
+<tr>
+<td>LLM API key</td>
+<td>--</td>
+<td>At least one: Anthropic, OpenAI, or Google</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h2>
+<h3 id="1-clone-and-install">1. Clone and install<a class="headerlink" href="#1-clone-and-install" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/Jss-on/colette.git
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nb">cd</span><span class="w"> </span>colette
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># Install all dependencies (prod + dev)</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>make<span class="w"> </span>install
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># Or equivalently:</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>uv<span class="w"> </span>sync<span class="w"> </span>--all-extras
+</code></pre></div>
+<h3 id="2-create-environment-file">2. Create environment file<a class="headerlink" href="#2-create-environment-file" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>make<span class="w"> </span>dev
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="c1"># This copies .env.example to .env if .env doesn&#39;t exist</span>
+</code></pre></div>
+<h3 id="3-configure-api-keys">3. Configure API keys<a class="headerlink" href="#3-configure-api-keys" title="Permanent link">&para;</a></h3>
+<p>Edit <code>.env</code> and add at least one LLM provider key:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Required: at least one provider</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nv">ANTHROPIC_API_KEY</span><span class="o">=</span>sk-ant-...
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="nv">OPENAI_API_KEY</span><span class="o">=</span>sk-...
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="nv">GOOGLE_API_KEY</span><span class="o">=</span>AIza...
+</code></pre></div>
+<h3 id="4-start-backing-services">4. Start backing services<a class="headerlink" href="#4-start-backing-services" title="Permanent link">&para;</a></h3>
+<p>Colette uses PostgreSQL (with pgvector), Redis, and Neo4j:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>make<span class="w"> </span>docker-up
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="c1"># This runs: docker compose up -d</span>
+</code></pre></div>
+<p>Services started:</p>
+<table>
+<thead>
+<tr>
+<th>Service</th>
+<th>Port</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PostgreSQL (pgvector)</td>
+<td>5432</td>
+<td>Project data, pipeline state, vector search</td>
+</tr>
+<tr>
+<td>Redis</td>
+<td>6379</td>
+<td>Caching, rate limiting</td>
+</tr>
+<tr>
+<td>Neo4j</td>
+<td>7474 (HTTP), 7687 (Bolt)</td>
+<td>Knowledge graph</td>
+</tr>
+</tbody>
+</table>
+<h3 id="5-verify-installation">5. Verify installation<a class="headerlink" href="#5-verify-installation" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># Check CLI is installed</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>uv<span class="w"> </span>run<span class="w"> </span>colette<span class="w"> </span>--version
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="c1"># Run all quality checks</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>make<span class="w"> </span>check
+</code></pre></div>
+<hr />
+<h2 id="quick-start">Quick Start<a class="headerlink" href="#quick-start" title="Permanent link">&para;</a></h2>
+<h3 id="example-build-a-todo-app">Example: Build a Todo App<a class="headerlink" href="#example-build-a-todo-app" title="Permanent link">&para;</a></h3>
+<p><strong>Step 1 -- Start the API server</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>uv<span class="w"> </span>run<span class="w"> </span>colette<span class="w"> </span>serve
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="c1"># Server starts at http://localhost:8000</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="c1"># API docs at http://localhost:8000/api/v1/docs</span>
+</code></pre></div>
+<p><strong>Step 2 -- Submit a project via CLI</strong></p>
+<p>Open a new terminal:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>uv<span class="w"> </span>run<span class="w"> </span>colette<span class="w"> </span>submit<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span>--name<span class="w"> </span><span class="s2">&quot;my-todo-app&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span>--description<span class="w"> </span><span class="s2">&quot;Build a todo list web app with user registration and login (email + password), CRUD todos, mark as complete, filter by status (all/active/completed), PostgreSQL database, REST API with OpenAPI docs&quot;</span>
+</code></pre></div>
+<p>Or use interactive mode (type description, then press Ctrl+D / Ctrl+Z to submit):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>uv<span class="w"> </span>run<span class="w"> </span>colette<span class="w"> </span>submit<span class="w"> </span>--name<span class="w"> </span><span class="s2">&quot;my-todo-app&quot;</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="c1"># Type your description...</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="c1"># Press Ctrl+D (Unix) or Ctrl+Z (Windows) to submit</span>
+</code></pre></div>
+<p><strong>Step 3 -- Monitor progress</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># One-shot status check</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>uv<span class="w"> </span>run<span class="w"> </span>colette<span class="w"> </span>status<span class="w"> </span>&lt;project-id&gt;
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="c1"># Stream real-time progress (SSE)</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>uv<span class="w"> </span>run<span class="w"> </span>colette<span class="w"> </span>status<span class="w"> </span>&lt;project-id&gt;<span class="w"> </span>--follow
+</code></pre></div>
+<p><strong>Step 4 -- Handle approvals</strong></p>
+<p>When the pipeline hits a quality gate, it pauses and launches an interactive TUI where you can review the deliverables before deciding:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>╭─── Review Required ──────────────────────────────────────────────────────╮
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>│ Stage:  Design                                                           │
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>│ Score:  1.00                                                             │
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>│                                                                          │
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>│   API Endpoints:     13                                                  │
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>│   DB Entities:       3                                                   │
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>│   UI Components:     40                                                  │
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>│                                                                          │
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>│  [1] API Endpoints (13)                                                  │
+<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>│  [2] DB Entities (3)                                                     │
+<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>│  [3] Source Files (24)                                                   │
+<a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>│                                                                          │
+<a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a>│  [A] Approve   [R] Reject                                                │
+<a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a>╰──────────────────────────────────────────────────────────────────────────╯
+</code></pre></div>
+<p>The TUI (powered by Textual) lets you browse API endpoints, DB entities, UI components, source code files with syntax highlighting, and architecture decisions before approving or rejecting. Press <code>A</code> to approve, <code>R</code> to reject, or <code>Q</code> to quit.</p>
+<p>You can also approve/reject via separate commands:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># Approve</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>uv<span class="w"> </span>run<span class="w"> </span>colette<span class="w"> </span>approve<span class="w"> </span>&lt;approval-id&gt;<span class="w"> </span>--comment<span class="w"> </span><span class="s2">&quot;LGTM&quot;</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="c1"># Or reject</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>uv<span class="w"> </span>run<span class="w"> </span>colette<span class="w"> </span>reject<span class="w"> </span>&lt;approval-id&gt;<span class="w"> </span>--reason<span class="w"> </span><span class="s2">&quot;Needs security review&quot;</span>
+</code></pre></div>
+<p><strong>Step 5 -- Download artifacts</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>uv<span class="w"> </span>run<span class="w"> </span>colette<span class="w"> </span>download<span class="w"> </span>&lt;project-id&gt;
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="c1"># Extracts generated files to colette-&lt;id&gt;/</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="c1"># Or specify output directory</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>uv<span class="w"> </span>run<span class="w"> </span>colette<span class="w"> </span>download<span class="w"> </span>&lt;project-id&gt;<span class="w"> </span>--output<span class="w"> </span>./my-todo-app
+</code></pre></div>
+<p><strong>Step 6 -- View logs</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="c1"># All logs</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>uv<span class="w"> </span>run<span class="w"> </span>colette<span class="w"> </span>logs<span class="w"> </span>&lt;project-id&gt;
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="c1"># Filter by stage</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>uv<span class="w"> </span>run<span class="w"> </span>colette<span class="w"> </span>logs<span class="w"> </span>&lt;project-id&gt;<span class="w"> </span>--stage<span class="w"> </span>testing
+</code></pre></div>
+<hr />
+<h2 id="cli-reference">CLI Reference<a class="headerlink" href="#cli-reference" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>colette [OPTIONS] COMMAND [ARGS]
+</code></pre></div>
+<h3 id="global-options">Global Options<a class="headerlink" href="#global-options" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--version</code></td>
+<td>--</td>
+<td>Show version and exit</td>
+</tr>
+<tr>
+<td><code>--log-level</code></td>
+<td><code>INFO</code></td>
+<td>Logging level (DEBUG, INFO, WARNING, ERROR)</td>
+</tr>
+<tr>
+<td><code>--log-format</code></td>
+<td><code>json</code></td>
+<td>Log format: <code>json</code> or <code>console</code></td>
+</tr>
+<tr>
+<td><code>--api-url</code></td>
+<td><code>http://localhost:8000</code></td>
+<td>API server URL (env: <code>COLETTE_API_URL</code>)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="commands">Commands<a class="headerlink" href="#commands" title="Permanent link">&para;</a></h3>
+<h4 id="colette-submit"><code>colette submit</code><a class="headerlink" href="#colette-submit" title="Permanent link">&para;</a></h4>
+<p>Submit a new project for autonomous development.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>colette<span class="w"> </span>submit<span class="w"> </span><span class="o">[</span>--name<span class="w"> </span>NAME<span class="o">]</span><span class="w"> </span><span class="o">[</span>--description<span class="w"> </span>DESCRIPTION<span class="o">]</span><span class="w"> </span><span class="o">[</span>--activity<span class="w"> </span>MODE<span class="o">]</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>-n, --name</code></td>
+<td><code>Untitled</code></td>
+<td>Project name</td>
+</tr>
+<tr>
+<td><code>-d, --description</code></td>
+<td><em>(interactive)</em></td>
+<td>Project description in natural language</td>
+</tr>
+<tr>
+<td><code>--activity</code></td>
+<td><code>status</code></td>
+<td>Agent activity display mode (see <a href="#agent-activity-display">Agent Activity Display</a>)</td>
+</tr>
+</tbody>
+</table>
+<p>If <code>--description</code> is omitted, enters interactive mode where you type the description and press Ctrl+D/Ctrl+Z to submit.</p>
+<p>After submission, Colette automatically streams live progress inline -- no need for a second terminal. Press Ctrl+C to detach (the pipeline continues running; use <code>colette status &lt;id&gt; --follow</code> to reattach).</p>
+<h4 id="colette-status"><code>colette status</code><a class="headerlink" href="#colette-status" title="Permanent link">&para;</a></h4>
+<p>Check pipeline status for a project.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>colette<span class="w"> </span>status<span class="w"> </span>PROJECT_ID<span class="w"> </span><span class="o">[</span>--follow<span class="o">]</span><span class="w"> </span><span class="o">[</span>--activity<span class="w"> </span>MODE<span class="o">]</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>-f, --follow</code></td>
+<td>--</td>
+<td>Stream real-time progress (SSE for minimal/status, WebSocket for conversation/verbose)</td>
+</tr>
+<tr>
+<td><code>--activity</code></td>
+<td><code>status</code></td>
+<td>Agent activity display mode (with <code>--follow</code>, see <a href="#agent-activity-display">Agent Activity Display</a>)</td>
+</tr>
+</tbody>
+</table>
+<h4 id="colette-approve"><code>colette approve</code><a class="headerlink" href="#colette-approve" title="Permanent link">&para;</a></h4>
+<p>Approve a pending gate request.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>colette<span class="w"> </span>approve<span class="w"> </span>APPROVAL_ID<span class="w"> </span><span class="o">[</span>--comment<span class="w"> </span>COMMENT<span class="o">]</span>
+</code></pre></div>
+<h4 id="colette-reject"><code>colette reject</code><a class="headerlink" href="#colette-reject" title="Permanent link">&para;</a></h4>
+<p>Reject a pending gate request.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>colette<span class="w"> </span>reject<span class="w"> </span>APPROVAL_ID<span class="w"> </span><span class="o">[</span>--reason<span class="w"> </span>REASON<span class="o">]</span>
+</code></pre></div>
+<h4 id="colette-resume"><code>colette resume</code><a class="headerlink" href="#colette-resume" title="Permanent link">&para;</a></h4>
+<p>Resume an interrupted project (re-enables LLM calls).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>colette<span class="w"> </span>resume<span class="w"> </span>PROJECT_ID
+</code></pre></div>
+<p>When a server restarts, running pipelines are marked as "interrupted" and LLM calls are blocked. Use <code>resume</code> to reactivate a project and restart from the last completed stage.</p>
+<h4 id="colette-cancel"><code>colette cancel</code><a class="headerlink" href="#colette-cancel" title="Permanent link">&para;</a></h4>
+<p>Cancel a project permanently (blocks LLM calls, cannot be resumed).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>colette<span class="w"> </span>cancel<span class="w"> </span>PROJECT_ID
+</code></pre></div>
+<h4 id="colette-download"><code>colette download</code><a class="headerlink" href="#colette-download" title="Permanent link">&para;</a></h4>
+<p>Download generated artifacts for a project.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>colette<span class="w"> </span>download<span class="w"> </span>PROJECT_ID<span class="w"> </span><span class="o">[</span>--output<span class="w"> </span>DIR<span class="o">]</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>-o, --output</code></td>
+<td><code>colette-&lt;id&gt;</code></td>
+<td>Output directory</td>
+</tr>
+</tbody>
+</table>
+<h4 id="colette-logs"><code>colette logs</code><a class="headerlink" href="#colette-logs" title="Permanent link">&para;</a></h4>
+<p>View pipeline logs and progress events.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>colette<span class="w"> </span>logs<span class="w"> </span>PROJECT_ID<span class="w"> </span><span class="o">[</span>--stage<span class="w"> </span>STAGE<span class="o">]</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>-s, --stage</code></td>
+<td>Filter by stage name (requirements, design, implementation, testing, deployment, monitoring)</td>
+</tr>
+</tbody>
+</table>
+<h4 id="colette-config-show"><code>colette config show</code><a class="headerlink" href="#colette-config-show" title="Permanent link">&para;</a></h4>
+<p>Display current configuration with secrets redacted.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>colette<span class="w"> </span>config<span class="w"> </span>show
+</code></pre></div>
+<h4 id="colette-config-validate"><code>colette config validate</code><a class="headerlink" href="#colette-config-validate" title="Permanent link">&para;</a></h4>
+<p>Validate that all required settings are present.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>colette<span class="w"> </span>config<span class="w"> </span>validate
+</code></pre></div>
+<h4 id="colette-serve"><code>colette serve</code><a class="headerlink" href="#colette-serve" title="Permanent link">&para;</a></h4>
+<p>Start the Colette API server.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>colette<span class="w"> </span>serve<span class="w"> </span><span class="o">[</span>--host<span class="w"> </span>HOST<span class="o">]</span><span class="w"> </span><span class="o">[</span>--port<span class="w"> </span>PORT<span class="o">]</span><span class="w"> </span><span class="o">[</span>--workers<span class="w"> </span>N<span class="o">]</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--host</code></td>
+<td><code>0.0.0.0</code></td>
+<td>Bind host</td>
+</tr>
+<tr>
+<td><code>--port</code></td>
+<td><code>8000</code></td>
+<td>Bind port</td>
+</tr>
+<tr>
+<td><code>--workers</code></td>
+<td><code>1</code></td>
+<td>Number of uvicorn workers</td>
+</tr>
+</tbody>
+</table>
+<h3 id="agent-activity-display">Agent Activity Display<a class="headerlink" href="#agent-activity-display" title="Permanent link">&para;</a></h3>
+<p>The <code>--activity</code> flag controls how much agent detail is shown during live progress streaming (<code>colette submit</code> and <code>colette status --follow</code>).</p>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Shows</th>
+<th>Use case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>minimal</code></td>
+<td>Stage progress only (checkmarks, spinners)</td>
+<td>CI/scripting</td>
+</tr>
+<tr>
+<td><code>status</code> (default)</td>
+<td>Stage progress + active agent panel</td>
+<td>Normal use</td>
+</tr>
+<tr>
+<td><code>conversation</code></td>
+<td>Stage progress + agent panel + <strong>live LLM output</strong> + streaming log</td>
+<td>Debugging/curiosity</td>
+</tr>
+<tr>
+<td><code>verbose</code></td>
+<td>Full detail: progress + agents + <strong>live LLM output</strong> + streaming log + conversation feed</td>
+<td>Deep debugging</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Transport:</strong> <code>minimal</code> and <code>status</code> modes use SSE (Server-Sent Events). <code>conversation</code> and <code>verbose</code> modes automatically upgrade to <strong>WebSocket</strong> for real-time token-level streaming of LLM output.</p>
+<p><strong>Example: <code>--activity=status</code> (default)</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a> [✓] Requirements (23s)
+<a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a> [&gt;] Design — 2 agents active
+<a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a> [ ] Implementation
+<a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a> [ ] Testing
+<a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a> [ ] Deployment
+<a id="__codelineno-26-6" name="__codelineno-26-6" href="#__codelineno-26-6"></a> [ ] Monitoring
+<a id="__codelineno-26-7" name="__codelineno-26-7" href="#__codelineno-26-7"></a>
+<a id="__codelineno-26-8" name="__codelineno-26-8" href="#__codelineno-26-8"></a> Agent Activity
+<a id="__codelineno-26-9" name="__codelineno-26-9" href="#__codelineno-26-9"></a> ● System Architect    thinking   Designing database schema for user auth...
+<a id="__codelineno-26-10" name="__codelineno-26-10" href="#__codelineno-26-10"></a> ● API Designer        idle
+</code></pre></div>
+<p><strong>Example: <code>--activity=conversation</code></strong></p>
+<p>Adds a real-time streaming log panel below the agent panel, showing agent thinking, output, tool calls, token usage, and cache hit info:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a> ╭─ Agent Stream ──────────────────────────────────────────────────────────╮
+<a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a> │ Time       Agent                  Event        Output                   │
+<a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a> │ 14:02:31   ArchitectureResult     thinking     Analyzing: System: You   │
+<a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a> │                                                are the System Archit... │
+<a id="__codelineno-27-5" name="__codelineno-27-5" href="#__codelineno-27-5"></a> │ 14:02:58   ArchitectureResult     message      3 services, 12 endpoi   │
+<a id="__codelineno-27-6" name="__codelineno-27-6" href="#__codelineno-27-6"></a> │                                                nts (4,230tok, cache:    │
+<a id="__codelineno-27-7" name="__codelineno-27-7" href="#__codelineno-27-7"></a> │                                                3,100)                   │
+<a id="__codelineno-27-8" name="__codelineno-27-8" href="#__codelineno-27-8"></a> │ 14:03:01   APIDesignResult        thinking     Analyzing: Given a PRD   │
+<a id="__codelineno-27-9" name="__codelineno-27-9" href="#__codelineno-27-9"></a> │                                                and architecture...      │
+<a id="__codelineno-27-10" name="__codelineno-27-10" href="#__codelineno-27-10"></a> │ 14:03:15   APIDesignResult        tool call    Using tool: openapi_va   │
+<a id="__codelineno-27-11" name="__codelineno-27-11" href="#__codelineno-27-11"></a> │                                                lidator                  │
+<a id="__codelineno-27-12" name="__codelineno-27-12" href="#__codelineno-27-12"></a> ╰─────────────────────────────────────────────────────────────────────────╯
+</code></pre></div>
+<p>The streaming log shows up to 30 entries and displays token counts with cache savings inline.</p>
+<p><strong>Example: <code>--activity=verbose</code></strong></p>
+<p>Shows everything from <code>conversation</code> mode plus a scrolling conversation feed with agent-to-agent handoffs:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a> Conversation
+<a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a> 14:02:31  Design Supervisor → System Architect
+<a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a>           &quot;Generate system architecture for auth module.&quot;
+<a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a>
+<a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a> 14:02:58  System Architect → API Designer
+<a id="__codelineno-28-6" name="__codelineno-28-6" href="#__codelineno-28-6"></a>           Handed off: system_architecture.yaml (3 services, 12 endpoints)
+</code></pre></div>
+<p>The conversation feed is a ring buffer (last 50 messages) to keep memory bounded.</p>
+<h3 id="live-llm-output-streaming">Live LLM Output Streaming<a class="headerlink" href="#live-llm-output-streaming" title="Permanent link">&para;</a></h3>
+<p>In <code>conversation</code> and <code>verbose</code> modes, Colette streams LLM tokens in real-time via WebSocket. As agents generate their responses, the raw output appears in a <strong>Live Output</strong> panel:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>╭─ Live Output ────────────────────────────────────────────────────────────╮
+<a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>│ ArchitectureResult                                                        │
+<a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a>│ {                                                                         │
+<a id="__codelineno-29-4" name="__codelineno-29-4" href="#__codelineno-29-4"></a>│   &quot;project_overview&quot;: &quot;A full-stack todo application with user            │
+<a id="__codelineno-29-5" name="__codelineno-29-5" href="#__codelineno-29-5"></a>│   authentication, CRUD operations, and filtering capabilities...&quot;,        │
+<a id="__codelineno-29-6" name="__codelineno-29-6" href="#__codelineno-29-6"></a>│   &quot;tech_stack&quot;: {                                                         │
+<a id="__codelineno-29-7" name="__codelineno-29-7" href="#__codelineno-29-7"></a>│     &quot;frontend&quot;: &quot;React 18 with TypeScript&quot;,                               │
+<a id="__codelineno-29-8" name="__codelineno-29-8" href="#__codelineno-29-8"></a>│     &quot;backend&quot;: &quot;Python 3.12 + FastAPI&quot;,                                   │
+<a id="__codelineno-29-9" name="__codelineno-29-9" href="#__codelineno-29-9"></a>│     &quot;database&quot;: &quot;PostgreSQL 16&quot;                                           │
+<a id="__codelineno-29-10" name="__codelineno-29-10" href="#__codelineno-29-10"></a>│   },                                                                      │
+<a id="__codelineno-29-11" name="__codelineno-29-11" href="#__codelineno-29-11"></a>│   &quot;services&quot;: [                                                           │
+<a id="__codelineno-29-12" name="__codelineno-29-12" href="#__codelineno-29-12"></a>│     {&quot;name&quot;: &quot;auth-service&quot;, &quot;responsibilities&quot;: [&quot;user regist            │
+<a id="__codelineno-29-13" name="__codelineno-29-13" href="#__codelineno-29-13"></a>╰──────────────────────────────────────────────────────────────────────────╯
+</code></pre></div>
+<p><strong>How it works:</strong>
+- The LLM callback handler batches tokens every 50ms and emits <code>AGENT_STREAM_CHUNK</code> events
+- These events flow through the event bus to the WebSocket endpoint
+- The CLI maintains a per-agent rolling text buffer (last 2000 chars) that clears when the final response arrives
+- The Live Output panel refreshes at 8fps for smooth display</p>
+<p><strong>When streaming is active:</strong>
+- <code>invoke_structured()</code> uses <code>model.astream()</code> instead of <code>model.ainvoke()</code>
+- Tokens are streamed for display while the full response is accumulated for JSON parsing
+- Token batching (50ms) prevents event bus flooding on fast models</p>
+<hr />
+<h2 id="api-reference">API Reference<a class="headerlink" href="#api-reference" title="Permanent link">&para;</a></h2>
+<p>The REST API is available when the server is running (<code>colette serve</code>). Interactive docs at <code>/api/v1/docs</code> (Swagger) and <code>/api/v1/redoc</code>.</p>
+<h3 id="authentication">Authentication<a class="headerlink" href="#authentication" title="Permanent link">&para;</a></h3>
+<p>All API requests require the <code>X-API-Key</code> header:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>curl<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;X-API-Key: your-key&quot;</span><span class="w"> </span>http://localhost:8000/api/v1/projects
+</code></pre></div>
+<h3 id="endpoints">Endpoints<a class="headerlink" href="#endpoints" title="Permanent link">&para;</a></h3>
+<h4 id="health">Health<a class="headerlink" href="#health" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td><code>/health</code></td>
+<td>Health check</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/health/ready</code></td>
+<td>Readiness check</td>
+</tr>
+</tbody>
+</table>
+<h4 id="projects">Projects<a class="headerlink" href="#projects" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>POST</td>
+<td><code>/api/v1/projects</code></td>
+<td>Create project and start pipeline</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/projects</code></td>
+<td>List projects (paginated)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/projects/{id}</code></td>
+<td>Get project by ID</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Create project request:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="p">{</span>
+<a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a><span class="w">  </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;my-todo-app&quot;</span><span class="p">,</span>
+<a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a><span class="w">  </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;A todo list web application&quot;</span><span class="p">,</span>
+<a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a><span class="w">  </span><span class="nt">&quot;user_request&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Build a todo list web app with user auth, CRUD, filtering&quot;</span>
+<a id="__codelineno-31-5" name="__codelineno-31-5" href="#__codelineno-31-5"></a><span class="p">}</span>
+</code></pre></div>
+<h4 id="pipelines">Pipelines<a class="headerlink" href="#pipelines" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/projects/{id}/pipeline</code></td>
+<td>Get pipeline status</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/projects/{id}/pipeline/events</code></td>
+<td>SSE stream of progress events</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v1/projects/{id}/pipeline/resume</code></td>
+<td>Resume paused pipeline</td>
+</tr>
+</tbody>
+</table>
+<h4 id="approvals">Approvals<a class="headerlink" href="#approvals" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>POST</td>
+<td><code>/api/v1/approvals/{id}/approve</code></td>
+<td>Approve gate request</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v1/approvals/{id}/reject</code></td>
+<td>Reject gate request</td>
+</tr>
+</tbody>
+</table>
+<h4 id="artifacts">Artifacts<a class="headerlink" href="#artifacts" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/projects/{id}/artifacts/download</code></td>
+<td>Download artifacts as zip</td>
+</tr>
+</tbody>
+</table>
+<h4 id="websocket">WebSocket<a class="headerlink" href="#websocket" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/api/v1/projects/{project_id}/ws</code></td>
+<td>Real-time pipeline events (event-bus-driven, includes <code>AGENT_STREAM_CHUNK</code>)</td>
+</tr>
+</tbody>
+</table>
+<p>The WebSocket endpoint subscribes to the event bus and forwards all events as JSON frames, including live LLM token chunks. It sends catch-up events on reconnection and heartbeat pings every few seconds to keep the connection alive. This is the preferred transport for <code>conversation</code> and <code>verbose</code> display modes.</p>
+<hr />
+<h2 id="programmatic-usage-python">Programmatic Usage (Python)<a class="headerlink" href="#programmatic-usage-python" title="Permanent link">&para;</a></h2>
+<h3 id="run-a-pipeline-directly">Run a pipeline directly<a class="headerlink" href="#run-a-pipeline-directly" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">colette.orchestrator.runner</span><span class="w"> </span><span class="kn">import</span> <span class="n">PipelineRunner</span>
+<a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a>
+<a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+<a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a>    <span class="n">runner</span> <span class="o">=</span> <span class="n">PipelineRunner</span><span class="p">()</span>
+<a id="__codelineno-32-6" name="__codelineno-32-6" href="#__codelineno-32-6"></a>
+<a id="__codelineno-32-7" name="__codelineno-32-7" href="#__codelineno-32-7"></a>    <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">runner</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+<a id="__codelineno-32-8" name="__codelineno-32-8" href="#__codelineno-32-8"></a>        <span class="s2">&quot;my-todo-app&quot;</span><span class="p">,</span>
+<a id="__codelineno-32-9" name="__codelineno-32-9" href="#__codelineno-32-9"></a>        <span class="n">user_request</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<a id="__codelineno-32-10" name="__codelineno-32-10" href="#__codelineno-32-10"></a><span class="s2">        Build a todo list web application with:</span>
+<a id="__codelineno-32-11" name="__codelineno-32-11" href="#__codelineno-32-11"></a><span class="s2">        - User registration and login (email + password)</span>
+<a id="__codelineno-32-12" name="__codelineno-32-12" href="#__codelineno-32-12"></a><span class="s2">        - Create, read, update, delete todos</span>
+<a id="__codelineno-32-13" name="__codelineno-32-13" href="#__codelineno-32-13"></a><span class="s2">        - Mark todos as complete</span>
+<a id="__codelineno-32-14" name="__codelineno-32-14" href="#__codelineno-32-14"></a><span class="s2">        - Filter by status (all, active, completed)</span>
+<a id="__codelineno-32-15" name="__codelineno-32-15" href="#__codelineno-32-15"></a><span class="s2">        - PostgreSQL database</span>
+<a id="__codelineno-32-16" name="__codelineno-32-16" href="#__codelineno-32-16"></a><span class="s2">        - REST API with OpenAPI documentation</span>
+<a id="__codelineno-32-17" name="__codelineno-32-17" href="#__codelineno-32-17"></a><span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+<a id="__codelineno-32-18" name="__codelineno-32-18" href="#__codelineno-32-18"></a>    <span class="p">)</span>
+<a id="__codelineno-32-19" name="__codelineno-32-19" href="#__codelineno-32-19"></a>
+<a id="__codelineno-32-20" name="__codelineno-32-20" href="#__codelineno-32-20"></a>    <span class="c1"># Result contains the full pipeline state</span>
+<a id="__codelineno-32-21" name="__codelineno-32-21" href="#__codelineno-32-21"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Status: </span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;stage_statuses&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-32-22" name="__codelineno-32-22" href="#__codelineno-32-22"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Completed: </span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;completed_at&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-32-23" name="__codelineno-32-23" href="#__codelineno-32-23"></a>
+<a id="__codelineno-32-24" name="__codelineno-32-24" href="#__codelineno-32-24"></a>    <span class="c1"># Access handoffs from each stage</span>
+<a id="__codelineno-32-25" name="__codelineno-32-25" href="#__codelineno-32-25"></a>    <span class="n">requirements</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;handoffs&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;requirements&quot;</span><span class="p">)</span>
+<a id="__codelineno-32-26" name="__codelineno-32-26" href="#__codelineno-32-26"></a>    <span class="n">design</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;handoffs&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;design&quot;</span><span class="p">)</span>
+<a id="__codelineno-32-27" name="__codelineno-32-27" href="#__codelineno-32-27"></a>    <span class="n">implementation</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;handoffs&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;implementation&quot;</span><span class="p">)</span>
+<a id="__codelineno-32-28" name="__codelineno-32-28" href="#__codelineno-32-28"></a>    <span class="n">testing</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;handoffs&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;testing&quot;</span><span class="p">)</span>
+<a id="__codelineno-32-29" name="__codelineno-32-29" href="#__codelineno-32-29"></a>    <span class="n">deployment</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;handoffs&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;deployment&quot;</span><span class="p">)</span>
+<a id="__codelineno-32-30" name="__codelineno-32-30" href="#__codelineno-32-30"></a>
+<a id="__codelineno-32-31" name="__codelineno-32-31" href="#__codelineno-32-31"></a><span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
+</code></pre></div>
+<h3 id="skip-stages">Skip stages<a class="headerlink" href="#skip-stages" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">runner</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+<a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a>    <span class="s2">&quot;my-app&quot;</span><span class="p">,</span>
+<a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a>    <span class="n">user_request</span><span class="o">=</span><span class="s2">&quot;...&quot;</span><span class="p">,</span>
+<a id="__codelineno-33-4" name="__codelineno-33-4" href="#__codelineno-33-4"></a>    <span class="n">skip_stages</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;monitoring&quot;</span><span class="p">],</span>  <span class="c1"># skip monitoring stage</span>
+<a id="__codelineno-33-5" name="__codelineno-33-5" href="#__codelineno-33-5"></a><span class="p">)</span>
+</code></pre></div>
+<h3 id="monitor-progress">Monitor progress<a class="headerlink" href="#monitor-progress" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="c1"># Check if a pipeline is running</span>
+<a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a><span class="n">runner</span><span class="o">.</span><span class="n">is_active</span><span class="p">(</span><span class="s2">&quot;my-app&quot;</span><span class="p">)</span>
+<a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a>
+<a id="__codelineno-34-4" name="__codelineno-34-4" href="#__codelineno-34-4"></a><span class="c1"># Get current progress</span>
+<a id="__codelineno-34-5" name="__codelineno-34-5" href="#__codelineno-34-5"></a><span class="n">progress</span> <span class="o">=</span> <span class="k">await</span> <span class="n">runner</span><span class="o">.</span><span class="n">get_progress</span><span class="p">(</span><span class="s2">&quot;my-app&quot;</span><span class="p">)</span>
+<a id="__codelineno-34-6" name="__codelineno-34-6" href="#__codelineno-34-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">progress</span><span class="o">.</span><span class="n">stage</span><span class="p">,</span> <span class="n">progress</span><span class="o">.</span><span class="n">status</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="resume-after-human-approval">Resume after human approval<a class="headerlink" href="#resume-after-human-approval" title="Permanent link">&para;</a></h3>
+<p>When a stage requires human approval (T0/T1 tier), the pipeline pauses:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">runner</span><span class="o">.</span><span class="n">resume</span><span class="p">(</span>
+<a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a>    <span class="s2">&quot;my-app&quot;</span><span class="p">,</span>
+<a id="__codelineno-35-3" name="__codelineno-35-3" href="#__codelineno-35-3"></a>    <span class="n">update_values</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;approval_decisions&quot;</span><span class="p">:</span> <span class="p">[</span>
+<a id="__codelineno-35-4" name="__codelineno-35-4" href="#__codelineno-35-4"></a>        <span class="p">{</span>
+<a id="__codelineno-35-5" name="__codelineno-35-5" href="#__codelineno-35-5"></a>            <span class="s2">&quot;request_id&quot;</span><span class="p">:</span> <span class="s2">&quot;...&quot;</span><span class="p">,</span>
+<a id="__codelineno-35-6" name="__codelineno-35-6" href="#__codelineno-35-6"></a>            <span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="s2">&quot;approved&quot;</span><span class="p">,</span>
+<a id="__codelineno-35-7" name="__codelineno-35-7" href="#__codelineno-35-7"></a>            <span class="s2">&quot;reviewer_id&quot;</span><span class="p">:</span> <span class="s2">&quot;you@example.com&quot;</span><span class="p">,</span>
+<a id="__codelineno-35-8" name="__codelineno-35-8" href="#__codelineno-35-8"></a>            <span class="s2">&quot;comments&quot;</span><span class="p">:</span> <span class="s2">&quot;LGTM&quot;</span><span class="p">,</span>
+<a id="__codelineno-35-9" name="__codelineno-35-9" href="#__codelineno-35-9"></a>        <span class="p">}</span>
+<a id="__codelineno-35-10" name="__codelineno-35-10" href="#__codelineno-35-10"></a>    <span class="p">]},</span>
+<a id="__codelineno-35-11" name="__codelineno-35-11" href="#__codelineno-35-11"></a><span class="p">)</span>
+</code></pre></div>
+<h3 id="custom-settings">Custom settings<a class="headerlink" href="#custom-settings" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">colette.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">Settings</span>
+<a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a>
+<a id="__codelineno-36-3" name="__codelineno-36-3" href="#__codelineno-36-3"></a><span class="n">settings</span> <span class="o">=</span> <span class="n">Settings</span><span class="p">(</span>
+<a id="__codelineno-36-4" name="__codelineno-36-4" href="#__codelineno-36-4"></a>    <span class="n">default_execution_model</span><span class="o">=</span><span class="s2">&quot;gpt-5.4-mini&quot;</span><span class="p">,</span>
+<a id="__codelineno-36-5" name="__codelineno-36-5" href="#__codelineno-36-5"></a>    <span class="n">agent_timeout_seconds</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span>
+<a id="__codelineno-36-6" name="__codelineno-36-6" href="#__codelineno-36-6"></a>    <span class="n">supervisor_context_budget</span><span class="o">=</span><span class="mi">80_000</span><span class="p">,</span>
+<a id="__codelineno-36-7" name="__codelineno-36-7" href="#__codelineno-36-7"></a><span class="p">)</span>
+<a id="__codelineno-36-8" name="__codelineno-36-8" href="#__codelineno-36-8"></a><span class="n">runner</span> <span class="o">=</span> <span class="n">PipelineRunner</span><span class="p">(</span><span class="n">settings</span><span class="o">=</span><span class="n">settings</span><span class="p">)</span>
+</code></pre></div>
+<hr />
+<h2 id="configuration-reference">Configuration Reference<a class="headerlink" href="#configuration-reference" title="Permanent link">&para;</a></h2>
+<p>All settings use the <code>COLETTE_</code> prefix and load from <code>.env</code> or environment variables.</p>
+<h3 id="llm-models">LLM Models<a class="headerlink" href="#llm-models" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>COLETTE_DEFAULT_PLANNING_MODEL</code></td>
+<td>Planning/architecture (Opus)</td>
+<td><code>claude-opus-4-6-20250610</code></td>
+</tr>
+<tr>
+<td><code>COLETTE_DEFAULT_EXECUTION_MODEL</code></td>
+<td>Code generation (Sonnet)</td>
+<td><code>claude-sonnet-4-6-20250514</code></td>
+</tr>
+<tr>
+<td><code>COLETTE_DEFAULT_VALIDATION_MODEL</code></td>
+<td>Scanning/validation (Haiku)</td>
+<td><code>claude-haiku-4-5-20251001</code></td>
+</tr>
+<tr>
+<td><code>COLETTE_OPENROUTER_API_KEY</code></td>
+<td>OpenRouter API key</td>
+<td>``</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Fallback chains</strong> (tried in order on primary model failure):</p>
+<table>
+<thead>
+<tr>
+<th>Tier</th>
+<th>Primary</th>
+<th>Fallback 1</th>
+<th>Fallback 2</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Planning</td>
+<td>Claude Opus</td>
+<td>GPT-5.4</td>
+<td>Gemini 2.5 Pro</td>
+</tr>
+<tr>
+<td>Execution</td>
+<td>Claude Sonnet</td>
+<td>GPT-5.4 Mini</td>
+<td>Gemini 2.5 Flash</td>
+</tr>
+<tr>
+<td>Validation</td>
+<td>Claude Haiku</td>
+<td>GPT-5.4 Mini</td>
+<td>Gemini 2.5 Flash</td>
+</tr>
+</tbody>
+</table>
+<h3 id="llm-cost-optimization">LLM Cost Optimization<a class="headerlink" href="#llm-cost-optimization" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>COLETTE_PROMPT_CACHING_ENABLED</code></td>
+<td>Enable Anthropic prompt caching (90% savings on cached reads)</td>
+<td><code>true</code></td>
+</tr>
+<tr>
+<td><code>COLETTE_LLM_TIMEOUT_SECONDS</code></td>
+<td>LLM request timeout</td>
+<td><code>120</code></td>
+</tr>
+<tr>
+<td><code>COLETTE_LLM_MAX_RETRIES</code></td>
+<td>Retries on transient failure</td>
+<td><code>2</code></td>
+</tr>
+<tr>
+<td><code>COLETTE_LLM_MAX_CONCURRENCY</code></td>
+<td>Max concurrent LLM calls (prevents rate-limit storms)</td>
+<td><code>2</code></td>
+</tr>
+<tr>
+<td><code>COLETTE_COST_OVERRUN_MULTIPLIER</code></td>
+<td>Alert when agent cost exceeds baseline x this</td>
+<td><code>2.0</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Prompt caching:</strong> When enabled, system prompts (including JSON schemas) are marked with Anthropic's <code>cache_control: ephemeral</code>. The first call writes to cache (1.25x cost), subsequent calls within 5 minutes read from cache at 0.1x cost. This is especially effective for Colette's agents since each output type uses the same system prompt + schema across calls.</p>
+<p><strong>Three-tier model selection</strong> automatically routes to the right cost/capability tradeoff:
+- <strong>Planning tier</strong> (Opus): supervisors, architects -- highest reasoning quality
+- <strong>Execution tier</strong> (Sonnet): all code-generating agents -- best code quality/cost ratio
+- <strong>Validation tier</strong> (Haiku): scanners, validators -- cheapest for simple checks</p>
+<h3 id="infrastructure">Infrastructure<a class="headerlink" href="#infrastructure" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>COLETTE_DATABASE_URL</code></td>
+<td>PostgreSQL connection</td>
+<td><code>postgresql+asyncpg://colette:colette@localhost:5432/colette</code></td>
+</tr>
+<tr>
+<td><code>COLETTE_REDIS_URL</code></td>
+<td>Redis connection</td>
+<td><code>redis://localhost:6379/0</code></td>
+</tr>
+<tr>
+<td><code>COLETTE_NEO4J_URI</code></td>
+<td>Neo4j URI</td>
+<td><code>bolt://localhost:7687</code></td>
+</tr>
+<tr>
+<td><code>COLETTE_NEO4J_USER</code></td>
+<td>Neo4j user</td>
+<td><code>neo4j</code></td>
+</tr>
+<tr>
+<td><code>COLETTE_NEO4J_PASSWORD</code></td>
+<td>Neo4j password</td>
+<td><code>colette-dev</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="agent-behavior">Agent Behavior<a class="headerlink" href="#agent-behavior" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>COLETTE_AGENT_MAX_ITERATIONS</code></td>
+<td>Max reasoning loops per agent</td>
+<td><code>25</code></td>
+</tr>
+<tr>
+<td><code>COLETTE_AGENT_TIMEOUT_SECONDS</code></td>
+<td>Agent timeout (seconds)</td>
+<td><code>600</code></td>
+</tr>
+<tr>
+<td><code>COLETTE_SUPERVISOR_CONTEXT_BUDGET</code></td>
+<td>Supervisor token budget</td>
+<td><code>100000</code></td>
+</tr>
+<tr>
+<td><code>COLETTE_SPECIALIST_CONTEXT_BUDGET</code></td>
+<td>Specialist token budget</td>
+<td><code>60000</code></td>
+</tr>
+<tr>
+<td><code>COLETTE_VALIDATOR_CONTEXT_BUDGET</code></td>
+<td>Validator token budget</td>
+<td><code>30000</code></td>
+</tr>
+<tr>
+<td><code>COLETTE_MAX_CONCURRENT_PIPELINES</code></td>
+<td>Parallel pipeline limit</td>
+<td><code>5</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="memory-rag">Memory &amp; RAG<a class="headerlink" href="#memory-rag" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>COLETTE_COMPACTION_THRESHOLD</code></td>
+<td>Context compaction trigger</td>
+<td><code>0.70</code></td>
+</tr>
+<tr>
+<td><code>COLETTE_RAG_CHUNK_SIZE</code></td>
+<td>Chunk size for retrieval</td>
+<td><code>512</code></td>
+</tr>
+<tr>
+<td><code>COLETTE_RAG_FAITHFULNESS_THRESHOLD</code></td>
+<td>RAG quality threshold</td>
+<td><code>0.85</code></td>
+</tr>
+<tr>
+<td><code>COLETTE_KNOWLEDGE_GRAPH_ENABLED</code></td>
+<td>Enable Neo4j knowledge graph</td>
+<td><code>true</code></td>
+</tr>
+<tr>
+<td><code>COLETTE_COHERE_API_KEY</code></td>
+<td>Cohere reranker API key</td>
+<td><em>(empty)</em></td>
+</tr>
+<tr>
+<td><code>COLETTE_MEMORY_DECAY_ENABLED</code></td>
+<td>Enable memory decay</td>
+<td><code>false</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="human-in-the-loop">Human-in-the-Loop<a class="headerlink" href="#human-in-the-loop" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>COLETTE_HIL_CONFIDENCE_THRESHOLD</code></td>
+<td>Below this triggers escalation</td>
+<td><code>0.60</code></td>
+</tr>
+<tr>
+<td><code>COLETTE_HIL_CONFIDENCE_FLAG_THRESHOLD</code></td>
+<td>Below this flags for review, above auto-approves</td>
+<td><code>0.85</code></td>
+</tr>
+<tr>
+<td><code>COLETTE_HIL_T0_SLA_SECONDS</code></td>
+<td>T0 approval SLA</td>
+<td><code>3600</code> (1h)</td>
+</tr>
+<tr>
+<td><code>COLETTE_HIL_T1_SLA_SECONDS</code></td>
+<td>T1 approval SLA</td>
+<td><code>14400</code> (4h)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="pipeline">Pipeline<a class="headerlink" href="#pipeline" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>COLETTE_CHECKPOINT_BACKEND</code></td>
+<td><code>memory</code> (dev) or <code>postgres</code> (prod, durable)</td>
+<td><code>memory</code></td>
+</tr>
+<tr>
+<td><code>COLETTE_CHECKPOINT_DB_URL</code></td>
+<td>Checkpoint DB (falls back to DATABASE_URL)</td>
+<td><em>(empty)</em></td>
+</tr>
+<tr>
+<td><code>COLETTE_HANDOFF_MAX_CHARS</code></td>
+<td>Max handoff size</td>
+<td><code>128000</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Durable checkpointing:</strong> Set <code>COLETTE_CHECKPOINT_BACKEND=postgres</code> for production. This persists pipeline state to PostgreSQL so pipelines survive server restarts. On startup, Colette automatically creates the checkpoint tables and opens a connection pool. The <code>memory</code> backend is for development only -- state is lost when the server stops.</p>
+<h3 id="security">Security<a class="headerlink" href="#security" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>COLETTE_RBAC_ENABLED</code></td>
+<td>Enable role-based access control</td>
+<td><code>true</code></td>
+</tr>
+<tr>
+<td><code>COLETTE_RBAC_DEFAULT_ROLE</code></td>
+<td>Default user role</td>
+<td><code>observer</code></td>
+</tr>
+<tr>
+<td><code>COLETTE_SECRET_FILTER_ENABLED</code></td>
+<td>Filter secrets from LLM output</td>
+<td><code>true</code></td>
+</tr>
+<tr>
+<td><code>COLETTE_PROMPT_INJECTION_DEFENSE_ENABLED</code></td>
+<td>Enable prompt injection defense</td>
+<td><code>true</code></td>
+</tr>
+<tr>
+<td><code>COLETTE_MCP_ALLOW_UNVERIFIED</code></td>
+<td>Allow unverified MCP servers</td>
+<td><code>false</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="api-server">API Server<a class="headerlink" href="#api-server" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>COLETTE_HOST</code></td>
+<td>Bind host</td>
+<td><code>0.0.0.0</code></td>
+</tr>
+<tr>
+<td><code>COLETTE_PORT</code></td>
+<td>Bind port</td>
+<td><code>8000</code></td>
+</tr>
+<tr>
+<td><code>COLETTE_WORKERS</code></td>
+<td>Number of workers</td>
+<td><code>1</code></td>
+</tr>
+<tr>
+<td><code>COLETTE_API_RATE_LIMIT_PER_MINUTE</code></td>
+<td>Rate limit (requests/min)</td>
+<td><code>100</code></td>
+</tr>
+<tr>
+<td><code>COLETTE_CORS_ORIGINS</code></td>
+<td>CORS allowed origins</td>
+<td><code>["*"]</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="observability">Observability<a class="headerlink" href="#observability" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>COLETTE_LOG_LEVEL</code></td>
+<td>Logging level</td>
+<td><code>INFO</code></td>
+</tr>
+<tr>
+<td><code>COLETTE_LOG_FORMAT</code></td>
+<td>Log format</td>
+<td><code>json</code></td>
+</tr>
+<tr>
+<td><code>COLETTE_OTEL_SERVICE_NAME</code></td>
+<td>OpenTelemetry service name</td>
+<td><code>colette</code></td>
+</tr>
+<tr>
+<td><code>COLETTE_OTEL_EXPORTER_ENDPOINT</code></td>
+<td>OTEL exporter endpoint</td>
+<td><code>http://localhost:4318</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="pipeline-stages">Pipeline Stages<a class="headerlink" href="#pipeline-stages" title="Permanent link">&para;</a></h2>
+<h3 id="1-requirements-stage">1. Requirements Stage<a class="headerlink" href="#1-requirements-stage" title="Permanent link">&para;</a></h3>
+<p><strong>Input:</strong> Your natural language request</p>
+<p><strong>Output (<code>RequirementsToDesignHandoff</code>):</strong>
+- Product Requirements Document (PRD)
+- User stories with acceptance criteria
+- Non-functional requirements (performance, security, scalability)
+- Technology constraints
+- Domain research findings</p>
+<h3 id="2-design-stage">2. Design Stage<a class="headerlink" href="#2-design-stage" title="Permanent link">&para;</a></h3>
+<p><strong>Input:</strong> Requirements handoff</p>
+<p><strong>Output (<code>DesignToImplementationHandoff</code>):</strong>
+- Architecture summary and tech stack decisions
+- OpenAPI specification (full JSON spec)
+- Database entity specifications (fields, indexes, relationships)
+- UI component specifications with routes
+- Architecture Decision Records (ADRs)
+- Security design
+- Implementation task breakdown</p>
+<h3 id="3-implementation-stage">3. Implementation Stage<a class="headerlink" href="#3-implementation-stage" title="Permanent link">&para;</a></h3>
+<p><strong>Input:</strong> Design handoff</p>
+<p><strong>Output (<code>ImplementationToTestingHandoff</code>):</strong>
+- Generated source files (React/Next.js frontend, FastAPI/Express backend, ORM models)
+- Migration files
+- Environment variable definitions
+- Implemented endpoint list
+- Cross-review findings (API contract mismatches between frontend/backend)</p>
+<p>Agents run in parallel: Frontend, Backend, and DB Engineer generate code simultaneously. A cross-review step checks for integration issues.</p>
+<h3 id="4-testing-stage">4. Testing Stage<a class="headerlink" href="#4-testing-stage" title="Permanent link">&para;</a></h3>
+<p><strong>Input:</strong> Implementation handoff</p>
+<p><strong>Output (<code>TestingToDeploymentHandoff</code>):</strong>
+- Unit test files (pytest/Jest)
+- Integration test files (API, contract, E2E stubs)
+- Coverage metrics (line and branch)
+- Security scan findings (SAST, dependency CVEs, accessibility)
+- Deploy readiness score (0-100)
+- Blocking issues list</p>
+<h3 id="5-deployment-stage">5. Deployment Stage<a class="headerlink" href="#5-deployment-stage" title="Permanent link">&para;</a></h3>
+<p><strong>Input:</strong> Testing handoff</p>
+<p><strong>Output (<code>DeploymentToMonitoringHandoff</code>):</strong>
+- CI/CD pipeline files (GitHub Actions)
+- Dockerfiles (multi-stage, non-root)
+- Docker Compose configurations
+- Kubernetes manifests (when applicable)
+- Rollback command
+- SLO targets
+- Deployment targets with health check URLs</p>
+<h3 id="6-monitoring-stage">6. Monitoring Stage<a class="headerlink" href="#6-monitoring-stage" title="Permanent link">&para;</a></h3>
+<p><strong>Input:</strong> Deployment handoff</p>
+<p><strong>Output:</strong> Dashboard configs, alert rules, SLO tracking setup.</p>
+<hr />
+<h2 id="human-oversight">Human Oversight<a class="headerlink" href="#human-oversight" title="Permanent link">&para;</a></h2>
+<p>Colette uses a four-tier approval model:</p>
+<table>
+<thead>
+<tr>
+<th>Tier</th>
+<th>When</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>T0 -- Critical</strong></td>
+<td>Production deploys, DB migrations, security architecture</td>
+<td>Pipeline <strong>pauses</strong> -- human approval required</td>
+</tr>
+<tr>
+<td><strong>T1 -- High</strong></td>
+<td>API contract changes, new dependencies, infra changes</td>
+<td>Pipeline <strong>pauses</strong> -- human review required</td>
+</tr>
+<tr>
+<td><strong>T2 -- Moderate</strong></td>
+<td>Code generation, test writing</td>
+<td>Auto-approves if confidence &gt;= 0.85, otherwise pauses</td>
+</tr>
+<tr>
+<td><strong>T3 -- Routine</strong></td>
+<td>Linting, formatting, log analysis</td>
+<td>Fully autonomous</td>
+</tr>
+</tbody>
+</table>
+<h3 id="confidence-gating-t2">Confidence Gating (T2)<a class="headerlink" href="#confidence-gating-t2" title="Permanent link">&para;</a></h3>
+<p>For T2 actions, agents report a confidence score:
+- <strong>&gt;= 0.85</strong>: Auto-approved
+- <strong>0.60 - 0.84</strong>: Flagged for review, pipeline pauses
+- <strong>&lt; 0.60</strong>: Escalated, pipeline pauses</p>
+<h3 id="responding-to-approvals">Responding to Approvals<a class="headerlink" href="#responding-to-approvals" title="Permanent link">&para;</a></h3>
+<p><strong>Via CLI:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="c1"># Approve</span>
+<a id="__codelineno-37-2" name="__codelineno-37-2" href="#__codelineno-37-2"></a>uv<span class="w"> </span>run<span class="w"> </span>colette<span class="w"> </span>approve<span class="w"> </span>&lt;approval-id&gt;<span class="w"> </span>--comment<span class="w"> </span><span class="s2">&quot;Looks good&quot;</span>
+<a id="__codelineno-37-3" name="__codelineno-37-3" href="#__codelineno-37-3"></a>
+<a id="__codelineno-37-4" name="__codelineno-37-4" href="#__codelineno-37-4"></a><span class="c1"># Reject</span>
+<a id="__codelineno-37-5" name="__codelineno-37-5" href="#__codelineno-37-5"></a>uv<span class="w"> </span>run<span class="w"> </span>colette<span class="w"> </span>reject<span class="w"> </span>&lt;approval-id&gt;<span class="w"> </span>--reason<span class="w"> </span><span class="s2">&quot;Add input validation first&quot;</span>
+</code></pre></div>
+<p><strong>Via API:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a><span class="c1"># Approve</span>
+<a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8000/api/v1/approvals/&lt;id&gt;/approve<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-38-3" name="__codelineno-38-3" href="#__codelineno-38-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;X-API-Key: your-key&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-38-4" name="__codelineno-38-4" href="#__codelineno-38-4"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-38-5" name="__codelineno-38-5" href="#__codelineno-38-5"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;reviewer_id&quot;: &quot;you@example.com&quot;, &quot;comments&quot;: &quot;LGTM&quot;}&#39;</span>
+<a id="__codelineno-38-6" name="__codelineno-38-6" href="#__codelineno-38-6"></a>
+<a id="__codelineno-38-7" name="__codelineno-38-7" href="#__codelineno-38-7"></a><span class="c1"># Reject</span>
+<a id="__codelineno-38-8" name="__codelineno-38-8" href="#__codelineno-38-8"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8000/api/v1/approvals/&lt;id&gt;/reject<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-38-9" name="__codelineno-38-9" href="#__codelineno-38-9"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;X-API-Key: your-key&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-38-10" name="__codelineno-38-10" href="#__codelineno-38-10"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-38-11" name="__codelineno-38-11" href="#__codelineno-38-11"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;reviewer_id&quot;: &quot;you@example.com&quot;, &quot;reason&quot;: &quot;Needs security review&quot;}&#39;</span>
+</code></pre></div>
+<hr />
+<h2 id="quality-gates">Quality Gates<a class="headerlink" href="#quality-gates" title="Permanent link">&para;</a></h2>
+<p>Quality gates run between stages to enforce minimum standards. If a gate fails, the pipeline can pause or retry.</p>
+<table>
+<thead>
+<tr>
+<th>Gate</th>
+<th>Between</th>
+<th>Key Criteria</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Requirements</td>
+<td>Requirements -&gt; Design</td>
+<td>User stories present, NFRs defined</td>
+</tr>
+<tr>
+<td>Design</td>
+<td>Design -&gt; Implementation</td>
+<td>Architecture specified, OpenAPI spec present</td>
+</tr>
+<tr>
+<td>Implementation</td>
+<td>Implementation -&gt; Testing</td>
+<td>Files generated, no CRITICAL review findings</td>
+</tr>
+<tr>
+<td>Testing</td>
+<td>Testing -&gt; Deployment</td>
+<td>Coverage &gt;= 80%, no CRITICAL security, contracts pass</td>
+</tr>
+<tr>
+<td>Staging</td>
+<td>Deployment -&gt; Monitoring</td>
+<td>Targets defined, health checks configured, rollback ready</td>
+</tr>
+<tr>
+<td>Production</td>
+<td>Before production deploy</td>
+<td>Human T0 approval required</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="extending-colette">Extending Colette<a class="headerlink" href="#extending-colette" title="Permanent link">&para;</a></h2>
+<h3 id="adding-a-new-agent">Adding a New Agent<a class="headerlink" href="#adding-a-new-agent" title="Permanent link">&para;</a></h3>
+<p>Each agent follows the same pattern:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a><span class="c1"># src/colette/stages/&lt;stage&gt;/&lt;agent_name&gt;.py</span>
+<a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a>
+<a id="__codelineno-39-3" name="__codelineno-39-3" href="#__codelineno-39-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">Field</span>
+<a id="__codelineno-39-4" name="__codelineno-39-4" href="#__codelineno-39-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">colette.llm.structured</span><span class="w"> </span><span class="kn">import</span> <span class="n">invoke_structured</span>
+<a id="__codelineno-39-5" name="__codelineno-39-5" href="#__codelineno-39-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">colette.schemas.agent_config</span><span class="w"> </span><span class="kn">import</span> <span class="n">ModelTier</span>
+<a id="__codelineno-39-6" name="__codelineno-39-6" href="#__codelineno-39-6"></a>
+<a id="__codelineno-39-7" name="__codelineno-39-7" href="#__codelineno-39-7"></a><span class="k">class</span><span class="w"> </span><span class="nc">MyAgentResult</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<a id="__codelineno-39-8" name="__codelineno-39-8" href="#__codelineno-39-8"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Structured output -- frozen for immutability.&quot;&quot;&quot;</span>
+<a id="__codelineno-39-9" name="__codelineno-39-9" href="#__codelineno-39-9"></a>    <span class="n">files</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">GeneratedFile</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+<a id="__codelineno-39-10" name="__codelineno-39-10" href="#__codelineno-39-10"></a>    <span class="n">notes</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+<a id="__codelineno-39-11" name="__codelineno-39-11" href="#__codelineno-39-11"></a>
+<a id="__codelineno-39-12" name="__codelineno-39-12" href="#__codelineno-39-12"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">run_my_agent</span><span class="p">(</span><span class="n">context</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">settings</span><span class="p">:</span> <span class="n">Settings</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MyAgentResult</span><span class="p">:</span>
+<a id="__codelineno-39-13" name="__codelineno-39-13" href="#__codelineno-39-13"></a>    <span class="k">return</span> <span class="k">await</span> <span class="n">invoke_structured</span><span class="p">(</span>
+<a id="__codelineno-39-14" name="__codelineno-39-14" href="#__codelineno-39-14"></a>        <span class="n">system_prompt</span><span class="o">=</span><span class="s2">&quot;You are ...&quot;</span><span class="p">,</span>
+<a id="__codelineno-39-15" name="__codelineno-39-15" href="#__codelineno-39-15"></a>        <span class="n">user_content</span><span class="o">=</span><span class="n">context</span><span class="p">,</span>
+<a id="__codelineno-39-16" name="__codelineno-39-16" href="#__codelineno-39-16"></a>        <span class="n">output_type</span><span class="o">=</span><span class="n">MyAgentResult</span><span class="p">,</span>
+<a id="__codelineno-39-17" name="__codelineno-39-17" href="#__codelineno-39-17"></a>        <span class="n">settings</span><span class="o">=</span><span class="n">settings</span><span class="p">,</span>
+<a id="__codelineno-39-18" name="__codelineno-39-18" href="#__codelineno-39-18"></a>        <span class="n">model_tier</span><span class="o">=</span><span class="n">ModelTier</span><span class="o">.</span><span class="n">EXECUTION</span><span class="p">,</span>  <span class="c1"># Sonnet</span>
+<a id="__codelineno-39-19" name="__codelineno-39-19" href="#__codelineno-39-19"></a>    <span class="p">)</span>
+</code></pre></div>
+<p>Key conventions:
+- <strong>Frozen Pydantic models</strong> for all agent outputs
+- <strong><code>invoke_structured()</code></strong> for LLM calls with JSON schema enforcement
+- <strong><code>ModelTier</code></strong> selects the model: <code>PLANNING</code> (Opus), <code>EXECUTION</code> (Sonnet), <code>VALIDATION</code> (Haiku)
+- <strong>structlog</strong> for all logging</p>
+<h3 id="adding-a-new-quality-gate">Adding a New Quality Gate<a class="headerlink" href="#adding-a-new-quality-gate" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a><span class="c1"># src/colette/gates/my_gate.py</span>
+<a id="__codelineno-40-2" name="__codelineno-40-2" href="#__codelineno-40-2"></a>
+<a id="__codelineno-40-3" name="__codelineno-40-3" href="#__codelineno-40-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">colette.gates.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">QualityGate</span>
+<a id="__codelineno-40-4" name="__codelineno-40-4" href="#__codelineno-40-4"></a>
+<a id="__codelineno-40-5" name="__codelineno-40-5" href="#__codelineno-40-5"></a><span class="k">class</span><span class="w"> </span><span class="nc">MyGate</span><span class="p">(</span><span class="n">QualityGate</span><span class="p">):</span>
+<a id="__codelineno-40-6" name="__codelineno-40-6" href="#__codelineno-40-6"></a>    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;my_gate&quot;</span>
+<a id="__codelineno-40-7" name="__codelineno-40-7" href="#__codelineno-40-7"></a>
+<a id="__codelineno-40-8" name="__codelineno-40-8" href="#__codelineno-40-8"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handoff_data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">QualityGateResult</span><span class="p">:</span>
+<a id="__codelineno-40-9" name="__codelineno-40-9" href="#__codelineno-40-9"></a>        <span class="n">passed</span> <span class="o">=</span> <span class="n">handoff_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">80</span>
+<a id="__codelineno-40-10" name="__codelineno-40-10" href="#__codelineno-40-10"></a>        <span class="k">return</span> <span class="n">QualityGateResult</span><span class="p">(</span>
+<a id="__codelineno-40-11" name="__codelineno-40-11" href="#__codelineno-40-11"></a>            <span class="n">gate_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+<a id="__codelineno-40-12" name="__codelineno-40-12" href="#__codelineno-40-12"></a>            <span class="n">passed</span><span class="o">=</span><span class="n">passed</span><span class="p">,</span>
+<a id="__codelineno-40-13" name="__codelineno-40-13" href="#__codelineno-40-13"></a>            <span class="n">criteria_results</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;score_threshold&quot;</span><span class="p">:</span> <span class="n">passed</span><span class="p">},</span>
+<a id="__codelineno-40-14" name="__codelineno-40-14" href="#__codelineno-40-14"></a>        <span class="p">)</span>
+</code></pre></div>
+<p>Register it in <code>src/colette/gates/__init__.py</code>.</p>
+<hr />
+<h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
+<h3 id="pipeline-fails-at-a-stage">Pipeline fails at a stage<a class="headerlink" href="#pipeline-fails-at-a-stage" title="Permanent link">&para;</a></h3>
+<p>Check the error log in the pipeline result:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a><span class="k">for</span> <span class="n">error</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;error_log&quot;</span><span class="p">,</span> <span class="p">[]):</span>
+<a id="__codelineno-41-2" name="__codelineno-41-2" href="#__codelineno-41-2"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+</code></pre></div>
+<p>Via CLI:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a>uv<span class="w"> </span>run<span class="w"> </span>colette<span class="w"> </span>logs<span class="w"> </span>&lt;project-id&gt;<span class="w"> </span>--stage<span class="w"> </span>&lt;failed-stage&gt;
+</code></pre></div>
+<h3 id="quality-gate-blocks-progression">Quality gate blocks progression<a class="headerlink" href="#quality-gate-blocks-progression" title="Permanent link">&para;</a></h3>
+<p>Check what criteria failed:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a><span class="n">gate_results</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;quality_gate_results&quot;</span><span class="p">,</span> <span class="p">{})</span>
+<a id="__codelineno-43-2" name="__codelineno-43-2" href="#__codelineno-43-2"></a><span class="k">for</span> <span class="n">gate_name</span><span class="p">,</span> <span class="n">gate_result</span> <span class="ow">in</span> <span class="n">gate_results</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+<a id="__codelineno-43-3" name="__codelineno-43-3" href="#__codelineno-43-3"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">gate_result</span><span class="p">[</span><span class="s2">&quot;passed&quot;</span><span class="p">]:</span>
+<a id="__codelineno-43-4" name="__codelineno-43-4" href="#__codelineno-43-4"></a>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">gate_name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">gate_result</span><span class="p">[</span><span class="s1">&#39;failure_reasons&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="llm-calls-fail">LLM calls fail<a class="headerlink" href="#llm-calls-fail" title="Permanent link">&para;</a></h3>
+<p>Colette has automatic fallback chains. If the primary model fails, it tries fallbacks in order. Check that at least one provider API key is configured in <code>.env</code>.</p>
+<p>Verify your config:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a>uv<span class="w"> </span>run<span class="w"> </span>colette<span class="w"> </span>config<span class="w"> </span>validate
+</code></pre></div>
+<h3 id="server-wont-start">Server won't start<a class="headerlink" href="#server-wont-start" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Check services are running: <code>docker compose ps</code></li>
+<li>Check database connectivity: <code>docker compose logs postgres</code></li>
+<li>Validate config: <code>uv run colette config validate</code></li>
+<li>Check port conflicts: ensure 8000 is free</li>
+</ol>
+<h3 id="tests-fail-locally">Tests fail locally<a class="headerlink" href="#tests-fail-locally" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a><span class="c1"># Unit tests (no services needed)</span>
+<a id="__codelineno-45-2" name="__codelineno-45-2" href="#__codelineno-45-2"></a>make<span class="w"> </span>test-unit
+<a id="__codelineno-45-3" name="__codelineno-45-3" href="#__codelineno-45-3"></a>
+<a id="__codelineno-45-4" name="__codelineno-45-4" href="#__codelineno-45-4"></a><span class="c1"># Integration tests require Docker services</span>
+<a id="__codelineno-45-5" name="__codelineno-45-5" href="#__codelineno-45-5"></a>make<span class="w"> </span>docker-up
+<a id="__codelineno-45-6" name="__codelineno-45-6" href="#__codelineno-45-6"></a>make<span class="w"> </span>test-integration
+</code></pre></div>
+<h3 id="docker-services-wont-start">Docker services won't start<a class="headerlink" href="#docker-services-wont-start" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a><span class="c1"># Check status</span>
+<a id="__codelineno-46-2" name="__codelineno-46-2" href="#__codelineno-46-2"></a>docker<span class="w"> </span>compose<span class="w"> </span>ps
+<a id="__codelineno-46-3" name="__codelineno-46-3" href="#__codelineno-46-3"></a>
+<a id="__codelineno-46-4" name="__codelineno-46-4" href="#__codelineno-46-4"></a><span class="c1"># View logs</span>
+<a id="__codelineno-46-5" name="__codelineno-46-5" href="#__codelineno-46-5"></a>docker<span class="w"> </span>compose<span class="w"> </span>logs<span class="w"> </span>postgres
+<a id="__codelineno-46-6" name="__codelineno-46-6" href="#__codelineno-46-6"></a>docker<span class="w"> </span>compose<span class="w"> </span>logs<span class="w"> </span>redis
+<a id="__codelineno-46-7" name="__codelineno-46-7" href="#__codelineno-46-7"></a>docker<span class="w"> </span>compose<span class="w"> </span>logs<span class="w"> </span>neo4j
+<a id="__codelineno-46-8" name="__codelineno-46-8" href="#__codelineno-46-8"></a>
+<a id="__codelineno-46-9" name="__codelineno-46-9" href="#__codelineno-46-9"></a><span class="c1"># Restart</span>
+<a id="__codelineno-46-10" name="__codelineno-46-10" href="#__codelineno-46-10"></a>make<span class="w"> </span>docker-down
+<a id="__codelineno-46-11" name="__codelineno-46-11" href="#__codelineno-46-11"></a>make<span class="w"> </span>docker-up
+</code></pre></div>
+<hr />
+<h2 id="development">Development<a class="headerlink" href="#development" title="Permanent link">&para;</a></h2>
+<h3 id="make-targets">Make targets<a class="headerlink" href="#make-targets" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a>make<span class="w"> </span>install<span class="w">          </span><span class="c1"># Install all dependencies</span>
+<a id="__codelineno-47-2" name="__codelineno-47-2" href="#__codelineno-47-2"></a>make<span class="w"> </span>dev<span class="w">              </span><span class="c1"># Install + create .env from template</span>
+<a id="__codelineno-47-3" name="__codelineno-47-3" href="#__codelineno-47-3"></a>make<span class="w"> </span>lint<span class="w">             </span><span class="c1"># Run ruff linter</span>
+<a id="__codelineno-47-4" name="__codelineno-47-4" href="#__codelineno-47-4"></a>make<span class="w"> </span>format<span class="w">           </span><span class="c1"># Auto-format with ruff</span>
+<a id="__codelineno-47-5" name="__codelineno-47-5" href="#__codelineno-47-5"></a>make<span class="w"> </span>typecheck<span class="w">        </span><span class="c1"># Run mypy strict mode</span>
+<a id="__codelineno-47-6" name="__codelineno-47-6" href="#__codelineno-47-6"></a>make<span class="w"> </span><span class="nb">test</span><span class="w">             </span><span class="c1"># Run all tests with coverage (80% min)</span>
+<a id="__codelineno-47-7" name="__codelineno-47-7" href="#__codelineno-47-7"></a>make<span class="w"> </span>test-unit<span class="w">        </span><span class="c1"># Unit tests only</span>
+<a id="__codelineno-47-8" name="__codelineno-47-8" href="#__codelineno-47-8"></a>make<span class="w"> </span>security<span class="w">         </span><span class="c1"># bandit + pip-audit</span>
+<a id="__codelineno-47-9" name="__codelineno-47-9" href="#__codelineno-47-9"></a>make<span class="w"> </span>check<span class="w">            </span><span class="c1"># lint + typecheck + test + security</span>
+<a id="__codelineno-47-10" name="__codelineno-47-10" href="#__codelineno-47-10"></a>make<span class="w"> </span>docker-up<span class="w">        </span><span class="c1"># Start postgres, redis, neo4j</span>
+<a id="__codelineno-47-11" name="__codelineno-47-11" href="#__codelineno-47-11"></a>make<span class="w"> </span>docker-down<span class="w">      </span><span class="c1"># Stop services</span>
+<a id="__codelineno-47-12" name="__codelineno-47-12" href="#__codelineno-47-12"></a>make<span class="w"> </span>docker-build<span class="w">     </span><span class="c1"># Build colette container image</span>
+<a id="__codelineno-47-13" name="__codelineno-47-13" href="#__codelineno-47-13"></a>make<span class="w"> </span>clean<span class="w">            </span><span class="c1"># Remove build artifacts</span>
+<a id="__codelineno-47-14" name="__codelineno-47-14" href="#__codelineno-47-14"></a>make<span class="w"> </span>docs-serve<span class="w">       </span><span class="c1"># Serve docs locally (mkdocs)</span>
+<a id="__codelineno-47-15" name="__codelineno-47-15" href="#__codelineno-47-15"></a>make<span class="w"> </span>docs-build<span class="w">       </span><span class="c1"># Build static docs site</span>
+</code></pre></div>
+<h3 id="project-structure">Project structure<a class="headerlink" href="#project-structure" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a>src/colette/
+<a id="__codelineno-48-2" name="__codelineno-48-2" href="#__codelineno-48-2"></a>  __init__.py           # Package root, __version__
+<a id="__codelineno-48-3" name="__codelineno-48-3" href="#__codelineno-48-3"></a>  cli.py                # CLI entry point (Click)
+<a id="__codelineno-48-4" name="__codelineno-48-4" href="#__codelineno-48-4"></a>  cli_ui.py             # Rich terminal rendering, streaming log, live LLM output panel
+<a id="__codelineno-48-5" name="__codelineno-48-5" href="#__codelineno-48-5"></a>  cli_review.py         # Textual TUI for interactive approval review
+<a id="__codelineno-48-6" name="__codelineno-48-6" href="#__codelineno-48-6"></a>  config.py             # Settings via pydantic-settings
+<a id="__codelineno-48-7" name="__codelineno-48-7" href="#__codelineno-48-7"></a>  schemas/              # Typed handoff schemas between stages
+<a id="__codelineno-48-8" name="__codelineno-48-8" href="#__codelineno-48-8"></a>    requirements.py     # RequirementsToDesignHandoff
+<a id="__codelineno-48-9" name="__codelineno-48-9" href="#__codelineno-48-9"></a>    design.py           # DesignToImplementationHandoff
+<a id="__codelineno-48-10" name="__codelineno-48-10" href="#__codelineno-48-10"></a>    implementation.py   # ImplementationToTestingHandoff
+<a id="__codelineno-48-11" name="__codelineno-48-11" href="#__codelineno-48-11"></a>    testing.py          # TestingToDeploymentHandoff
+<a id="__codelineno-48-12" name="__codelineno-48-12" href="#__codelineno-48-12"></a>    deployment.py       # DeploymentToMonitoringHandoff
+<a id="__codelineno-48-13" name="__codelineno-48-13" href="#__codelineno-48-13"></a>    common.py           # Shared models
+<a id="__codelineno-48-14" name="__codelineno-48-14" href="#__codelineno-48-14"></a>  orchestrator/
+<a id="__codelineno-48-15" name="__codelineno-48-15" href="#__codelineno-48-15"></a>    runner.py           # PipelineRunner -- main entry point
+<a id="__codelineno-48-16" name="__codelineno-48-16" href="#__codelineno-48-16"></a>    pipeline.py         # LangGraph DAG construction
+<a id="__codelineno-48-17" name="__codelineno-48-17" href="#__codelineno-48-17"></a>    state.py            # PipelineState definition
+<a id="__codelineno-48-18" name="__codelineno-48-18" href="#__codelineno-48-18"></a>    progress.py         # Progress event tracking
+<a id="__codelineno-48-19" name="__codelineno-48-19" href="#__codelineno-48-19"></a>    event_bus.py        # In-process event bus (incl. AGENT_STREAM_CHUNK for live output)
+<a id="__codelineno-48-20" name="__codelineno-48-20" href="#__codelineno-48-20"></a>    agent_presence.py   # Agent presence tracking (Slack-style activity feed)
+<a id="__codelineno-48-21" name="__codelineno-48-21" href="#__codelineno-48-21"></a>  stages/
+<a id="__codelineno-48-22" name="__codelineno-48-22" href="#__codelineno-48-22"></a>    requirements/       # Analyst + Researcher agents
+<a id="__codelineno-48-23" name="__codelineno-48-23" href="#__codelineno-48-23"></a>    design/             # Architect + API Designer + UI/UX agents
+<a id="__codelineno-48-24" name="__codelineno-48-24" href="#__codelineno-48-24"></a>    implementation/     # Frontend + Backend + DB Engineer agents
+<a id="__codelineno-48-25" name="__codelineno-48-25" href="#__codelineno-48-25"></a>    testing/            # Unit Tester + Integration Tester + Security Scanner
+<a id="__codelineno-48-26" name="__codelineno-48-26" href="#__codelineno-48-26"></a>    deployment/         # CI/CD Engineer + Infrastructure Engineer
+<a id="__codelineno-48-27" name="__codelineno-48-27" href="#__codelineno-48-27"></a>    monitoring/         # Observability + Incident Response
+<a id="__codelineno-48-28" name="__codelineno-48-28" href="#__codelineno-48-28"></a>  api/                  # FastAPI REST API
+<a id="__codelineno-48-29" name="__codelineno-48-29" href="#__codelineno-48-29"></a>    app.py              # Application factory
+<a id="__codelineno-48-30" name="__codelineno-48-30" href="#__codelineno-48-30"></a>    routes/             # Endpoint handlers
+<a id="__codelineno-48-31" name="__codelineno-48-31" href="#__codelineno-48-31"></a>    middleware.py       # Rate limiting, request IDs, graceful degradation
+<a id="__codelineno-48-32" name="__codelineno-48-32" href="#__codelineno-48-32"></a>    schemas.py          # API request/response models
+<a id="__codelineno-48-33" name="__codelineno-48-33" href="#__codelineno-48-33"></a>    deps.py             # Dependency injection
+<a id="__codelineno-48-34" name="__codelineno-48-34" href="#__codelineno-48-34"></a>  db/                   # Database models and repositories
+<a id="__codelineno-48-35" name="__codelineno-48-35" href="#__codelineno-48-35"></a>  memory/               # Hot/warm/cold memory tiers, RAG pipeline
+<a id="__codelineno-48-36" name="__codelineno-48-36" href="#__codelineno-48-36"></a>  gates/                # Quality gate implementations
+<a id="__codelineno-48-37" name="__codelineno-48-37" href="#__codelineno-48-37"></a>  human/                # Approval routing, confidence scoring
+<a id="__codelineno-48-38" name="__codelineno-48-38" href="#__codelineno-48-38"></a>  tools/                # MCP tool wrappers
+<a id="__codelineno-48-39" name="__codelineno-48-39" href="#__codelineno-48-39"></a>  llm/                  # OpenRouter gateway, structured output, prompt caching, streaming
+<a id="__codelineno-48-40" name="__codelineno-48-40" href="#__codelineno-48-40"></a>  security/             # RBAC, audit, secret filtering
+<a id="__codelineno-48-41" name="__codelineno-48-41" href="#__codelineno-48-41"></a>  observability/        # Logging, OpenTelemetry tracing
+<a id="__codelineno-48-42" name="__codelineno-48-42" href="#__codelineno-48-42"></a>tests/
+<a id="__codelineno-48-43" name="__codelineno-48-43" href="#__codelineno-48-43"></a>  conftest.py           # Shared fixtures
+<a id="__codelineno-48-44" name="__codelineno-48-44" href="#__codelineno-48-44"></a>  unit/                 # Fast, no external deps
+<a id="__codelineno-48-45" name="__codelineno-48-45" href="#__codelineno-48-45"></a>  integration/          # Requires services
+<a id="__codelineno-48-46" name="__codelineno-48-46" href="#__codelineno-48-46"></a>  e2e/                  # Full pipeline tests
+</code></pre></div>
+<h3 id="running-with-docker">Running with Docker<a class="headerlink" href="#running-with-docker" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a><span class="c1"># Build the image</span>
+<a id="__codelineno-49-2" name="__codelineno-49-2" href="#__codelineno-49-2"></a>make<span class="w"> </span>docker-build
+<a id="__codelineno-49-3" name="__codelineno-49-3" href="#__codelineno-49-3"></a>
+<a id="__codelineno-49-4" name="__codelineno-49-4" href="#__codelineno-49-4"></a><span class="c1"># Run (requires backing services)</span>
+<a id="__codelineno-49-5" name="__codelineno-49-5" href="#__codelineno-49-5"></a>docker<span class="w"> </span>run<span class="w"> </span>-p<span class="w"> </span><span class="m">8000</span>:8000<span class="w"> </span>--env-file<span class="w"> </span>.env<span class="w"> </span>colette:latest
+</code></pre></div>
+<hr />
+<h2 id="current-status">Current Status<a class="headerlink" href="#current-status" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Status</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1. Scaffolding</td>
+<td>Done</td>
+<td>Project structure, CI, Docker</td>
+</tr>
+<tr>
+<td>2. Core Schemas</td>
+<td>Done</td>
+<td>Pydantic handoff schemas, pipeline state</td>
+</tr>
+<tr>
+<td>3. Orchestration</td>
+<td>Done</td>
+<td>LangGraph DAG, quality gates, human-in-the-loop</td>
+</tr>
+<tr>
+<td>4. Requirements + Design</td>
+<td>Done</td>
+<td>Requirements and Design agents</td>
+</tr>
+<tr>
+<td>5. Implementation</td>
+<td>Done</td>
+<td>Frontend, Backend, DB Engineer agents</td>
+</tr>
+<tr>
+<td>6. Testing + Deployment</td>
+<td>Done</td>
+<td>Testing and Deployment agents</td>
+</tr>
+<tr>
+<td>7. Monitoring</td>
+<td>Planned</td>
+<td>Observability and incident response agents</td>
+</tr>
+<tr>
+<td>8. REST API + CLI</td>
+<td>Done</td>
+<td>FastAPI server, Click CLI, Rich UI, Textual TUI for approvals</td>
+</tr>
+<tr>
+<td>9. Cost Optimization</td>
+<td>Done</td>
+<td>Anthropic prompt caching, three-tier models, token budgets, streaming agent log</td>
+</tr>
+<tr>
+<td>10. Real-time Streaming</td>
+<td>Done</td>
+<td>WebSocket event-driven streaming, live LLM token output, durable Postgres checkpointing</td>
+</tr>
+<tr>
+<td>11. Hardening</td>
+<td>Planned</td>
+<td>Performance tuning, security audit, batch API</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "content.code.copy", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

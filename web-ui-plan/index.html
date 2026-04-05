@@ -1,0 +1,2442 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Multi-agent AI system for autonomous end-to-end software development">
+      
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Colette Web UI — "Agent Board" - Colette</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#colette-web-ui-agent-board" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Colette" class="md-header__button md-logo" aria-label="Colette" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Colette
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Colette Web UI — "Agent Board"
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="deep-purple" data-md-color-accent="amber"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Jss-on/colette" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Jss-on/colette
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../getting-started/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Getting Started
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../architecture/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Architecture
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../api/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../Colette_Software_Requirements_Specification.md" class="md-tabs__link">
+          
+  
+  
+  Specifications
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Colette" class="md-nav__button md-logo" aria-label="Colette" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Colette
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Jss-on/colette" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Jss-on/colette
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/schemas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Schemas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/llm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LLM Gateway
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/orchestrator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Orchestrator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tools
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/observability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Observability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/config/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Specifications
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Specifications
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Colette_Software_Requirements_Specification.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Software Requirements
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../MultiAgent_SDLC_System_Architecture.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    System Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Complete_Guide_to_Building_AI_Agent_Systems.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implementation Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../development_phase_plan.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Phases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../requirements_traceability_matrix.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Requirements Traceability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Requirements
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-already-exists-no-new-backend-work-needed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Already Exists (No New Backend Work Needed)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tech-stack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tech Stack
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#implementation-phases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation Phases
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Implementation Phases">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#phase-1-scaffold-websocket-connection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 1: Scaffold &amp; WebSocket Connection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-2-agent-board-the-main-view-mondaycom-style" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 2: Agent Board — The Main View (monday.com-style)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-3-pipeline-orchestration-view" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 3: Pipeline Orchestration View
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-4-agent-detail-drawer-activity-feed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 4: Agent Detail Drawer &amp; Activity Feed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-5-artifacts-approvals-panels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 5: Artifacts &amp; Approvals Panels
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-6-polish-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 6: Polish &amp; Integration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#component-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Component Architecture
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#risks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Risks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#visual-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Visual Design
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Visual Design">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#design-direction-professional-dark" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Design Direction: Professional Dark
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#color-palette" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Color Palette
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#typography" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Typography
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#layout-specifications" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Layout Specifications
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Layout Specifications">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#main-dashboard-projectdashboard-board-view" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Main Dashboard (ProjectDashboard) — Board View
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pipeline-orchestration-view" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pipeline Orchestration View
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#agent-status-pills-mondaycom-style" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Agent Status Pills (monday.com-style)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#handoff-row-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Handoff Row Design
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gate-footer-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gate Footer Design
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#activity-feed-entry-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Activity Feed Entry Types
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#approval-queue-design-mondaycom-style-list" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Approval Queue Design (monday.com-style list)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#responsive-breakpoints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Responsive Breakpoints
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#motion-guidelines" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Motion Guidelines
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#backend-additions-phase-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backend Additions (Phase 1)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Backend Additions (Phase 1)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-apiv1projectsproject_idagents" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GET /api/v1/projects/{project_id}/agents
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-apiv1projectsproject_idconversation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GET /api/v1/projects/{project_id}/conversation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#websocket-event-mapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WebSocket Event Mapping
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#model-tiers-configured-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Model Tiers &amp; Configured Models
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Model Tiers &amp; Configured Models">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#model-column-display" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Model Column Display
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#agent-roster-by-stage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Agent Roster by Stage
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#design-previews" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Design Previews
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dependencies
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="colette-web-ui-agent-board">Colette Web UI — "Agent Board"<a class="headerlink" href="#colette-web-ui-agent-board" title="Permanent link">&para;</a></h1>
+<h2 id="requirements">Requirements<a class="headerlink" href="#requirements" title="Permanent link">&para;</a></h2>
+<p>Build a web dashboard inspired by monday.com's work management UI, but purpose-built for managing AI agents instead of people. The dashboard provides real-time visibility into Colette's multi-agent pipeline through two complementary views: a <strong>Board View</strong> (agent-centric table grouped by stage) and a <strong>Pipeline View</strong> (orchestration flow with gates). The UI must:</p>
+<ul>
+<li>Show a monday.com-style board where agents are rows grouped by pipeline stage</li>
+<li>Each agent row displays: status, model, tokens, current activity, duration, and output</li>
+<li>Provide a top-level pipeline orchestration view showing the 6-stage DAG with quality gates</li>
+<li>Support real-time updates via WebSocket (status transitions, token counts, activity descriptions)</li>
+<li>Show inter-agent handoffs as highlighted transitions between groups</li>
+<li>Include approval workflows inline (approve/reject directly from the board)</li>
+<li>Browse and download artifacts per stage via a sidebar drawer</li>
+<li>Work alongside the CLI (connects to the same FastAPI backend via WebSocket)</li>
+</ul>
+<h2 id="what-already-exists-no-new-backend-work-needed">What Already Exists (No New Backend Work Needed)<a class="headerlink" href="#what-already-exists-no-new-backend-work-needed" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Backend Component</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>WebSocket endpoint (<code>/projects/{id}/ws</code>)</td>
+<td>Done — streams all event types</td>
+</tr>
+<tr>
+<td>SSE endpoint (<code>/projects/{id}/pipeline/events</code>)</td>
+<td>Done — with catch-up</td>
+</tr>
+<tr>
+<td><code>AgentPresenceTracker</code> with 7 states</td>
+<td>Done — IDLE/THINKING/TOOL_USE/REVIEWING/HANDING_OFF/DONE/ERROR</td>
+</tr>
+<tr>
+<td><code>ConversationEntry</code> ring buffer</td>
+<td>Done — 50-entry bounded</td>
+</tr>
+<tr>
+<td>20 event types (<code>EventType</code> enum)</td>
+<td>Done — AGENT_STARTED through PIPELINE_COMPLETED</td>
+</tr>
+<tr>
+<td>Projects CRUD + list</td>
+<td>Done</td>
+</tr>
+<tr>
+<td>Approvals list/approve/reject</td>
+<td>Done</td>
+</tr>
+<tr>
+<td>Artifacts list + zip download</td>
+<td>Done</td>
+</tr>
+<tr>
+<td>CORS middleware</td>
+<td>Done — configurable origins</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The backend is feature-complete for this UI.</strong> We only need to add 2 small endpoints (agent presence snapshot + conversation history) and build the frontend.</p>
+<h2 id="tech-stack">Tech Stack<a class="headerlink" href="#tech-stack" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Choice</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>React 19 + Vite</strong></td>
+<td>Lightweight, no SSR needed (FastAPI is the server)</td>
+</tr>
+<tr>
+<td><strong>TypeScript</strong></td>
+<td>Type safety matching backend Pydantic models</td>
+</tr>
+<tr>
+<td><strong>Tailwind CSS v4</strong></td>
+<td>Rapid styling, dark mode</td>
+</tr>
+<tr>
+<td><strong>Zustand</strong></td>
+<td>Minimal state management for WebSocket-driven state</td>
+</tr>
+<tr>
+<td><strong>Framer Motion</strong></td>
+<td>Smooth agent animations (typing indicators, transitions)</td>
+</tr>
+<tr>
+<td><strong>React Router v7</strong></td>
+<td>SPA routing (project list -&gt; project detail)</td>
+</tr>
+</tbody>
+</table>
+<p>Frontend lives at <code>web/</code> in the repo root, served by Vite dev server (proxying API to FastAPI on port 8000).</p>
+<h2 id="implementation-phases">Implementation Phases<a class="headerlink" href="#implementation-phases" title="Permanent link">&para;</a></h2>
+<h3 id="phase-1-scaffold-websocket-connection">Phase 1: Scaffold &amp; WebSocket Connection<a class="headerlink" href="#phase-1-scaffold-websocket-connection" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong> <code>web/</code> scaffold, <code>src/colette/api/routes/agents.py</code></p>
+<ol>
+<li>Scaffold Vite + React + TS + Tailwind project in <code>web/</code></li>
+<li>Add 2 backend endpoints:</li>
+<li><code>GET /api/v1/projects/{id}/agents</code> — returns current <code>AgentPresenceTracker.get_agents()</code> snapshot</li>
+<li><code>GET /api/v1/projects/{id}/conversation</code> — returns <code>get_conversation()</code> ring buffer</li>
+<li>Build <code>useWebSocket</code> hook that connects to <code>ws://localhost:8000/projects/{id}/ws</code></li>
+<li>Build Zustand store that ingests WebSocket events and maintains:</li>
+<li><code>stages: Record&lt;string, StageStatus&gt;</code></li>
+<li><code>agents: Record&lt;string, AgentPresence&gt;</code></li>
+<li><code>conversation: ConversationEntry[]</code></li>
+<li><code>events: PipelineEvent[]</code> (last 200)</li>
+<li><code>approvals: ApprovalRequest[]</code></li>
+<li>Type definitions matching backend schemas</li>
+</ol>
+<h3 id="phase-2-agent-board-the-main-view-mondaycom-style">Phase 2: Agent Board — The Main View (monday.com-style)<a class="headerlink" href="#phase-2-agent-board-the-main-view-mondaycom-style" title="Permanent link">&para;</a></h3>
+<p><strong>Key component:</strong> <code>&lt;AgentBoard /&gt;</code></p>
+<p>The primary interface. A table where agents are rows, grouped by pipeline stage (like monday.com groups items by status/sprint). Each group is collapsible.</p>
+<ol>
+<li><strong>Group headers</strong> (one per stage): stage name, status badge, stage progress %, gate result, elapsed time. The active stage group is expanded by default, completed stages are collapsed.</li>
+<li><strong>Agent rows</strong> — each row is one agent with these columns:</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Content</th>
+<th>Style</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Agent</strong></td>
+<td>Avatar + name (e.g. <code>@Backend Dev</code>)</td>
+<td>Left-pinned, bold</td>
+</tr>
+<tr>
+<td><strong>Status</strong></td>
+<td>Color-coded pill: Idle / Thinking / Tool Use / Reviewing / Handing Off / Done / Error</td>
+<td>monday.com-style colored labels</td>
+</tr>
+<tr>
+<td><strong>Activity</strong></td>
+<td>Current task description, live-updates (e.g. "Implementing auth service...")</td>
+<td>Truncated, expand on hover</td>
+</tr>
+<tr>
+<td><strong>Model</strong></td>
+<td>Model string + tier badge (e.g. <code>claude-sonnet-4-6</code> <code>EXECUTION</code>)</td>
+<td>Monospace, tier color-coded</td>
+</tr>
+<tr>
+<td><strong>Tokens</strong></td>
+<td>Token count with mini progress bar against budget</td>
+<td>Right-aligned numeric</td>
+</tr>
+<tr>
+<td><strong>Duration</strong></td>
+<td>Time since agent started, live counter</td>
+<td>Monospace</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td>Click to expand: live LLM stream or last output preview</td>
+<td>Icon button → drawer</td>
+</tr>
+</tbody>
+</table>
+<ol>
+<li><strong>Row interactions:</strong></li>
+<li>Click row → opens agent detail drawer (right side)</li>
+<li>Hover row → subtle highlight, shows "View Output" action</li>
+<li>
+<p>Status column animates on transition (pulse on thinking, spin on tool_use)</p>
+</li>
+<li>
+<p><strong>Group footer</strong> per stage: quality gate status bar showing gate name, pass/fail, reasons on hover, approve/reject buttons if approval pending</p>
+</li>
+<li>
+<p><strong>Handoff rows:</strong> Between groups, a special highlighted row shows the handoff event (e.g. "Requirements → Design handoff | 12 user stories, 5 NFRs, completeness: 92%") with a connecting arrow visual</p>
+</li>
+</ol>
+<h3 id="phase-3-pipeline-orchestration-view">Phase 3: Pipeline Orchestration View<a class="headerlink" href="#phase-3-pipeline-orchestration-view" title="Permanent link">&para;</a></h3>
+<p><strong>Key component:</strong> <code>&lt;PipelineView /&gt;</code></p>
+<p>A dedicated view (tab in the top nav) showing the full orchestration DAG — the "bird's eye" of the pipeline.</p>
+<ol>
+<li><strong>Horizontal flow diagram:</strong> 6 stage nodes connected by arrows, with gate checkpoints between each pair</li>
+<li><strong>Stage nodes</strong> show:</li>
+<li>Stage name + status icon</li>
+<li>Mini agent count badge (e.g. "3/3 done" or "2 active")</li>
+<li>Elapsed time</li>
+<li>Click to jump to that group in the Board View</li>
+<li><strong>Gate nodes</strong> between stages show:</li>
+<li>Gate name</li>
+<li>Pass/fail/pending indicator</li>
+<li>Completeness score (e.g. "87%")</li>
+<li>If failed: red with reasons tooltip</li>
+<li>If pending approval: pulsing magenta with approve/reject inline</li>
+<li><strong>Active stage highlight:</strong> The currently running stage node has a glowing border and animated connector showing data flowing to it</li>
+<li><strong>Progress timeline</strong> below the flow: Gantt-style horizontal bars per stage showing start/end/duration, stacked vertically. Completed = green, running = cyan animated, pending = grey dashed</li>
+<li><strong>Summary cards</strong> below the Gantt:</li>
+<li>Total tokens across all stages</li>
+<li>Total elapsed time</li>
+<li>Error count</li>
+<li>Agents active / total</li>
+<li>Current stage + ETA (if estimable)</li>
+</ol>
+<h3 id="phase-4-agent-detail-drawer-activity-feed">Phase 4: Agent Detail Drawer &amp; Activity Feed<a class="headerlink" href="#phase-4-agent-detail-drawer-activity-feed" title="Permanent link">&para;</a></h3>
+<p><strong>Key components:</strong> <code>&lt;AgentDrawer /&gt;</code>, <code>&lt;ActivityFeed /&gt;</code></p>
+<ol>
+<li><strong>Agent detail drawer</strong> (slides in from right when agent row clicked):</li>
+<li>Header: avatar, name, stage, status pill, model + tier</li>
+<li><strong>Stats row:</strong> tokens used/budget, duration, messages sent</li>
+<li><strong>Live output panel:</strong> streaming LLM text (<code>AGENT_STREAM_CHUNK</code> events), monospace, auto-scroll</li>
+<li><strong>Tool calls log:</strong> list of tool invocations with name, args preview, result status</li>
+<li><strong>Conversation history:</strong> all messages from this agent</li>
+<li>
+<p>Close button returns to board</p>
+</li>
+<li>
+<p><strong>Activity feed</strong> (bottom panel or right sidebar tab):</p>
+</li>
+<li>Chronological feed of all agent messages, handoffs, gate results, approvals — similar to monday.com's Updates section</li>
+<li>Each entry: agent avatar + name + timestamp + message</li>
+<li>Handoff entries highlighted with cyan bar</li>
+<li>Gate results highlighted with green/red bar</li>
+<li>Approval requests highlighted with magenta bar + action buttons</li>
+<li>Filter by: stage, agent, event type</li>
+<li>Auto-scroll with "N new updates" sticky indicator</li>
+</ol>
+<h3 id="phase-5-artifacts-approvals-panels">Phase 5: Artifacts &amp; Approvals Panels<a class="headerlink" href="#phase-5-artifacts-approvals-panels" title="Permanent link">&para;</a></h3>
+<p><strong>Key components:</strong> <code>&lt;ArtifactPanel /&gt;</code>, <code>&lt;ApprovalQueue /&gt;</code></p>
+<ol>
+<li><strong>Artifact panel</strong> (sidebar tab or dedicated view):</li>
+<li>Tree view grouped by stage → file type</li>
+<li>File preview with syntax highlighting (code) or rendered markdown</li>
+<li>Download individual files or full stage zip</li>
+<li>
+<p>Search/filter artifacts by name</p>
+</li>
+<li>
+<p><strong>Approval queue</strong> (badge count in top nav, inline in board + dedicated view):</p>
+</li>
+<li>monday.com-style list of pending approvals</li>
+<li>Each shows: gate name, stage, risk level, reason, requested time</li>
+<li>Context expandable: shows what the gate evaluated, scores, thresholds</li>
+<li>Approve / Reject buttons with optional comment</li>
+<li>History of past approvals with decisions and who approved</li>
+</ol>
+<h3 id="phase-6-polish-integration">Phase 6: Polish &amp; Integration<a class="headerlink" href="#phase-6-polish-integration" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>View switcher</strong> in top nav: Board | Pipeline | Activity | Artifacts</li>
+<li>Dark/light mode toggle</li>
+<li>Responsive layout (desktop-first, functional on tablet)</li>
+<li>Keyboard shortcuts: <code>B</code> board, <code>P</code> pipeline, <code>A</code> activity, <code>1-6</code> jump to stage group</li>
+<li>Sound effects toggle (subtle notifications for stage completion, errors, approvals)</li>
+<li>Add <code>make web</code> / <code>make web-dev</code> commands to Makefile</li>
+<li>Proxy config so <code>web/</code> dev server forwards <code>/api/</code> to FastAPI</li>
+<li>Production build: <code>web/dist/</code> served as static files by FastAPI (optional)</li>
+<li>Search/filter bar: filter agents by name, status, stage, model</li>
+</ol>
+<h2 id="component-architecture">Component Architecture<a class="headerlink" href="#component-architecture" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>web/src/
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  main.tsx
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  App.tsx                        # Router + view switcher
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>  stores/
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    pipeline.ts                  # Zustand store (WebSocket -&gt; state)
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    ui.ts                        # UI state (active view, selected agent, expanded groups)
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>  hooks/
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    useWebSocket.ts              # WS connection + reconnect
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    useApi.ts                    # REST API calls
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    useAgentTimer.ts             # Live duration counters per agent
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>  types/
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    events.ts                    # TypeScript types matching backend
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    board.ts                     # Board column definitions, group types
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>  pages/
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    ProjectList.tsx              # List all projects (cards with status summary)
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    ProjectDashboard.tsx         # Top-level layout: nav + active view
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>  components/
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>    board/                       # monday.com-style agent board
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>      AgentBoard.tsx             # Main board: groups + rows + columns
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>      StageGroup.tsx             # Collapsible stage group header + agent rows
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>      AgentRow.tsx               # Single agent row with all columns
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>      StatusCell.tsx             # Color-coded status pill (animated)
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>      ActivityCell.tsx           # Truncated activity with expand
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>      ModelCell.tsx              # Model string + tier badge
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>      TokenCell.tsx              # Token count + mini bar
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>      DurationCell.tsx           # Live timer
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>      HandoffRow.tsx             # Highlighted handoff between groups
+<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>      GateFooter.tsx             # Gate status bar at group bottom
+<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>      BoardToolbar.tsx           # Search, filter, view options
+<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>    pipeline/                    # Orchestration flow view
+<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>      PipelineView.tsx           # Full DAG visualization
+<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a>      StageNode.tsx              # Stage node in the flow
+<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a>      GateNode.tsx               # Gate checkpoint between stages
+<a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a>      FlowConnector.tsx          # Animated arrows between nodes
+<a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a>      GanttTimeline.tsx          # Horizontal Gantt bars per stage
+<a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a>      SummaryCards.tsx            # Aggregate metrics row
+<a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a>    detail/                      # Agent detail drawer
+<a id="__codelineno-0-38" name="__codelineno-0-38" href="#__codelineno-0-38"></a>      AgentDrawer.tsx            # Right-side slide-in panel
+<a id="__codelineno-0-39" name="__codelineno-0-39" href="#__codelineno-0-39"></a>      LiveOutput.tsx             # Streaming LLM text
+<a id="__codelineno-0-40" name="__codelineno-0-40" href="#__codelineno-0-40"></a>      ToolCallLog.tsx            # Tool invocations list
+<a id="__codelineno-0-41" name="__codelineno-0-41" href="#__codelineno-0-41"></a>      AgentConversation.tsx      # Agent-specific message history
+<a id="__codelineno-0-42" name="__codelineno-0-42" href="#__codelineno-0-42"></a>    activity/                    # Activity feed
+<a id="__codelineno-0-43" name="__codelineno-0-43" href="#__codelineno-0-43"></a>      ActivityFeed.tsx           # Chronological all-agent feed
+<a id="__codelineno-0-44" name="__codelineno-0-44" href="#__codelineno-0-44"></a>      ActivityEntry.tsx          # Single feed entry (message/handoff/gate)
+<a id="__codelineno-0-45" name="__codelineno-0-45" href="#__codelineno-0-45"></a>      ActivityFilter.tsx         # Filter by stage, agent, type
+<a id="__codelineno-0-46" name="__codelineno-0-46" href="#__codelineno-0-46"></a>    artifacts/
+<a id="__codelineno-0-47" name="__codelineno-0-47" href="#__codelineno-0-47"></a>      ArtifactPanel.tsx          # File tree + preview
+<a id="__codelineno-0-48" name="__codelineno-0-48" href="#__codelineno-0-48"></a>      FilePreview.tsx            # Syntax-highlighted code / markdown
+<a id="__codelineno-0-49" name="__codelineno-0-49" href="#__codelineno-0-49"></a>    approvals/
+<a id="__codelineno-0-50" name="__codelineno-0-50" href="#__codelineno-0-50"></a>      ApprovalQueue.tsx          # Pending approvals list
+<a id="__codelineno-0-51" name="__codelineno-0-51" href="#__codelineno-0-51"></a>      ApprovalCard.tsx           # Single approval with context + actions
+<a id="__codelineno-0-52" name="__codelineno-0-52" href="#__codelineno-0-52"></a>    shared/
+<a id="__codelineno-0-53" name="__codelineno-0-53" href="#__codelineno-0-53"></a>      StatusBadge.tsx            # Reusable status indicator
+<a id="__codelineno-0-54" name="__codelineno-0-54" href="#__codelineno-0-54"></a>      TierBadge.tsx              # Model tier color badge
+<a id="__codelineno-0-55" name="__codelineno-0-55" href="#__codelineno-0-55"></a>      MetricsBar.tsx             # Top metrics strip
+<a id="__codelineno-0-56" name="__codelineno-0-56" href="#__codelineno-0-56"></a>      ViewSwitcher.tsx           # Board | Pipeline | Activity | Artifacts tabs
+<a id="__codelineno-0-57" name="__codelineno-0-57" href="#__codelineno-0-57"></a>      Layout.tsx                 # App shell with nav
+<a id="__codelineno-0-58" name="__codelineno-0-58" href="#__codelineno-0-58"></a>      SearchBar.tsx              # Global search/filter
+<a id="__codelineno-0-59" name="__codelineno-0-59" href="#__codelineno-0-59"></a>  utils/
+<a id="__codelineno-0-60" name="__codelineno-0-60" href="#__codelineno-0-60"></a>    format.ts                    # Time formatting, number formatting
+<a id="__codelineno-0-61" name="__codelineno-0-61" href="#__codelineno-0-61"></a>    colors.ts                    # Status -&gt; color mapping
+</code></pre></div>
+<h2 id="risks">Risks<a class="headerlink" href="#risks" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Risk</th>
+<th>Severity</th>
+<th>Mitigation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>WebSocket disconnects during long runs</td>
+<td>MEDIUM</td>
+<td>Auto-reconnect with catch-up events (backend already supports this)</td>
+</tr>
+<tr>
+<td>Large artifact content in memory</td>
+<td>LOW</td>
+<td>Lazy-load file content only on preview click</td>
+</tr>
+<tr>
+<td>Agent presence not exposed via REST yet</td>
+<td>LOW</td>
+<td>Add 2 simple endpoints in Phase 1</td>
+</tr>
+<tr>
+<td>Board re-renders on every WS event</td>
+<td>MEDIUM</td>
+<td>Zustand selectors + React.memo on rows, batch WS updates at 100ms intervals</td>
+</tr>
+<tr>
+<td>Pipeline view SVG complexity</td>
+<td>LOW</td>
+<td>Use simple CSS flexbox layout instead of full SVG; only animate active connections</td>
+</tr>
+<tr>
+<td>Many concurrent agent timers</td>
+<td>LOW</td>
+<td>Single <code>requestAnimationFrame</code> loop updating all visible timers</td>
+</tr>
+</tbody>
+</table>
+<h2 id="visual-design">Visual Design<a class="headerlink" href="#visual-design" title="Permanent link">&para;</a></h2>
+<h3 id="design-direction-professional-dark">Design Direction: Professional Dark<a class="headerlink" href="#design-direction-professional-dark" title="Permanent link">&para;</a></h3>
+<p>Clean, tool-grade dark UI inspired by Linear and GitHub Dark. No glow effects, no neon — just clear hierarchy, readable data, and subtle color accents for status. The aesthetic is a professional work management tool, not a sci-fi dashboard.</p>
+<h3 id="color-palette">Color Palette<a class="headerlink" href="#color-palette" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Value</th>
+<th>Usage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--bg-primary</code></td>
+<td><code>#0d1117</code></td>
+<td>Page background</td>
+</tr>
+<tr>
+<td><code>--bg-surface</code></td>
+<td><code>#161b22</code></td>
+<td>Cards, panels, stage groups</td>
+</tr>
+<tr>
+<td><code>--bg-surface-2</code></td>
+<td><code>#21262d</code></td>
+<td>Nested surfaces, table headers</td>
+</tr>
+<tr>
+<td><code>--bg-hover</code></td>
+<td><code>rgba(47, 129, 247, 0.04)</code></td>
+<td>Row/item hover states</td>
+</tr>
+<tr>
+<td><code>--border</code></td>
+<td><code>#30363d</code></td>
+<td>Panel borders, dividers</td>
+</tr>
+<tr>
+<td><code>--text-primary</code></td>
+<td><code>#e6edf3</code></td>
+<td>Headings, primary text</td>
+</tr>
+<tr>
+<td><code>--text-secondary</code></td>
+<td><code>#7d8590</code></td>
+<td>Labels, timestamps, muted text</td>
+</tr>
+<tr>
+<td><code>--accent</code></td>
+<td><code>#2f81f7</code></td>
+<td>Primary accent — running states, active tabs, links</td>
+</tr>
+<tr>
+<td><code>--green</code></td>
+<td><code>#3fb950</code></td>
+<td>Completed, passed gates, done status</td>
+</tr>
+<tr>
+<td><code>--red</code></td>
+<td><code>#f85149</code></td>
+<td>Errors, failed gates</td>
+</tr>
+<tr>
+<td><code>--amber</code></td>
+<td><code>#d29922</code></td>
+<td>Warnings, pending states, reviewing</td>
+</tr>
+<tr>
+<td><code>--purple</code></td>
+<td><code>#a371f7</code></td>
+<td>Tool use status, secondary accent</td>
+</tr>
+</tbody>
+</table>
+<h3 id="typography">Typography<a class="headerlink" href="#typography" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Element</th>
+<th>Font</th>
+<th>Size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Headings</td>
+<td>Inter 600-700</td>
+<td><code>clamp(1.25rem, 3vw, 2rem)</code></td>
+</tr>
+<tr>
+<td>Body / UI</td>
+<td>Inter 400-500</td>
+<td><code>clamp(0.8rem, 1.2vw, 1rem)</code></td>
+</tr>
+<tr>
+<td>Code / Monospace</td>
+<td>JetBrains Mono</td>
+<td><code>clamp(0.7rem, 1vw, 0.875rem)</code></td>
+</tr>
+<tr>
+<td>Agent names</td>
+<td>Inter 600</td>
+<td><code>0.875rem</code></td>
+</tr>
+<tr>
+<td>Timestamps</td>
+<td>JetBrains Mono 400</td>
+<td><code>0.75rem</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="layout-specifications">Layout Specifications<a class="headerlink" href="#layout-specifications" title="Permanent link">&para;</a></h3>
+<h4 id="main-dashboard-projectdashboard-board-view">Main Dashboard (ProjectDashboard) — Board View<a class="headerlink" href="#main-dashboard-projectdashboard-board-view" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>+-----------------------------------------------------------------------+
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>| COLETTE    [Board] [Pipeline] [Activity] [Artifacts]    [Search] [⚙]  |
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>+-----------------------------------------------------------------------+
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>| MetricsBar                                                            |
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>| [▓▓▓▓▓▓▓░░░░░░ 45%] Tokens: 42,847  Elapsed: 3m12s  Errors: 0       |
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>+-----------------------------------------------------------------------+
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>| ┌─────────────────────────────────────────────────────────────────┐   |
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>| │ ▼ REQUIREMENTS                          COMPLETED ✓   1m 04s   │   |
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>| ├─────────┬──────────┬─────────────────┬──────────┬───────┬──────┤   |
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>| │ Agent   │ Status   │ Activity        │ Model    │ Tokens│ Time │   |
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>| ├─────────┼──────────┼─────────────────┼──────────┼───────┼──────┤   |
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>| │ @Researcher │ Done ✓ │ Completed analysis │ claude.. │ 1.2k │ 32s │   |
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>| │ @Analyst    │ Done ✓ │ 12 user stories    │ claude.. │ 980  │ 28s │   |
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>| ├─────────────┴────────┴─────────────────┴──────────┴───────┴──────┤   |
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>| │ Gate: Requirements Gate  ✓ PASSED  Score: 92%                    │   |
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>| └──────────────────────────────────────────────────────────────────┘   |
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>| ┌── ⟹ Handoff: Requirements → Design  |  12 stories, 5 NFRs ─────┐   |
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>| └──────────────────────────────────────────────────────────────────┘   |
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>| ┌─────────────────────────────────────────────────────────────────┐   |
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>| │ ▼ DESIGN                                COMPLETED ✓   1m 22s   │   |
+<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>| ├─────────┬──────────┬─────────────────┬──────────┬───────┬──────┤   |
+<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>| │ @Architect   │ Done ✓ │ System arch done   │ claude.. │ 2.1k │ 45s │   |
+<a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>| │ @API Designer│ Done ✓ │ OpenAPI spec done  │ claude.. │ 1.8k │ 37s │   |
+<a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a>| │ @UI Designer │ Done ✓ │ Wireframes done    │ claude.. │ 1.4k │ 31s │   |
+<a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a>| ├──────────────┴────────┴─────────────────┴──────────┴───────┴──────┤   |
+<a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a>| │ Gate: Design Gate  ✓ PASSED  Score: 88%                          │   |
+<a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a>| └──────────────────────────────────────────────────────────────────┘   |
+<a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a>| ┌─────────────────────────────────────────────────────────────────┐   |
+<a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a>| │ ▼ IMPLEMENTATION                     ● RUNNING       0m 46s    │   |
+<a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a>| ├─────────┬──────────┬─────────────────┬──────────┬───────┬──────┤   |
+<a id="__codelineno-1-31" name="__codelineno-1-31" href="#__codelineno-1-31"></a>| │ @Backend Dev │ ● Thinking │ Implementing auth...│ claude.. │ 840 │ 22s │   |
+<a id="__codelineno-1-32" name="__codelineno-1-32" href="#__codelineno-1-32"></a>| │ @Frontend Dev│ ⚙ Tool Use│ Running npm build   │ claude.. │ 620 │ 18s │   |
+<a id="__codelineno-1-33" name="__codelineno-1-33" href="#__codelineno-1-33"></a>| │ @Database Dev│ ○ Idle     │ Waiting...          │ claude.. │ 0   │ --  │   |
+<a id="__codelineno-1-34" name="__codelineno-1-34" href="#__codelineno-1-34"></a>| │ @Verifier    │ ○ Idle     │ Waiting...          │ claude.. │ 0   │ --  │   |
+<a id="__codelineno-1-35" name="__codelineno-1-35" href="#__codelineno-1-35"></a>| │ @Refactor    │ ○ Idle     │ Waiting...          │ claude.. │ 0   │ --  │   |
+<a id="__codelineno-1-36" name="__codelineno-1-36" href="#__codelineno-1-36"></a>| │ @Test Agent  │ ○ Idle     │ Waiting...          │ claude.. │ 0   │ --  │   |
+<a id="__codelineno-1-37" name="__codelineno-1-37" href="#__codelineno-1-37"></a>| └──────────────────────────────────────────────────────────────────┘   |
+<a id="__codelineno-1-38" name="__codelineno-1-38" href="#__codelineno-1-38"></a>| ┌─────────────────────────────────────────────────────────────────┐   |
+<a id="__codelineno-1-39" name="__codelineno-1-39" href="#__codelineno-1-39"></a>| │ ▷ TESTING                               ○ PENDING              │   |
+<a id="__codelineno-1-40" name="__codelineno-1-40" href="#__codelineno-1-40"></a>| │ ▷ DEPLOYMENT                            ○ PENDING              │   |
+<a id="__codelineno-1-41" name="__codelineno-1-41" href="#__codelineno-1-41"></a>| │ ▷ MONITORING                            ○ PENDING              │   |
+<a id="__codelineno-1-42" name="__codelineno-1-42" href="#__codelineno-1-42"></a>| └──────────────────────────────────────────────────────────────────┘   |
+<a id="__codelineno-1-43" name="__codelineno-1-43" href="#__codelineno-1-43"></a>+-----------------------------------------------------------------------+
+<a id="__codelineno-1-44" name="__codelineno-1-44" href="#__codelineno-1-44"></a>|                    AgentDrawer (slides from right when row clicked)    |
+<a id="__codelineno-1-45" name="__codelineno-1-45" href="#__codelineno-1-45"></a>+-----------------------------------------------------------------------+
+</code></pre></div>
+<h4 id="pipeline-orchestration-view">Pipeline Orchestration View<a class="headerlink" href="#pipeline-orchestration-view" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>+-----------------------------------------------------------------------+
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>| COLETTE    [Board] [Pipeline] [Activity] [Artifacts]    [Search] [⚙]  |
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>+-----------------------------------------------------------------------+
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>|                                                                        |
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>|   [Requirements] ──✓── [Design] ──✓── [Implementation] ──○── [Testing]|
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>|      ✓ Done         ✓ Done       ● Running  2/6 active    ○ Pending   |
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>|      1m04s          1m22s        0m46s                                 |
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>|                                                                        |
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>|                       [Deployment] ──○── [Monitoring]                  |
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>|                         ○ Pending         ○ Pending                    |
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>|                                                                        |
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>+-----------------------------------------------------------------------+
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>| Gantt Timeline                                                         |
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>| Requirements  ████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  1m04s           |
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>| Design        ░░░░░░░░████████████░░░░░░░░░░░░░░░░░  1m22s           |
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>| Implementation░░░░░░░░░░░░░░░░░░░░█████▓▓▓            0m46s...       |
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>| Testing       ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  --             |
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>| Deployment    ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  --             |
+<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>| Monitoring    ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  --             |
+<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>+-----------------------------------------------------------------------+
+<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>| Summary                                                                |
+<a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a>| [Tokens: 42,847] [Elapsed: 3m12s] [Agents: 2/20 active] [Errors: 0] |
+<a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a>+-----------------------------------------------------------------------+
+</code></pre></div>
+<h3 id="agent-status-pills-mondaycom-style">Agent Status Pills (monday.com-style)<a class="headerlink" href="#agent-status-pills-mondaycom-style" title="Permanent link">&para;</a></h3>
+<p>Color-coded status labels displayed in the Status column of each agent row. Each pill has a background color, icon, and optional animation.</p>
+<table>
+<thead>
+<tr>
+<th>State</th>
+<th>Label</th>
+<th>Color</th>
+<th>Icon</th>
+<th>Animation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>IDLE</td>
+<td><code>Idle</code></td>
+<td><code>#7d8590</code> muted</td>
+<td><code>○</code> hollow circle</td>
+<td>None, static</td>
+</tr>
+<tr>
+<td>THINKING</td>
+<td><code>Thinking</code></td>
+<td><code>#2f81f7</code> blue</td>
+<td><code>●</code> filled circle</td>
+<td>Pulsing opacity, 1.5s ease</td>
+</tr>
+<tr>
+<td>TOOL_USE</td>
+<td><code>Tool Use</code></td>
+<td><code>#a371f7</code> purple</td>
+<td><code>⚙</code> gear</td>
+<td>Rotating 360deg, 1.5s</td>
+</tr>
+<tr>
+<td>REVIEWING</td>
+<td><code>Reviewing</code></td>
+<td><code>#d29922</code> amber</td>
+<td><code>🔍</code> magnifier</td>
+<td>Subtle pulse, 1.5s</td>
+</tr>
+<tr>
+<td>HANDING_OFF</td>
+<td><code>Handing Off</code></td>
+<td><code>#2f81f7</code> blue</td>
+<td><code>→</code> arrow</td>
+<td>Slide-right animation</td>
+</tr>
+<tr>
+<td>DONE</td>
+<td><code>Done</code></td>
+<td><code>#3fb950</code> green</td>
+<td><code>✓</code> checkmark</td>
+<td>Fade-in, 200ms</td>
+</tr>
+<tr>
+<td>ERROR</td>
+<td><code>Error</code></td>
+<td><code>#f85149</code> red</td>
+<td><code>✕</code> cross</td>
+<td>Flash twice, then static</td>
+</tr>
+</tbody>
+</table>
+<h3 id="handoff-row-design">Handoff Row Design<a class="headerlink" href="#handoff-row-design" title="Permanent link">&para;</a></h3>
+<p>Between stage groups, a highlighted row spans all columns showing the handoff:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>+-----------------------------------------------------------------------+
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>│ ⟹  Requirements → Design   │ 12 user stories │ 5 NFRs │ Score: 92%  │
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>+-----------------------------------------------------------------------+
+</code></pre></div>
+<p>Styled with: blue left border (<code>--accent</code>), subtle blue-tinted background, bold font, connecting arrow icon.</p>
+<h3 id="gate-footer-design">Gate Footer Design<a class="headerlink" href="#gate-footer-design" title="Permanent link">&para;</a></h3>
+<p>At the bottom of each stage group, a status bar shows the quality gate result:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>+-----------------------------------------------------------------------+
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>│ Gate: Requirements Gate    ✓ PASSED    Score: 92%    [View Details]   │
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>+-----------------------------------------------------------------------+
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Gate State</th>
+<th>Style</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pending</td>
+<td>Grey dashed border, "Pending" text</td>
+</tr>
+<tr>
+<td>Evaluating</td>
+<td>Amber pulsing border, spinner icon</td>
+</tr>
+<tr>
+<td>Passed</td>
+<td>Green solid border, checkmark, score</td>
+</tr>
+<tr>
+<td>Failed</td>
+<td>Red solid border, X icon, reasons expandable</td>
+</tr>
+<tr>
+<td>Needs Approval</td>
+<td>Purple pulsing border, [Approve][Reject] buttons inline</td>
+</tr>
+</tbody>
+</table>
+<h3 id="activity-feed-entry-types">Activity Feed Entry Types<a class="headerlink" href="#activity-feed-entry-types" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>+------------------------------------------+
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>| Activity                             [v] |
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>+------------------------------------------+
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>|                                          |
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>| ● @Researcher                  2:31:04  |
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>| Analyzing project requirements for       |
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>| e-commerce platform...                   |
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>|                                          |
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>| ● @Analyst                     2:31:12  |
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>| Identified 12 user stories from the      |
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>| project description.                     |
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>|                                          |
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>| ⟹ Handoff: Requirements → Design        |
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>| [blue bar] 12 stories, 5 NFRs, 92%      |
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>|                                          |
+<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>| ✓ Gate: Requirements Gate PASSED         |
+<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>| [green bar] Score: 92%                   |
+<a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>|                                          |
+<a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a>| ● @Architect                   2:32:01  |
+<a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>| Received requirements handoff.           |
+<a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>| Beginning system architecture...         |
+<a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a>|                                          |
+<a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a>| ⚠ Approval Required                     |
+<a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a>| [purple bar] Design Gate — T1 High risk  |
+<a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a>| [Approve] [Reject] [View Details]        |
+<a id="__codelineno-5-26" name="__codelineno-5-26" href="#__codelineno-5-26"></a>|                                          |
+<a id="__codelineno-5-27" name="__codelineno-5-27" href="#__codelineno-5-27"></a>+------------------------------------------+
+</code></pre></div>
+<h3 id="approval-queue-design-mondaycom-style-list">Approval Queue Design (monday.com-style list)<a class="headerlink" href="#approval-queue-design-mondaycom-style-list" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>+------------------------------------------+
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>| Pending Approvals                    (2) |
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>+------------------------------------------+
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>| ◉ DESIGN GATE — T1 High        2:33:15  |
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>|   Risk: Architecture uses unfamiliar     |
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>|   stack for this team                    |
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>|   Score: 78% (threshold: 85%)            |
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>|   [Approve ✓]  [Reject ✕]  [Details ▸]  |
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>+------------------------------------------+
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>| ◉ IMPL GATE — T2 Medium        2:38:44  |
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>|   Risk: Test coverage at 72%             |
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>|   Score: 72% (threshold: 80%)            |
+<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>|   [Approve ✓]  [Reject ✕]  [Details ▸]  |
+<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>+------------------------------------------+
+</code></pre></div>
+<h3 id="responsive-breakpoints">Responsive Breakpoints<a class="headerlink" href="#responsive-breakpoints" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Breakpoint</th>
+<th>Layout Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>&gt;= 1440px</td>
+<td>Full board with all columns visible, drawer side-by-side</td>
+</tr>
+<tr>
+<td>1024-1439px</td>
+<td>Board hides Duration + Output columns, drawer overlays</td>
+</tr>
+<tr>
+<td>768-1023px</td>
+<td>Board shows Agent + Status + Activity only, stacked groups, drawer full-width</td>
+</tr>
+<tr>
+<td>&lt; 768px</td>
+<td>Card view (each agent as a card instead of row), swipe between stages</td>
+</tr>
+</tbody>
+</table>
+<h3 id="motion-guidelines">Motion Guidelines<a class="headerlink" href="#motion-guidelines" title="Permanent link">&para;</a></h3>
+<ul>
+<li>All transitions 200-300ms ease-out</li>
+<li>Status pill changes animate over 400ms (color morph + icon swap)</li>
+<li>Stage group completion: green flash on group header, auto-collapse after 1s</li>
+<li>New activity entries: slide in from bottom, 200ms</li>
+<li>Agent drawer: slide from right, 250ms ease-out</li>
+<li>Pipeline view node transitions: 300ms with easing</li>
+<li>Gantt bar growth: animated width increase for running stages</li>
+<li>Handoff rows: slide-in with cyan pulse on appearance</li>
+<li>View switches: crossfade 150ms</li>
+<li>Respect <code>prefers-reduced-motion</code>: disable all loops, keep functional transitions at 200ms max</li>
+</ul>
+<h2 id="backend-additions-phase-1">Backend Additions (Phase 1)<a class="headerlink" href="#backend-additions-phase-1" title="Permanent link">&para;</a></h2>
+<p>Two new endpoints in <code>src/colette/api/routes/agents.py</code>:</p>
+<h3 id="get-apiv1projectsproject_idagents">GET /api/v1/projects/{project_id}/agents<a class="headerlink" href="#get-apiv1projectsproject_idagents" title="Permanent link">&para;</a></h3>
+<p>Returns current agent presence snapshot.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="p">{</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span><span class="nt">&quot;agents&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">    </span><span class="p">{</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">      </span><span class="nt">&quot;agent_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;requirements.researcher&quot;</span><span class="p">,</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">      </span><span class="nt">&quot;display_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Researcher&quot;</span><span class="p">,</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">      </span><span class="nt">&quot;stage&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;requirements&quot;</span><span class="p">,</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">      </span><span class="nt">&quot;state&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;thinking&quot;</span><span class="p">,</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="w">      </span><span class="nt">&quot;activity&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Analyzing project description&quot;</span><span class="p">,</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="w">      </span><span class="nt">&quot;model&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;claude-sonnet-4-6&quot;</span><span class="p">,</span>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="w">      </span><span class="nt">&quot;tokens_used&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1240</span><span class="p">,</span>
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="w">      </span><span class="nt">&quot;target_agent&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&quot;</span>
+<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="w">  </span><span class="p">]</span>
+<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="p">}</span>
+</code></pre></div>
+<h3 id="get-apiv1projectsproject_idconversation">GET /api/v1/projects/{project_id}/conversation<a class="headerlink" href="#get-apiv1projectsproject_idconversation" title="Permanent link">&para;</a></h3>
+<p>Returns conversation ring buffer.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="p">{</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span><span class="nt">&quot;entries&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">    </span><span class="p">{</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">      </span><span class="nt">&quot;agent_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;requirements.researcher&quot;</span><span class="p">,</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">      </span><span class="nt">&quot;display_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Researcher&quot;</span><span class="p">,</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">      </span><span class="nt">&quot;stage&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;requirements&quot;</span><span class="p">,</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="w">      </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Identified 12 user stories from project description&quot;</span><span class="p">,</span>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="w">      </span><span class="nt">&quot;timestamp&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-04-05T14:31:12Z&quot;</span><span class="p">,</span>
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="w">      </span><span class="nt">&quot;target_agent&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&quot;</span>
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="w">  </span><span class="p">]</span>
+<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="p">}</span>
+</code></pre></div>
+<h2 id="websocket-event-mapping">WebSocket Event Mapping<a class="headerlink" href="#websocket-event-mapping" title="Permanent link">&para;</a></h2>
+<p>How each <code>EventType</code> maps to UI updates across Board and Pipeline views:</p>
+<table>
+<thead>
+<tr>
+<th>Event</th>
+<th>Board View Effect</th>
+<th>Pipeline View Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>STAGE_STARTED</code></td>
+<td>Stage group header → "RUNNING" cyan badge, auto-expand group</td>
+<td>Stage node glows cyan, connector animates</td>
+</tr>
+<tr>
+<td><code>STAGE_COMPLETED</code></td>
+<td>Stage group header → "COMPLETED" green badge, auto-collapse after 1s</td>
+<td>Stage node turns green, gate node activates</td>
+</tr>
+<tr>
+<td><code>STAGE_FAILED</code></td>
+<td>Stage group header → "FAILED" red badge, stays expanded</td>
+<td>Stage node turns red, pipeline pauses visually</td>
+</tr>
+<tr>
+<td><code>GATE_PASSED</code></td>
+<td>Gate footer turns green with checkmark + score</td>
+<td>Gate node between stages turns green</td>
+</tr>
+<tr>
+<td><code>GATE_FAILED</code></td>
+<td>Gate footer turns red, shows reasons, expand details</td>
+<td>Gate node turns red with tooltip</td>
+</tr>
+<tr>
+<td><code>AGENT_STARTED</code></td>
+<td>Agent row appears in group (or transitions from Idle)</td>
+<td>Agent count badge increments on stage node</td>
+</tr>
+<tr>
+<td><code>AGENT_COMPLETED</code></td>
+<td>Agent row status pill → Done (green)</td>
+<td>Agent count updates (e.g. "2/3 done")</td>
+</tr>
+<tr>
+<td><code>AGENT_ERROR</code></td>
+<td>Agent row status pill → Error (red flash), row highlighted</td>
+<td>Error count badge on stage node</td>
+</tr>
+<tr>
+<td><code>AGENT_THINKING</code></td>
+<td>Agent row status pill → Thinking (cyan pulse)</td>
+<td>--</td>
+</tr>
+<tr>
+<td><code>AGENT_TOOL_CALL</code></td>
+<td>Agent row status pill → Tool Use (violet spin), activity column updates</td>
+<td>--</td>
+</tr>
+<tr>
+<td><code>AGENT_REVIEWING</code></td>
+<td>Agent row status pill → Reviewing (amber pulse)</td>
+<td>--</td>
+</tr>
+<tr>
+<td><code>AGENT_HANDOFF</code></td>
+<td>Handoff row appears between groups with details</td>
+<td>Connector between stage nodes pulses</td>
+</tr>
+<tr>
+<td><code>AGENT_MESSAGE</code></td>
+<td>New entry in activity feed, agent row activity updates</td>
+<td>--</td>
+</tr>
+<tr>
+<td><code>AGENT_STREAM_CHUNK</code></td>
+<td>Live text append in agent drawer (if open)</td>
+<td>--</td>
+</tr>
+<tr>
+<td><code>AGENT_STATE_CHANGED</code></td>
+<td>Agent row status pill + activity column update</td>
+<td>--</td>
+</tr>
+<tr>
+<td><code>APPROVAL_REQUIRED</code></td>
+<td>Gate footer shows Approve/Reject buttons, nav badge +1</td>
+<td>Gate node pulses magenta with inline actions</td>
+</tr>
+<tr>
+<td><code>FEEDBACK_APPLIED</code></td>
+<td>Toast notification</td>
+<td>--</td>
+</tr>
+<tr>
+<td><code>PIPELINE_COMPLETED</code></td>
+<td>All groups show green, metrics bar shows final totals</td>
+<td>All nodes green, Gantt bars complete</td>
+</tr>
+<tr>
+<td><code>PIPELINE_FAILED</code></td>
+<td>Error banner at top, failed group stays expanded + highlighted</td>
+<td>Failed node red, pipeline flow stops</td>
+</tr>
+</tbody>
+</table>
+<h2 id="model-tiers-configured-models">Model Tiers &amp; Configured Models<a class="headerlink" href="#model-tiers-configured-models" title="Permanent link">&para;</a></h2>
+<p>The UI displays whichever model string arrives in the WebSocket event <code>model</code> field. Models are configured per tier in <code>.env</code> and resolved by <code>llm/gateway.py</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Tier</th>
+<th>Env Variable</th>
+<th>Current Model</th>
+<th>Fallback</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PLANNING</td>
+<td><code>COLETTE_DEFAULT_PLANNING_MODEL</code></td>
+<td><code>qwen/qwen3.6-plus:free</code></td>
+<td><code>google/gemma-4-31b-it</code></td>
+</tr>
+<tr>
+<td>EXECUTION</td>
+<td><code>COLETTE_DEFAULT_EXECUTION_MODEL</code></td>
+<td><code>qwen/qwen3.6-plus:free</code></td>
+<td><code>google/gemma-4-31b-it</code></td>
+</tr>
+<tr>
+<td>VALIDATION</td>
+<td><code>COLETTE_DEFAULT_VALIDATION_MODEL</code></td>
+<td><code>qwen/qwen3.6-plus:free</code></td>
+<td><code>google/gemma-4-31b-it</code></td>
+</tr>
+</tbody>
+</table>
+<p>The UI should:
+- Display the raw model string from events (not hardcode model names)
+- Show a tier badge alongside the model name (PLANNING / EXECUTION / VALIDATION)
+- Color-code tiers: Planning = purple (<code>--purple</code>), Execution = blue (<code>--accent</code>), Validation = amber (<code>--amber</code>)
+- When a fallback fires, show the fallback model with a "fallback" badge</p>
+<h3 id="model-column-display">Model Column Display<a class="headerlink" href="#model-column-display" title="Permanent link">&para;</a></h3>
+<p>In the board's Model column, show a compact model string with a tier badge:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>claude-sonnet-4-6  [EXECUTION]     ← blue badge
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>claude-opus-4-6    [PLANNING]      ← purple badge
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>claude-haiku-4-5   [VALIDATION]    ← amber badge
+</code></pre></div>
+<p>If fallback triggered, append a small "fallback" indicator:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>google/gemma-4-31b-it  [EXECUTION] [↻ fallback]
+</code></pre></div></p>
+<p>In the agent drawer, show the full model detail card:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>+-------------------------------------------+
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>| Model                                     |
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>| qwen/qwen3.6-plus:free                   |
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>| Tier: EXECUTION (cyan)                    |
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>| Fallback chain: google/gemma-4-31b-it     |
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>| Tokens: 1,240 / 60,000 budget            |
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>+-------------------------------------------+
+</code></pre></div></p>
+<h2 id="agent-roster-by-stage">Agent Roster by Stage<a class="headerlink" href="#agent-roster-by-stage" title="Permanent link">&para;</a></h2>
+<p>Agents that appear in each stage room:</p>
+<table>
+<thead>
+<tr>
+<th>Stage</th>
+<th>Agents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Requirements</td>
+<td>Researcher, Analyst</td>
+</tr>
+<tr>
+<td>Design</td>
+<td>Architect, API Designer, UI Designer</td>
+</tr>
+<tr>
+<td>Implementation</td>
+<td>Backend Dev, Frontend Dev, Database Dev, Verifier, Architect Agent, Refactor Agent, Test Agent</td>
+</tr>
+<tr>
+<td>Testing</td>
+<td>Unit Tester, Integration Tester, Security Scanner</td>
+</tr>
+<tr>
+<td>Deployment</td>
+<td>CI/CD Engineer, Infra Engineer</td>
+</tr>
+<tr>
+<td>Monitoring</td>
+<td>Observability Agent, Incident Response</td>
+</tr>
+</tbody>
+</table>
+<h2 id="design-previews">Design Previews<a class="headerlink" href="#design-previews" title="Permanent link">&para;</a></h2>
+<p>Static HTML mockups generated via Google Stitch, located in <code>web/stitch-preview/</code>. Open any file in a browser to view the design.</p>
+<table>
+<thead>
+<tr>
+<th>Screen</th>
+<th>File</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Agent Board</strong></td>
+<td><a href="../web/stitch-preview/agent-board.html"><code>web/stitch-preview/agent-board.html</code></a></td>
+<td>Main view — monday.com-style agent table grouped by pipeline stage</td>
+</tr>
+<tr>
+<td><strong>Pipeline View</strong></td>
+<td><a href="../web/stitch-preview/pipeline-view.html"><code>web/stitch-preview/pipeline-view.html</code></a></td>
+<td>Orchestration DAG with stage nodes, gate checkpoints, Gantt timeline</td>
+</tr>
+<tr>
+<td><strong>Project List</strong></td>
+<td><a href="../web/stitch-preview/project-list.html"><code>web/stitch-preview/project-list.html</code></a></td>
+<td>Project cards with status summary and pipeline progress</td>
+</tr>
+<tr>
+<td><strong>Project List (alt)</strong></td>
+<td><a href="../web/stitch-preview/project-list-2.html"><code>web/stitch-preview/project-list-2.html</code></a></td>
+<td>Alternate project list layout</td>
+</tr>
+<tr>
+<td><strong>Dashboard (legacy)</strong></td>
+<td><a href="../web/stitch-preview/dashboard.html"><code>web/stitch-preview/dashboard.html</code></a></td>
+<td>Earlier office-floor concept (superseded by Board View)</td>
+</tr>
+</tbody>
+</table>
+<p>These are reference designs only — the actual React implementation will follow the component architecture in this doc.</p>
+<h2 id="dependencies">Dependencies<a class="headerlink" href="#dependencies" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Node.js 20+ (for Vite dev server)</li>
+<li>Existing FastAPI backend running on port 8000</li>
+<li>No new Python dependencies</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "content.code.copy", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
