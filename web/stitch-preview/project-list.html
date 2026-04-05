@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@300;400;500;600;700&amp;family=Roboto+Mono&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-fixed": "#002109",
+                        "on-tertiary-container": "#7e000f",
+                        "error-container": "#93000a",
+                        "tertiary": "#ffb3ad",
+                        "primary-container": "#06b6d4",
+                        "inverse-on-surface": "#2c303d",
+                        "on-tertiary-fixed": "#410004",
+                        "on-primary-fixed-variant": "#004e5c",
+                        "inverse-primary": "#00687a",
+                        "on-secondary-fixed-variant": "#005321",
+                        "on-surface-variant": "#bcc9cd",
+                        "inverse-surface": "#dfe2f3",
+                        "surface-dim": "#0f131f",
+                        "tertiary-container": "#ff817a",
+                        "on-surface": "#dfe2f3",
+                        "on-background": "#dfe2f3",
+                        "surface": "#0f131f",
+                        "secondary": "#4ae176",
+                        "primary": "#4cd7f6",
+                        "on-error": "#690005",
+                        "surface-tint": "#4cd7f6",
+                        "surface-bright": "#353946",
+                        "tertiary-fixed-dim": "#ffb3ad",
+                        "on-primary-fixed": "#001f26",
+                        "primary-fixed-dim": "#4cd7f6",
+                        "surface-variant": "#313442",
+                        "secondary-fixed-dim": "#4ae176",
+                        "surface-container-highest": "#313442",
+                        "on-error-container": "#ffdad6",
+                        "surface-container-low": "#171b28",
+                        "on-tertiary-fixed-variant": "#930013",
+                        "outline": "#869397",
+                        "on-secondary": "#003915",
+                        "on-primary-container": "#00424f",
+                        "surface-container": "#1b1f2c",
+                        "primary-fixed": "#acedff",
+                        "on-primary": "#003640",
+                        "surface-container-high": "#262a37",
+                        "error": "#ffb4ab",
+                        "outline-variant": "#3d494c",
+                        "on-tertiary": "#68000a",
+                        "secondary-container": "#00b954",
+                        "tertiary-fixed": "#ffdad7",
+                        "surface-container-lowest": "#0a0e1a",
+                        "secondary-fixed": "#6bff8f",
+                        "on-secondary-container": "#004119",
+                        "background": "#0f131f"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Inter"],
+                        "label": ["Space Grotesk"],
+                        "mono": ["Roboto Mono"]
+                    }
+                },
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-panel {
+            background: rgba(49, 52, 66, 0.6);
+            backdrop-filter: blur(24px);
+        }
+    </style>
+</head>
+<body class="bg-surface-dim text-on-surface font-body selection:bg-primary/30">
+<!-- Top Navigation Bar -->
+<header class="bg-[#0f131f] text-cyan-400 font-['Space_Grotesk'] tracking-tight docked full-width top-0 z-50 shadow-[0_20px_40px_-12px_rgba(6,182,212,0.15)]">
+<nav class="flex justify-between items-center w-full px-6 py-3">
+<div class="flex items-center gap-8">
+<div class="text-2xl font-bold text-cyan-400 tracking-tighter">Colette</div>
+<div class="hidden md:flex items-center gap-6">
+<a class="text-cyan-400 font-bold border-b-2 border-cyan-400 pb-1 hover:text-cyan-300 transition-colors duration-200 active:scale-95 transition-transform" href="#">Mission Control</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden sm:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
+<input class="bg-surface-container-lowest border-b-2 border-outline-variant/20 focus:border-primary focus:ring-0 text-sm py-1.5 pl-9 pr-4 w-64 transition-all duration-300" placeholder="Search systems..." type="text"/>
+</div>
+<button class="bg-gradient-to-br from-primary to-primary-container text-on-primary-container font-headline font-semibold text-xs px-4 py-2 rounded uppercase tracking-wider active:scale-95 transition-transform">
+                    New Project
+                </button>
+<div class="flex items-center gap-2 text-slate-400">
+<span class="material-symbols-outlined cursor-pointer hover:text-cyan-300 transition-colors">notifications</span>
+<span class="material-symbols-outlined cursor-pointer hover:text-cyan-300 transition-colors">settings</span>
+</div>
+</div>
+</nav>
+</header>
+<div class="flex min-h-screen pt-14">
+<!-- Sidebar Navigation -->
+<aside class="bg-[#171b28] text-cyan-400 font-['Inter'] text-sm tracking-wide docked left-0 h-full w-64 flex flex-col border-r border-[#3d494c]/20 hidden lg:flex">
+<div class="p-6 border-b border-[#3d494c]/20">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded bg-primary/10 flex items-center justify-center border border-primary/20">
+<span class="material-symbols-outlined text-primary">analytics</span>
+</div>
+<div>
+<div class="text-cyan-400 font-['Space_Grotesk'] font-bold leading-tight">Tactical Observer</div>
+<div class="text-[10px] text-slate-500 uppercase tracking-widest">V2.4 Operational</div>
+</div>
+</div>
+</div>
+<nav class="flex-1 py-4 overflow-y-auto">
+<div class="px-3 space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-cyan-400 bg-cyan-400/10 border-l-4 border-cyan-400 transition-all cursor-pointer" href="#">
+<span class="material-symbols-outlined">account_tree</span>
+<span>Projects</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-[#1b1f2c] hover:text-cyan-200 transition-all cursor-pointer" href="#">
+<span class="material-symbols-outlined">smart_toy</span>
+<span>Agents</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-[#1b1f2c] hover:text-cyan-200 transition-all cursor-pointer" href="#">
+<span class="material-symbols-outlined">hub</span>
+<span>Network</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-[#1b1f2c] hover:text-cyan-200 transition-all cursor-pointer" href="#">
+<span class="material-symbols-outlined">terminal</span>
+<span>Logs</span>
+</a>
+</div>
+</nav>
+<div class="p-4 bg-surface-container-low border-t border-[#3d494c]/10">
+<div class="bg-[#1b1f2c] p-3 rounded border border-secondary/20 flex items-center justify-between">
+<span class="text-[10px] text-secondary font-bold uppercase tracking-widest">System Status</span>
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+</div>
+</div>
+<div class="p-4 space-y-1 border-t border-[#3d494c]/20">
+<a class="flex items-center gap-3 px-4 py-2 text-slate-500 hover:text-cyan-300 text-xs transition-colors" href="#">
+<span class="material-symbols-outlined text-sm">help</span>
+                    Support
+                </a>
+<a class="flex items-center gap-3 px-4 py-2 text-slate-500 hover:text-cyan-300 text-xs transition-colors" href="#">
+<span class="material-symbols-outlined text-sm">code</span>
+                    API Docs
+                </a>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 bg-surface-dim p-8 overflow-y-auto">
+<header class="mb-10 flex justify-between items-end">
+<div>
+<h1 class="font-headline text-4xl font-extrabold text-on-surface tracking-tighter mb-2 uppercase">Project <span class="text-primary">Registry</span></h1>
+<p class="text-on-surface-variant font-body text-sm max-w-xl">Active neural deployments and system architecture logs across global mission control nodes.</p>
+</div>
+<div class="flex gap-4">
+<div class="text-right">
+<div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Total Operations</div>
+<div class="text-2xl font-headline font-bold text-primary">04</div>
+</div>
+</div>
+</header>
+<!-- Projects Bento Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Card 1: Running -->
+<div class="group relative bg-surface-container border-l-2 border-secondary p-6 transition-all duration-300 hover:bg-[#1b2537] hover:shadow-[0_10px_30px_-10px_rgba(6,182,212,0.1)]">
+<div class="flex justify-between items-start mb-4">
+<div>
+<h3 class="font-headline text-xl font-bold text-primary tracking-tight mb-1">E-Commerce Platform</h3>
+<p class="text-on-surface-variant text-sm font-light">High-availability retail infrastructure with automated scaling.</p>
+</div>
+<span class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-secondary/10 border border-secondary/20 text-[10px] font-bold text-secondary uppercase tracking-wider">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                            Running
+                        </span>
+</div>
+<div class="mb-6">
+<div class="flex justify-between items-end mb-2">
+<span class="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Deployment Progress</span>
+<span class="text-xs font-mono text-primary">3/6 Segments</span>
+</div>
+<div class="flex gap-1.5">
+<div class="h-1.5 flex-1 bg-secondary rounded-sm"></div>
+<div class="h-1.5 flex-1 bg-secondary rounded-sm"></div>
+<div class="h-1.5 flex-1 bg-secondary rounded-sm"></div>
+<div class="h-1.5 flex-1 bg-primary rounded-sm shadow-[0_0_8px_rgba(76,215,246,0.5)]"></div>
+<div class="h-1.5 flex-1 bg-surface-container-highest rounded-sm"></div>
+<div class="h-1.5 flex-1 bg-surface-container-highest rounded-sm"></div>
+</div>
+</div>
+<div class="flex justify-between items-center pt-4 border-t border-outline-variant/10">
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm text-primary">smart_toy</span>
+<span class="text-xs font-headline font-semibold">8 Active Agents</span>
+</div>
+</div>
+<span class="font-mono text-[10px] text-slate-500">TS: 2024.10.12_14:22:01</span>
+</div>
+</div>
+<!-- Card 2: Completed -->
+<div class="group relative bg-surface-container border-l-2 border-secondary p-6 transition-all duration-300 hover:bg-[#1b2537] hover:shadow-[0_10px_30px_-10px_rgba(6,182,212,0.1)]">
+<div class="flex justify-between items-start mb-4">
+<div>
+<h3 class="font-headline text-xl font-bold text-primary tracking-tight mb-1">Portfolio Website</h3>
+<p class="text-on-surface-variant text-sm font-light">Static asset deployment and CDN edge optimization.</p>
+</div>
+<span class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-secondary/10 border border-secondary/20 text-[10px] font-bold text-secondary uppercase tracking-wider">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                            Completed
+                        </span>
+</div>
+<div class="mb-6">
+<div class="flex justify-between items-end mb-2">
+<span class="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Deployment Progress</span>
+<span class="text-xs font-mono text-secondary">6/6 Segments</span>
+</div>
+<div class="flex gap-1.5">
+<div class="h-1.5 flex-1 bg-secondary rounded-sm"></div>
+<div class="h-1.5 flex-1 bg-secondary rounded-sm"></div>
+<div class="h-1.5 flex-1 bg-secondary rounded-sm"></div>
+<div class="h-1.5 flex-1 bg-secondary rounded-sm"></div>
+<div class="h-1.5 flex-1 bg-secondary rounded-sm"></div>
+<div class="h-1.5 flex-1 bg-secondary rounded-sm"></div>
+</div>
+</div>
+<div class="flex justify-between items-center pt-4 border-t border-outline-variant/10">
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm text-slate-500">smart_toy</span>
+<span class="text-xs font-headline font-semibold text-slate-400">0 Active Agents</span>
+</div>
+</div>
+<span class="font-mono text-[10px] text-slate-500">TS: 2024.09.28_09:12:44</span>
+</div>
+</div>
+<!-- Card 3: Failed -->
+<div class="group relative bg-surface-container border-l-2 border-error p-6 transition-all duration-300 hover:bg-[#1b2537] hover:shadow-[0_10px_30px_-10px_rgba(6,182,212,0.1)]">
+<div class="flex justify-between items-start mb-4">
+<div>
+<h3 class="font-headline text-xl font-bold text-primary tracking-tight mb-1">Chat Application</h3>
+<p class="text-on-surface-variant text-sm font-light">Real-time WebSocket implementation with secure auth.</p>
+</div>
+<span class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-error/10 border border-error/20 text-[10px] font-bold text-error uppercase tracking-wider">
+<span class="w-1.5 h-1.5 rounded-full bg-error"></span>
+                            Failed
+                        </span>
+</div>
+<div class="mb-6">
+<div class="flex justify-between items-end mb-2">
+<span class="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Deployment Progress</span>
+<span class="text-xs font-mono text-error">3/6 Segments</span>
+</div>
+<div class="flex gap-1.5">
+<div class="h-1.5 flex-1 bg-secondary rounded-sm"></div>
+<div class="h-1.5 flex-1 bg-secondary rounded-sm"></div>
+<div class="h-1.5 flex-1 bg-secondary rounded-sm"></div>
+<div class="h-1.5 flex-1 bg-surface-container-highest rounded-sm"></div>
+<div class="h-1.5 flex-1 bg-surface-container-highest rounded-sm"></div>
+<div class="h-1.5 flex-1 bg-surface-container-highest rounded-sm"></div>
+</div>
+</div>
+<div class="flex justify-between items-center pt-4 border-t border-outline-variant/10">
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm text-slate-500">smart_toy</span>
+<span class="text-xs font-headline font-semibold text-slate-400">0 Active Agents</span>
+</div>
+</div>
+<span class="font-mono text-[10px] text-slate-500">TS: 2024.10.15_18:05:22</span>
+</div>
+</div>
+<!-- Card 4: Running -->
+<div class="group relative bg-surface-container border-l-2 border-secondary p-6 transition-all duration-300 hover:bg-[#1b2537] hover:shadow-[0_10px_30px_-10px_rgba(6,182,212,0.1)]">
+<div class="flex justify-between items-start mb-4">
+<div>
+<h3 class="font-headline text-xl font-bold text-primary tracking-tight mb-1">API Gateway</h3>
+<p class="text-on-surface-variant text-sm font-light">Centralized routing and traffic management node.</p>
+</div>
+<span class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-secondary/10 border border-secondary/20 text-[10px] font-bold text-secondary uppercase tracking-wider">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                            Running
+                        </span>
+</div>
+<div class="mb-6">
+<div class="flex justify-between items-end mb-2">
+<span class="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Deployment Progress</span>
+<span class="text-xs font-mono text-primary">1/6 Segments</span>
+</div>
+<div class="flex gap-1.5">
+<div class="h-1.5 flex-1 bg-secondary rounded-sm"></div>
+<div class="h-1.5 flex-1 bg-primary rounded-sm shadow-[0_0_8px_rgba(76,215,246,0.5)]"></div>
+<div class="h-1.5 flex-1 bg-surface-container-highest rounded-sm"></div>
+<div class="h-1.5 flex-1 bg-surface-container-highest rounded-sm"></div>
+<div class="h-1.5 flex-1 bg-surface-container-highest rounded-sm"></div>
+<div class="h-1.5 flex-1 bg-surface-container-highest rounded-sm"></div>
+</div>
+</div>
+<div class="flex justify-between items-center pt-4 border-t border-outline-variant/10">
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm text-primary">smart_toy</span>
+<span class="text-xs font-headline font-semibold">3 Active Agents</span>
+</div>
+</div>
+<span class="font-mono text-[10px] text-slate-500">TS: 2024.10.16_02:11:59</span>
+</div>
+</div>
+</div>
+<!-- Contextual Stats / Aesthetic Layer -->
+<div class="mt-8 p-6 glass-panel rounded-lg border border-outline-variant/10 relative overflow-hidden">
+<div class="absolute top-0 right-0 p-4 opacity-5">
+<span class="material-symbols-outlined text-9xl">monitoring</span>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-8">
+<div class="space-y-1">
+<div class="text-[10px] text-slate-500 uppercase tracking-[2px] font-bold">Network Load</div>
+<div class="text-3xl font-headline font-bold text-on-surface">42.8 <span class="text-sm text-primary">TB/s</span></div>
+<div class="h-1 w-24 bg-surface-container-lowest rounded-full overflow-hidden">
+<div class="h-full bg-primary w-2/3"></div>
+</div>
+</div>
+<div class="space-y-1">
+<div class="text-[10px] text-slate-500 uppercase tracking-[2px] font-bold">Agent Health</div>
+<div class="text-3xl font-headline font-bold text-on-surface">98.2<span class="text-sm text-secondary">%</span></div>
+<div class="h-1 w-24 bg-surface-container-lowest rounded-full overflow-hidden">
+<div class="h-full bg-secondary w-11/12"></div>
+</div>
+</div>
+<div class="space-y-1">
+<div class="text-[10px] text-slate-500 uppercase tracking-[2px] font-bold">Latency</div>
+<div class="text-3xl font-headline font-bold text-on-surface">14 <span class="text-sm text-slate-500">ms</span></div>
+<div class="h-1 w-24 bg-surface-container-lowest rounded-full overflow-hidden">
+<div class="h-full bg-error w-1/4"></div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- Footer Shell -->
+<footer class="bg-[#0f131f] text-cyan-400 font-['Inter'] text-[10px] uppercase tracking-[1px] docked full-width bottom-0 border-t border-[#3d494c]/20 z-50">
+<div class="flex justify-between items-center px-8 py-2 w-full">
+<div class="flex gap-6 items-center">
+<span class="text-slate-500">© 2024 Colette Mission Control. v2.4.0-stable</span>
+<div class="flex gap-4">
+<a class="text-cyan-400 hover:text-cyan-300 transition-opacity" href="#">System Status</a>
+<a class="text-slate-500 hover:text-cyan-300 transition-opacity" href="#">Terms of Service</a>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+<span class="text-secondary font-bold">All Systems Nominal</span>
+</div>
+</div>
+</footer>
+<!-- Mobile Bottom NavBar (Hidden on Web) -->
+<nav class="md:hidden fixed bottom-0 left-0 right-0 bg-[#0f131f] border-t border-[#3d494c]/20 px-6 py-3 flex justify-around items-center z-50">
+<button class="flex flex-col items-center gap-1 text-cyan-400">
+<span class="material-symbols-outlined">account_tree</span>
+<span class="text-[8px] font-bold uppercase tracking-widest">Projects</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-500">
+<span class="material-symbols-outlined">smart_toy</span>
+<span class="text-[8px] font-bold uppercase tracking-widest">Agents</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-500">
+<span class="material-symbols-outlined">hub</span>
+<span class="text-[8px] font-bold uppercase tracking-widest">Network</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-500">
+<span class="material-symbols-outlined">terminal</span>
+<span class="text-[8px] font-bold uppercase tracking-widest">Logs</span>
+</button>
+</nav>
+</body></html>

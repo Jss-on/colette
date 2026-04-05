@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Preview 1 — Swiss Dark</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Nunito:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0f1117;--surface:#1a1d27;--surface-2:#232636;--border:#2a2d3a;
+  --text:#e8e9ed;--text-2:#8b8d97;--accent:#3b82f6;--green:#22c55e;
+  --red:#ef4444;--amber:#f59e0b;--violet:#8b5cf6;
+}
+body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+h1,h2,h3{font-family:'Archivo',sans-serif;font-weight:700;letter-spacing:-0.02em}
+
+/* Top bar */
+.topbar{display:flex;align-items:center;gap:24px;padding:12px 24px;border-bottom:1px solid var(--border);background:var(--surface)}
+.logo{font-family:'Archivo',sans-serif;font-size:18px;font-weight:700;color:var(--text)}
+.logo span{color:var(--accent)}
+.nav-tabs{display:flex;gap:2px;margin-left:24px}
+.nav-tab{padding:8px 16px;font-size:13px;font-weight:500;color:var(--text-2);border-radius:6px;cursor:pointer;transition:all .2s}
+.nav-tab.active{background:var(--accent);color:#fff}
+.nav-tab:hover:not(.active){background:var(--surface-2)}
+
+/* Metrics */
+.metrics{display:flex;gap:24px;padding:12px 24px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text-2)}
+.metric-item{display:flex;align-items:center;gap:8px}
+.metric-value{color:var(--text);font-family:'JetBrains Mono',monospace;font-weight:500}
+.progress-bar{width:200px;height:6px;background:var(--surface-2);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;width:45%;background:var(--accent);border-radius:3px;transition:width .3s}
+
+/* Board */
+.board{flex:1;overflow-y:auto;padding:16px 24px}
+.stage-group{margin-bottom:12px;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.stage-header{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;transition:background .2s}
+.stage-header:hover{background:rgba(255,255,255,.02)}
+.stage-name{font-family:'Archivo',sans-serif;font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.stage-badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:4px;text-transform:uppercase;letter-spacing:.04em}
+.badge-completed{background:rgba(34,197,94,.12);color:var(--green)}
+.badge-running{background:rgba(59,130,246,.12);color:var(--accent)}
+.badge-pending{background:rgba(139,141,151,.08);color:var(--text-2)}
+.stage-time{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-2)}
+
+/* Table */
+.agent-table{width:100%;border-collapse:collapse}
+.agent-table th{padding:8px 16px;text-align:left;font-size:11px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;border-top:1px solid var(--border);background:rgba(0,0,0,.15)}
+.agent-table td{padding:10px 16px;font-size:13px;border-top:1px solid var(--border)}
+.agent-table tr:hover td{background:var(--surface-2)}
+
+.agent-name{font-weight:600;color:var(--text)}
+.agent-name::before{content:'@';color:var(--text-2)}
+
+/* Status pills */
+.status-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:4px;font-size:12px;font-weight:600}
+.pill-done{background:rgba(34,197,94,.12);color:var(--green)}
+.pill-thinking{background:rgba(59,130,246,.12);color:var(--accent)}
+.pill-thinking .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 1.5s ease-in-out infinite}
+.pill-tool{background:rgba(139,92,246,.12);color:var(--violet)}
+.pill-idle{background:rgba(139,141,151,.08);color:var(--text-2)}
+
+@keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
+
+.model-cell{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-2)}
+.tier-badge{font-size:10px;padding:2px 6px;border-radius:3px;margin-left:6px;font-weight:600}
+.tier-exec{background:rgba(59,130,246,.12);color:var(--accent)}
+.tokens-cell{font-family:'JetBrains Mono',monospace;font-size:12px;text-align:right}
+.time-cell{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-2)}
+
+/* Gate footer */
+.gate-footer{display:flex;align-items:center;gap:12px;padding:10px 16px;background:rgba(0,0,0,.1);border-top:1px solid var(--border);font-size:12px}
+.gate-icon{font-size:14px}
+.gate-label{font-weight:600;color:var(--text-2)}
+.gate-score{font-family:'JetBrains Mono',monospace;color:var(--text-2)}
+.gate-passed{color:var(--green)}
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="logo">colette<span>.</span></div>
+    <div class="nav-tabs">
+      <div class="nav-tab active">Board</div>
+      <div class="nav-tab">Pipeline</div>
+      <div class="nav-tab">Activity</div>
+      <div class="nav-tab">Artifacts</div>
+    </div>
+  </div>
+  <div class="metrics">
+    <div class="metric-item">
+      <div class="progress-bar"><div class="progress-fill"></div></div>
+      <span class="metric-value">45%</span>
+    </div>
+    <div class="metric-item">Tokens <span class="metric-value">42,847</span></div>
+    <div class="metric-item">Elapsed <span class="metric-value">3m 12s</span></div>
+    <div class="metric-item">Errors <span class="metric-value">0</span></div>
+  </div>
+  <div class="board">
+    <!-- Requirements Group -->
+    <div class="stage-group">
+      <div class="stage-header">
+        <span style="color:var(--text-2)">&#9660;</span>
+        <span class="stage-name">Requirements</span>
+        <span class="stage-badge badge-completed">Completed</span>
+        <span class="stage-time">1m 04s</span>
+      </div>
+      <table class="agent-table">
+        <thead><tr><th>Agent</th><th>Status</th><th>Activity</th><th>Model</th><th style="text-align:right">Tokens</th><th>Time</th></tr></thead>
+        <tbody>
+          <tr><td><span class="agent-name">Researcher</span></td><td><span class="status-pill pill-done">&#10003; Done</span></td><td>Completed requirements analysis</td><td class="model-cell">claude-sonnet-4-6<span class="tier-badge tier-exec">EXEC</span></td><td class="tokens-cell">1,240</td><td class="time-cell">32s</td></tr>
+          <tr><td><span class="agent-name">Analyst</span></td><td><span class="status-pill pill-done">&#10003; Done</span></td><td>Identified 12 user stories</td><td class="model-cell">claude-sonnet-4-6<span class="tier-badge tier-exec">EXEC</span></td><td class="tokens-cell">980</td><td class="time-cell">28s</td></tr>
+        </tbody>
+      </table>
+      <div class="gate-footer">
+        <span class="gate-icon gate-passed">&#10003;</span>
+        <span class="gate-label">Requirements Gate</span>
+        <span class="gate-passed" style="font-weight:600">PASSED</span>
+        <span class="gate-score">Score: 92%</span>
+      </div>
+    </div>
+    <!-- Implementation Group -->
+    <div class="stage-group">
+      <div class="stage-header">
+        <span style="color:var(--text-2)">&#9660;</span>
+        <span class="stage-name">Implementation</span>
+        <span class="stage-badge badge-running">Running</span>
+        <span class="stage-time">0m 46s</span>
+      </div>
+      <table class="agent-table">
+        <thead><tr><th>Agent</th><th>Status</th><th>Activity</th><th>Model</th><th style="text-align:right">Tokens</th><th>Time</th></tr></thead>
+        <tbody>
+          <tr><td><span class="agent-name">Backend Dev</span></td><td><span class="status-pill pill-thinking"><span class="dot"></span> Thinking</span></td><td>Implementing auth service...</td><td class="model-cell">claude-sonnet-4-6<span class="tier-badge tier-exec">EXEC</span></td><td class="tokens-cell">840</td><td class="time-cell">22s</td></tr>
+          <tr><td><span class="agent-name">Frontend Dev</span></td><td><span class="status-pill pill-tool">&#9881; Tool Use</span></td><td>Running npm build</td><td class="model-cell">claude-sonnet-4-6<span class="tier-badge tier-exec">EXEC</span></td><td class="tokens-cell">620</td><td class="time-cell">18s</td></tr>
+          <tr><td><span class="agent-name">Database Dev</span></td><td><span class="status-pill pill-idle">&#9675; Idle</span></td><td style="color:var(--text-2)">Waiting...</td><td class="model-cell">claude-sonnet-4-6<span class="tier-badge tier-exec">EXEC</span></td><td class="tokens-cell">0</td><td class="time-cell">--</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <!-- Pending Groups -->
+    <div class="stage-group">
+      <div class="stage-header">
+        <span style="color:var(--text-2)">&#9654;</span>
+        <span class="stage-name">Testing</span>
+        <span class="stage-badge badge-pending">Pending</span>
+        <span class="stage-time">--</span>
+      </div>
+    </div>
+    <div class="stage-group">
+      <div class="stage-header">
+        <span style="color:var(--text-2)">&#9654;</span>
+        <span class="stage-name">Deployment</span>
+        <span class="stage-badge badge-pending">Pending</span>
+        <span class="stage-time">--</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
