@@ -19,7 +19,9 @@ make dev                      # install + create .env from .env.example
 make lint                     # ruff check src/ tests/
 make format                   # ruff format + ruff check --fix
 make typecheck                # mypy src/ (strict mode)
+make security                 # bandit + pip-audit
 make check                    # lint + typecheck + test-unit + security
+make hooks                    # install pre-commit hooks (conventional commits, ruff)
 
 # Testing
 make test                     # pytest with coverage (80% min, --cov-fail-under=80)
@@ -81,11 +83,14 @@ This function: augments the system prompt with the JSON schema of `output_type`,
 ### LLM Gateway & Model Tiers
 
 `llm/gateway.py:create_chat_model_for_tier()` maps `ModelTier` → model string via config:
-- **PLANNING**: `default_planning_model` (Claude Sonnet 4.6)
+- **PLANNING**: `default_planning_model` (Claude Opus 4.6)
 - **EXECUTION**: `default_execution_model` (Claude Sonnet 4.6)
 - **VALIDATION**: `default_validation_model` (Claude Haiku 4.5)
+- **REASONING**: `default_reasoning_model` (Claude Opus 4.6) — used for bug-fixing and iteration loops
 
 Each tier has optional fallback chains (`planning_fallback_models`, etc.) tried in order on failure. A `GuardedChatModel` wrapper blocks LLM calls for non-running projects (checked via `llm/registry.py:project_status_registry`).
+
+Embeddings are **not** routed through OpenRouter. They use a separate OpenAI-compatible `/embeddings` endpoint via `llm/embeddings.py` (httpx-based). Configure with `COLETTE_EMBEDDINGS_API_KEY` and `COLETTE_EMBEDDINGS_BASE_URL`.
 
 ### Handoff Schemas
 

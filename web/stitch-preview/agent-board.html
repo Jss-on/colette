@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Colette | Agent Board View</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "inverse-surface": "#dfe2eb",
+                        "surface-container-low": "#181c22",
+                        "tertiary-fixed-dim": "#d5bbff",
+                        "on-secondary-container": "#00320a",
+                        "inverse-primary": "#005bbf",
+                        "secondary-container": "#27a640",
+                        "surface-container-high": "#262a31",
+                        "on-secondary-fixed-variant": "#005317",
+                        "surface-bright": "#353940",
+                        "on-primary-fixed-variant": "#004492",
+                        "primary-container": "#498fff",
+                        "on-secondary-fixed": "#002105",
+                        "tertiary-fixed": "#ecdcff",
+                        "secondary-fixed": "#83fc89",
+                        "on-surface-variant": "#c1c6d6",
+                        "on-tertiary-fixed-variant": "#5a21ab",
+                        "error-container": "#93000a",
+                        "on-error": "#690005",
+                        "surface-container-highest": "#31353c",
+                        "surface-dim": "#10141a",
+                        "tertiary": "#d5bbff",
+                        "outline-variant": "#414754",
+                        "surface-tint": "#acc7ff",
+                        "secondary": "#67df70",
+                        "secondary-fixed-dim": "#67df70",
+                        "on-secondary": "#00390d",
+                        "surface": "#10141a",
+                        "on-surface": "#dfe2eb",
+                        "on-primary": "#002f68",
+                        "background": "#10141a",
+                        "on-error-container": "#ffdad6",
+                        "primary-fixed": "#d7e2ff",
+                        "inverse-on-surface": "#2d3137",
+                        "on-primary-container": "#00285b",
+                        "primary-fixed-dim": "#acc7ff",
+                        "tertiary-container": "#a875fc",
+                        "on-tertiary-container": "#39007a",
+                        "outline": "#8b909f",
+                        "on-primary-fixed": "#001a40",
+                        "surface-variant": "#31353c",
+                        "on-tertiary-fixed": "#270058",
+                        "surface-container": "#1c2026",
+                        "on-tertiary": "#41008b",
+                        "primary": "#acc7ff",
+                        "surface-container-lowest": "#0a0e14",
+                        "error": "#ffb4ab",
+                        "on-background": "#dfe2eb"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Inter"],
+                        "body": ["Inter"],
+                        "label": ["Inter"],
+                        "mono": ["JetBrains Mono"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+            font-size: 18px;
+        }
+        body {
+            background-color: #0d1117;
+            color: #dfe2eb;
+            font-family: 'Inter', sans-serif;
+        }
+        .mono-data {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .ghost-border {
+            border: 1px solid rgba(65, 71, 84, 0.2);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+<!-- TopAppBar (Metrics Strip) -->
+<header class="bg-[#10141a] font-['JetBrains_Mono'] text-[11px] uppercase tracking-widest flex items-center px-6 py-2 w-full border-b border-[#414754]/20 text-[#acc7ff]">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span>Tokens 42,847 | Elapsed 3m 12s | Errors 0</span>
+</div>
+</header>
+<!-- TopNavBar -->
+<nav class="bg-[#161b22] flex justify-between items-center px-6 h-16 w-full border-b border-[#30363d] sticky top-0 z-50">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-2 text-lg font-bold text-[#dfe2eb]">
+<span class="text-blue-500 material-symbols-outlined" data-icon="token" style="font-variation-settings: 'FILL' 1;">token</span>
+<span>Colette</span>
+</div>
+<div class="flex gap-6 h-full items-center font-['Inter'] font-medium text-sm tracking-tight">
+<a class="text-[#acc7ff] border-b-2 border-[#2f81f7] pb-4 -mb-[17px] cursor-pointer active:opacity-80" href="#">Board</a>
+<a class="text-[#7d8590] pb-4 -mb-[17px] hover:text-[#dfe2eb] transition-colors duration-200 cursor-pointer active:opacity-80" href="#">Pipeline</a>
+<a class="text-[#7d8590] pb-4 -mb-[17px] hover:text-[#dfe2eb] transition-colors duration-200 cursor-pointer active:opacity-80" href="#">Activity</a>
+<a class="text-[#7d8590] pb-4 -mb-[17px] hover:text-[#dfe2eb] transition-colors duration-200 cursor-pointer active:opacity-80" href="#">Artifacts</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative">
+<span class="absolute inset-y-0 left-3 flex items-center text-[#7d8590]">
+<span class="material-symbols-outlined text-sm" data-icon="search">search</span>
+</span>
+<input class="bg-[#0a0e14] border-none rounded-md pl-9 pr-4 py-1.5 text-sm w-64 focus:ring-1 focus:ring-[#acc7ff] placeholder-[#7d8590]" placeholder="Search pipeline..." type="text"/>
+</div>
+<button class="text-[#7d8590] hover:text-[#dfe2eb] transition-colors">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+</div>
+</nav>
+<main class="flex-1 p-6 space-y-4 max-w-[1600px] mx-auto w-full">
+<!-- Group 1: REQUIREMENTS (Expanded) -->
+<section class="rounded-lg overflow-hidden bg-[#161b22] border border-[#30363d]">
+<div class="flex items-center justify-between px-4 py-3 bg-[#1c2026] border-l-4 border-[#27a640]">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#7d8590] cursor-pointer" data-icon="expand_more">expand_more</span>
+<h2 class="font-bold tracking-tight text-sm uppercase">Requirements</h2>
+<span class="px-2 py-0.5 rounded-full bg-secondary-container/10 text-secondary text-[10px] font-bold border border-secondary/20">Completed</span>
+</div>
+<div class="flex items-center gap-4 text-xs font-mono text-[#7d8590]">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]" data-icon="schedule">schedule</span>
+<span>1m 04s</span>
+</div>
+<span class="material-symbols-outlined cursor-pointer hover:text-on-surface" data-icon="more_horiz">more_horiz</span>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="text-[11px] uppercase tracking-wider text-[#7d8590] border-b border-[#30363d] bg-[#0d1117]/50">
+<th class="px-6 py-3 font-medium">Agent</th>
+<th class="px-4 py-3 font-medium">Status</th>
+<th class="px-4 py-3 font-medium">Activity</th>
+<th class="px-4 py-3 font-medium">Model</th>
+<th class="px-4 py-3 font-medium text-right">Tokens</th>
+<th class="px-6 py-3 font-medium text-right">Time</th>
+</tr>
+</thead>
+<tbody class="mono-data text-[13px]">
+<tr class="border-b border-[#30363d]/50 hover:bg-[#1c2026] transition-colors">
+<td class="px-6 py-4 text-[#acc7ff] font-medium">@Researcher</td>
+<td class="px-4 py-4">
+<span class="flex items-center gap-1.5 text-[#67df70]">
+<span class="w-2 h-2 rounded-full bg-[#67df70]"></span>
+                                    Done
+                                </span>
+</td>
+<td class="px-4 py-4 text-[#c1c6d6]">Completed requirements analysis</td>
+<td class="px-4 py-4">
+<span class="text-[#7d8590] bg-[#0a0e14] px-2 py-1 rounded text-[11px]">claude-sonnet-4-6 [EXEC]</span>
+</td>
+<td class="px-4 py-4 text-right">1,240</td>
+<td class="px-6 py-4 text-right text-[#7d8590]">32s</td>
+</tr>
+<tr class="border-b border-[#30363d]/50 hover:bg-[#1c2026] transition-colors">
+<td class="px-6 py-4 text-[#acc7ff] font-medium">@Analyst</td>
+<td class="px-4 py-4">
+<span class="flex items-center gap-1.5 text-[#67df70]">
+<span class="w-2 h-2 rounded-full bg-[#67df70]"></span>
+                                    Done
+                                </span>
+</td>
+<td class="px-4 py-4 text-[#c1c6d6]">Identified 12 user stories</td>
+<td class="px-4 py-4">
+<span class="text-[#7d8590] bg-[#0a0e14] px-2 py-1 rounded text-[11px]">claude-sonnet-4-6 [EXEC]</span>
+</td>
+<td class="px-4 py-4 text-right">980</td>
+<td class="px-6 py-4 text-right text-[#7d8590]">28s</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="px-6 py-3 bg-[#0d1117]/30 flex items-center justify-between border-t border-[#30363d]">
+<div class="flex items-center gap-2 text-[#67df70] text-xs font-bold uppercase tracking-wider">
+<span class="material-symbols-outlined text-[16px]" data-icon="verified_user">verified_user</span>
+<span>Requirements Gate ✓ PASSED Score: 92%</span>
+</div>
+<div class="text-[10px] text-[#7d8590] uppercase">2 Agents Automated</div>
+</div>
+</section>
+<!-- Handoff Row -->
+<div class="relative py-2 pl-6 ml-4 border-l-2 border-[#2f81f7] bg-primary-container/5 rounded-r-lg">
+<div class="flex items-center gap-3 text-xs">
+<span class="material-symbols-outlined text-[#acc7ff]" data-icon="double_arrow">double_arrow</span>
+<span class="font-bold text-[#acc7ff] uppercase">Requirements → Design</span>
+<span class="text-[#7d8590] mono-data">| 12 user stories, 5 NFRs</span>
+</div>
+</div>
+<!-- Group 2: DESIGN (Collapsed) -->
+<section class="rounded-lg overflow-hidden bg-[#161b22] border border-[#30363d]">
+<div class="flex items-center justify-between px-4 py-3 bg-[#1c2026] border-l-4 border-[#27a640]">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#7d8590] cursor-pointer" data-icon="chevron_right">chevron_right</span>
+<h2 class="font-bold tracking-tight text-sm uppercase">Design</h2>
+<span class="px-2 py-0.5 rounded-full bg-secondary-container/10 text-secondary text-[10px] font-bold border border-secondary/20">Completed</span>
+</div>
+<div class="flex items-center gap-4 text-xs font-mono text-[#7d8590]">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]" data-icon="schedule">schedule</span>
+<span>1m 22s</span>
+</div>
+<span class="material-symbols-outlined cursor-pointer hover:text-on-surface" data-icon="more_horiz">more_horiz</span>
+</div>
+</div>
+</section>
+<!-- Group 3: IMPLEMENTATION (Expanded) -->
+<section class="rounded-lg overflow-hidden bg-[#161b22] border border-[#30363d]">
+<div class="flex items-center justify-between px-4 py-3 bg-[#1c2026] border-l-4 border-[#2f81f7]">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#7d8590] cursor-pointer" data-icon="expand_more">expand_more</span>
+<h2 class="font-bold tracking-tight text-sm uppercase">Implementation</h2>
+<span class="px-2 py-0.5 rounded-full bg-primary-container/10 text-[#acc7ff] text-[10px] font-bold border border-[#acc7ff]/20">Running</span>
+</div>
+<div class="flex items-center gap-4 text-xs font-mono text-[#7d8590]">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] animate-pulse" data-icon="sync">sync</span>
+<span>0m 46s</span>
+</div>
+<span class="material-symbols-outlined cursor-pointer hover:text-on-surface" data-icon="more_horiz">more_horiz</span>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="text-[11px] uppercase tracking-wider text-[#7d8590] border-b border-[#30363d] bg-[#0d1117]/50">
+<th class="px-6 py-3 font-medium">Agent</th>
+<th class="px-4 py-3 font-medium">Status</th>
+<th class="px-4 py-3 font-medium">Activity</th>
+<th class="px-4 py-3 font-medium">Model</th>
+<th class="px-4 py-3 font-medium text-right">Tokens</th>
+<th class="px-6 py-3 font-medium text-right">Time</th>
+</tr>
+</thead>
+<tbody class="mono-data text-[13px]">
+<tr class="border-b border-[#30363d]/50 hover:bg-[#1c2026] transition-colors">
+<td class="px-6 py-4 text-[#acc7ff] font-medium">@Backend Dev</td>
+<td class="px-4 py-4">
+<span class="flex items-center gap-1.5 text-[#acc7ff]">
+<span class="w-2 h-2 rounded-full bg-[#acc7ff] shadow-[0_0_8px_rgba(172,199,255,0.6)]"></span>
+                                    Thinking
+                                </span>
+</td>
+<td class="px-4 py-4 text-[#dfe2eb]">Implementing auth service...</td>
+<td class="px-4 py-4">
+<span class="text-[#7d8590] bg-[#0a0e14] px-2 py-1 rounded text-[11px]">claude-sonnet-4-6 [EXEC]</span>
+</td>
+<td class="px-4 py-4 text-right">840</td>
+<td class="px-6 py-4 text-right text-[#7d8590]">22s</td>
+</tr>
+<tr class="border-b border-[#30363d]/50 hover:bg-[#1c2026] transition-colors">
+<td class="px-6 py-4 text-[#acc7ff] font-medium">@Frontend Dev</td>
+<td class="px-4 py-4">
+<span class="flex items-center gap-1.5 text-[#d5bbff]">
+<span class="material-symbols-outlined text-[14px]" data-icon="settings">settings</span>
+                                    Tool Use
+                                </span>
+</td>
+<td class="px-4 py-4 text-[#dfe2eb]">Running npm build</td>
+<td class="px-4 py-4">
+<span class="text-[#7d8590] bg-[#0a0e14] px-2 py-1 rounded text-[11px]">claude-sonnet-4-6 [EXEC]</span>
+</td>
+<td class="px-4 py-4 text-right">620</td>
+<td class="px-6 py-4 text-right text-[#7d8590]">18s</td>
+</tr>
+<tr class="border-b border-[#30363d]/50 hover:bg-[#1c2026] transition-colors opacity-60">
+<td class="px-6 py-4 text-[#acc7ff] font-medium">@Database Dev</td>
+<td class="px-4 py-4">
+<span class="flex items-center gap-1.5 text-[#7d8590]">
+<span class="w-2 h-2 rounded-full bg-[#7d8590]"></span>
+                                    Idle
+                                </span>
+</td>
+<td class="px-4 py-4 text-[#7d8590]">Waiting...</td>
+<td class="px-4 py-4">
+<span class="text-[#7d8590]/50 bg-[#0a0e14] px-2 py-1 rounded text-[11px]">claude-sonnet-4-6 [EXEC]</span>
+</td>
+<td class="px-4 py-4 text-right">0</td>
+<td class="px-6 py-4 text-right text-[#7d8590]">--</td>
+</tr>
+<tr class="hover:bg-[#1c2026] transition-colors opacity-60">
+<td class="px-6 py-4 text-[#acc7ff] font-medium">@Verifier</td>
+<td class="px-4 py-4">
+<span class="flex items-center gap-1.5 text-[#7d8590]">
+<span class="w-2 h-2 rounded-full bg-[#7d8590]"></span>
+                                    Idle
+                                </span>
+</td>
+<td class="px-4 py-4 text-[#7d8590]">Waiting...</td>
+<td class="px-4 py-4">
+<span class="text-[#7d8590]/50 bg-[#0a0e14] px-2 py-1 rounded text-[11px]">claude-sonnet-4-6 [EXEC]</span>
+</td>
+<td class="px-4 py-4 text-right">0</td>
+<td class="px-6 py-4 text-right text-[#7d8590]">--</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- Collapsed Future Groups -->
+<div class="space-y-2 opacity-50">
+<!-- TESTING -->
+<section class="rounded-lg overflow-hidden bg-[#161b22] border border-[#30363d]">
+<div class="flex items-center justify-between px-4 py-3 bg-[#1c2026] border-l-4 border-[#7d8590]">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#7d8590]" data-icon="chevron_right">chevron_right</span>
+<h2 class="font-bold tracking-tight text-sm uppercase">Testing</h2>
+<span class="px-2 py-0.5 rounded-full bg-[#7d8590]/10 text-[#7d8590] text-[10px] font-bold border border-[#7d8590]/20">Pending</span>
+</div>
+</div>
+</section>
+<!-- DEPLOYMENT -->
+<section class="rounded-lg overflow-hidden bg-[#161b22] border border-[#30363d]">
+<div class="flex items-center justify-between px-4 py-3 bg-[#1c2026] border-l-4 border-[#7d8590]">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#7d8590]" data-icon="chevron_right">chevron_right</span>
+<h2 class="font-bold tracking-tight text-sm uppercase">Deployment</h2>
+<span class="px-2 py-0.5 rounded-full bg-[#7d8590]/10 text-[#7d8590] text-[10px] font-bold border border-[#7d8590]/20">Pending</span>
+</div>
+</div>
+</section>
+<!-- MONITORING -->
+<section class="rounded-lg overflow-hidden bg-[#161b22] border border-[#30363d]">
+<div class="flex items-center justify-between px-4 py-3 bg-[#1c2026] border-l-4 border-[#7d8590]">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#7d8590]" data-icon="chevron_right">chevron_right</span>
+<h2 class="font-bold tracking-tight text-sm uppercase">Monitoring</h2>
+<span class="px-2 py-0.5 rounded-full bg-[#7d8590]/10 text-[#7d8590] text-[10px] font-bold border border-[#7d8590]/20">Pending</span>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Contextual FAB (Hidden as per suppression logic for board views if focused, but added for UX consistency) -->
+<button class="fixed bottom-8 right-8 w-14 h-14 bg-gradient-to-br from-primary to-primary-container rounded-xl shadow-2xl flex items-center justify-center text-on-primary hover:scale-105 active:scale-95 transition-all">
+<span class="material-symbols-outlined" data-icon="add" style="font-variation-settings: 'wght' 600;">add</span>
+</button>
+<footer class="h-12 border-t border-[#30363d] bg-[#0a0e14] flex items-center px-6 justify-between text-[11px] font-mono text-[#7d8590]">
+<div class="flex gap-4">
+<span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-[#67df70]"></span> System Stable</span>
+<span>Gateway: primary-region-a</span>
+</div>
+<div class="flex gap-4">
+<span>Latency: 45ms</span>
+<span class="text-[#acc7ff]">v2.4.0-stable</span>
+</div>
+</footer>
+</body></html>
