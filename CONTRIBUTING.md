@@ -128,7 +128,7 @@ test: add integration tests for LLM gateway fallback
 ### Architecture
 
 - All inter-stage communication uses **typed Pydantic handoff schemas** (see `src/colette/schemas/`)
-- All LLM calls go through the **LiteLLM gateway** (`src/colette/llm/gateway.py`)
+- All LLM calls go through the **OpenRouter gateway** (`src/colette/llm/gateway.py`)
 - All external tool access uses **MCP tools** with sanitization and audit logging (`src/colette/tools/`)
 - Agents are created via the **agent factory** (`src/colette/orchestrator/agent_factory.py`)
 

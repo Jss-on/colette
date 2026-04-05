@@ -16,7 +16,7 @@ Each stage has a supervisor agent managing 2-4 specialist agents. Routine tasks 
 
 - **Full SDLC coverage:** Requirements analysis, system design, code generation, testing, deployment, and monitoring
 - **Typed handoffs:** All inter-stage communication uses versioned Pydantic schemas -- no free-text handoffs
-- **LLM-agnostic:** Claude, GPT, and Gemini via LiteLLM gateway with automatic fallback chains
+- **LLM-agnostic:** Claude, GPT, and Gemini via OpenRouter gateway with automatic fallback chains
 - **Human oversight:** Four-tier approval model from fully autonomous to human-required
 - **Observability:** OpenTelemetry tracing, structured logging, and per-agent token budget tracking
 - **Cloud-agnostic:** Runs on AWS, GCP, Azure, or on-premises
@@ -88,7 +88,7 @@ uv run colette --help
 src/colette/
   schemas/          # Typed Pydantic handoff schemas
   orchestrator/     # Agent factory, circuit breaker, error recovery
-  llm/              # LiteLLM gateway, model registry, token counting
+  llm/              # OpenRouter gateway, model registry, token counting
   tools/            # MCP tool integration (filesystem, git, terminal)
   observability/    # OpenTelemetry tracing, metrics, callbacks
   stages/           # Six SDLC pipeline stages

@@ -12,7 +12,7 @@ User Request -> Requirements -> Design -> Implementation -> Testing -> Deploymen
 
 - **Full SDLC coverage** -- requirements analysis, system design, code generation, testing, deployment, and monitoring
 - **Typed handoffs** -- all inter-stage communication uses versioned Pydantic schemas
-- **LLM-agnostic** -- Claude, GPT, and Gemini via LiteLLM gateway with automatic fallback chains
+- **LLM-agnostic** -- Claude, GPT, and Gemini via OpenRouter gateway with automatic fallback chains
 - **Human oversight** -- four-tier approval model from fully autonomous to human-required
 - **Observability** -- OpenTelemetry tracing, structured logging, per-agent token budgets
 - **Cloud-agnostic** -- runs on AWS, GCP, Azure, or on-premises
