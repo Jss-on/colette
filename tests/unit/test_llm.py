@@ -116,7 +116,7 @@ class TestGatewayFactory:
 
         mock_build.assert_called_once_with(
             "custom-model",
-            base_url=settings.litellm_base_url,
+            api_key=settings.openrouter_api_key,
             timeout=settings.llm_timeout_seconds,
             max_retries=settings.llm_max_retries,
         )
@@ -156,6 +156,28 @@ class TestGatewayFactory:
         # No fallbacks — should just return the primary mock directly
         assert result is mock_build.return_value
         mock_build.assert_called_once()
+
+    @patch("langchain_openrouter.ChatOpenRouter")
+    def test_build_chat_model_uses_openrouter(self, mock_cls: MagicMock) -> None:
+        """Verify _build_chat_model instantiates ChatOpenRouter."""
+        mock_cls.return_value = MagicMock()
+        from colette.llm.gateway import _build_chat_model
+
+        _build_chat_model("anthropic/claude-sonnet-4-6", api_key="sk-test")
+        mock_cls.assert_called_once()
+        call_kwargs = mock_cls.call_args[1]
+        assert call_kwargs["model"] == "anthropic/claude-sonnet-4-6"
+        assert call_kwargs["openrouter_api_key"] == "sk-test"
+
+    @patch("langchain_openrouter.ChatOpenRouter")
+    def test_empty_api_key_omitted(self, mock_cls: MagicMock) -> None:
+        """When api_key is empty, openrouter_api_key is not passed."""
+        mock_cls.return_value = MagicMock()
+        from colette.llm.gateway import _build_chat_model
+
+        _build_chat_model("anthropic/claude-sonnet-4-6")
+        call_kwargs = mock_cls.call_args[1]
+        assert "openrouter_api_key" not in call_kwargs
 
     @patch("colette.llm.gateway._build_chat_model")
     def test_create_chat_model_for_tier(self, mock_build: MagicMock) -> None:
