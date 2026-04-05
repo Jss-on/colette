@@ -43,6 +43,10 @@ class MemorySettings:
     cold_storage_endpoint: str = ""
     cold_storage_bucket: str = "colette-cold"
 
+    # ── Embeddings ───────────────────────────────────────────────────
+    embeddings_api_key: str = ""
+    embeddings_base_url: str = "https://api.openai.com/v1"
+
     # ── Database / backends ──────────────────────────────────────────
     database_url: str = "postgresql+asyncpg://colette:colette@localhost:5432/colette"
     embedding_model: str = "text-embedding-3-large"
@@ -67,6 +71,8 @@ class MemorySettings:
             cold_storage_endpoint=str(_get("cold_storage_endpoint", "")),
             cold_storage_bucket=str(_get("cold_storage_bucket", "colette-cold")),
             decay_enabled=bool(_get("memory_decay_enabled", False)),
+            embeddings_api_key=str(_get("embeddings_api_key", "")),
+            embeddings_base_url=str(_get("embeddings_base_url", cls.embeddings_base_url)),
             database_url=str(_get("database_url", cls.database_url)),
             embedding_model=str(_get("embedding_model", cls.embedding_model)),
             embedding_dimensions=int(_get("embedding_dimensions", cls.embedding_dimensions)),

@@ -20,7 +20,7 @@ dependencies = [
     "langgraph-checkpoint>=4.0,<5.0", # CVE-2026-27794
     "langchain-core>=1.2.11,<2.0",
     # LLM Gateway
-    "litellm>=1.60,<2.0",
+    "langchain-openrouter>=0.1,<1.0",
     # Memory
     "mem0ai>=0.1,<1.0",
     "rank-bm25>=0.2,<1.0",
@@ -50,7 +50,6 @@ dependencies = [
     "click>=8.1,<9.0",
     "tenacity>=9.0,<10.0",
     "python-dotenv>=1.0,<2.0",
-    "langchain-community>=0.4.1",
     "langgraph-checkpoint-postgres>=3.0,<4.0",
     "psycopg-binary>=3.3,<4.0",
 ]
@@ -168,8 +167,7 @@ mypy_path = "src"
 module = [
     "langgraph.*",
     "langchain_core.*",
-    "langchain_community.*",
-    "litellm.*",
+    "langchain_openrouter.*",
     "mem0ai.*",
     "graphiti_core.*",
     "neo4j.*",
