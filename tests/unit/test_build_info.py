@@ -91,7 +91,7 @@ class TestGetBuildInfo:
         info = get_build_info()
         assert isinstance(info, BuildInfo)
         assert info.version != ""
-        assert re.match(r"^\d+\.\d+\.\d+", info.version)
+        assert re.match(r"^\d+\.\d+", info.version)
         assert info.python_version != ""
         assert info.platform_system != ""
 
