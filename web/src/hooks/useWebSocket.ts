@@ -13,8 +13,6 @@ const MAX_RETRY_MS = 30_000
 const BATCH_INTERVAL_MS = 100
 
 function getWsUrl(projectId: string): string {
-  // In production, WS goes through the same host.
-  // In dev (Vite on port 3000), connect directly to the backend on port 8000.
   const loc = window.location
   const isDev = loc.port === '3000'
   const protocol = loc.protocol === 'https:' ? 'wss:' : 'ws:'
@@ -37,6 +35,7 @@ export function useWebSocket(projectId: string | undefined): WebSocketState {
   const batchRef = useRef<PipelineEvent[]>([])
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const mountedRef = useRef(true)
+  const doneRef = useRef(false)
 
   const handleEvent = usePipelineStore((s) => s.handleEvent)
   const setInitialState = usePipelineStore((s) => s.setInitialState)
@@ -52,9 +51,12 @@ export function useWebSocket(projectId: string | undefined): WebSocketState {
 
   useEffect(() => {
     mountedRef.current = true
+    doneRef.current = false
     if (!projectId) return
 
     const connect = () => {
+      if (doneRef.current || !mountedRef.current) return
+
       const url = getWsUrl(projectId)
       const ws = new WebSocket(url)
       wsRef.current = ws
@@ -81,9 +83,19 @@ export function useWebSocket(projectId: string | undefined): WebSocketState {
 
       ws.onmessage = (e) => {
         try {
-          const data = JSON.parse(e.data) as PipelineEvent
-          if ((data as unknown as Record<string, unknown>).event_type === 'heartbeat') return
-          batchRef.current.push(data)
+          const raw = JSON.parse(e.data) as Record<string, unknown>
+          const eventType = raw.event_type as string | undefined
+
+          if (eventType === 'heartbeat') return
+
+          // Pipeline finished — stop reconnecting
+          if (eventType === 'complete') {
+            doneRef.current = true
+            setState((s) => ({ ...s, connected: false, reconnecting: false }))
+            return
+          }
+
+          batchRef.current.push(raw as unknown as PipelineEvent)
         } catch {
           // Ignore malformed messages
         }
@@ -91,6 +103,11 @@ export function useWebSocket(projectId: string | undefined): WebSocketState {
 
       ws.onclose = () => {
         if (!mountedRef.current) return
+        // Don't reconnect if pipeline completed or component unmounted
+        if (doneRef.current) {
+          setState((s) => ({ ...s, connected: false, reconnecting: false }))
+          return
+        }
         setState((s) => ({ ...s, connected: false, reconnecting: true }))
         const delay = retryRef.current
         retryRef.current = Math.min(delay * 2, MAX_RETRY_MS)
@@ -110,6 +127,7 @@ export function useWebSocket(projectId: string | undefined): WebSocketState {
 
     return () => {
       mountedRef.current = false
+      doneRef.current = true
       if (timerRef.current) clearInterval(timerRef.current)
       wsRef.current?.close()
     }
