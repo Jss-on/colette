@@ -7,7 +7,7 @@ with a deterministic penalty/bonus model.
 from __future__ import annotations
 
 import re
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
 
 class CompletenessBreakdown(NamedTuple):
@@ -19,12 +19,12 @@ class CompletenessBreakdown(NamedTuple):
 
 def score_completeness(
     project_overview: str,
-    user_stories: list[dict],
-    nfrs: list[dict],
-    tech_constraints: list[dict],
-    assumptions: list[dict],
-    out_of_scope: list[dict],
-    open_questions: list[dict],
+    user_stories: list[dict[str, Any]],
+    nfrs: list[dict[str, Any]],
+    tech_constraints: list[dict[str, Any]],
+    assumptions: list[dict[str, Any]],
+    out_of_scope: list[dict[str, Any]],
+    open_questions: list[dict[str, Any]],
 ) -> CompletenessBreakdown:
     """Score requirements completeness using structural penalties and bonuses."""
     penalties: list[tuple[str, float]] = []
@@ -95,7 +95,7 @@ def score_completeness(
 # ── Internal helpers ─────────────────────────────────────────────────
 
 
-def _has_acceptance_criteria(story: dict) -> bool:
+def _has_acceptance_criteria(story: dict[str, Any]) -> bool:
     ac = story.get("acceptance_criteria", story.get("ac", []))
     if isinstance(ac, list):
         return len(ac) > 0
@@ -104,7 +104,7 @@ def _has_acceptance_criteria(story: dict) -> bool:
     return False
 
 
-def _count_acceptance_criteria(story: dict) -> int:
+def _count_acceptance_criteria(story: dict[str, Any]) -> int:
     ac = story.get("acceptance_criteria", story.get("ac", []))
     if isinstance(ac, list):
         return len(ac)
@@ -113,16 +113,16 @@ def _count_acceptance_criteria(story: dict) -> int:
     return 0
 
 
-def _get_priority(story: dict) -> str:
+def _get_priority(story: dict[str, Any]) -> str:
     return str(story.get("priority", "medium")).lower()
 
 
-def _has_measurable_target(nfr: dict) -> bool:
+def _has_measurable_target(nfr: dict[str, Any]) -> bool:
     text = str(nfr.get("target", nfr.get("description", "")))
     return bool(re.search(r"\d+\s*(?:ms|%|seconds?|s\b|MB|GB|req)", text))
 
 
-def _is_security_constraint(constraint: dict) -> bool:
+def _is_security_constraint(constraint: dict[str, Any]) -> bool:
     text = str(constraint.get("description", constraint.get("name", ""))).lower()
     return any(
         keyword in text
