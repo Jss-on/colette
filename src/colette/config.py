@@ -111,6 +111,15 @@ class Settings(BaseSettings):
     cold_storage_bucket: str = "colette-cold"
     memory_decay_enabled: bool = False
 
+    # ── Quality gate — auto-approve (FR-HIL-001) ───────────────────────
+    gate_auto_approve: bool = Field(
+        default=False,
+        description=(
+            "When True, gates skip the human-review interrupt and auto-approve "
+            "based on the AI quality-gate evaluation alone."
+        ),
+    )
+
     # ── Quality gate thresholds (Section 12) ──────────────────────────
     gate_min_line_coverage: float = Field(
         default=80.0,

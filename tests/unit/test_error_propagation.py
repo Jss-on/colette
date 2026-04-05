@@ -22,7 +22,7 @@ class TestRunnerPipelineFailedTraceback:
 
         # Build a minimal runner with a graph that raises.
         with (
-            patch("colette.orchestrator.runner.build_pipeline") as mock_bp,
+            patch("colette.orchestrator.pipeline.build_pipeline") as mock_bp,
             patch("colette.orchestrator.runner.create_default_registry"),
             patch("colette.orchestrator.runner.project_status_registry"),
         ):
@@ -54,7 +54,7 @@ class TestRunnerPipelineFailedTraceback:
         queue = bus.subscribe("proj-tb2")
 
         with (
-            patch("colette.orchestrator.runner.build_pipeline") as mock_bp,
+            patch("colette.orchestrator.pipeline.build_pipeline") as mock_bp,
             patch("colette.orchestrator.runner.create_default_registry"),
             patch("colette.orchestrator.runner.project_status_registry"),
         ):

@@ -32,6 +32,8 @@ def determine_approval_action(
         ``"interrupt"`` — pause pipeline for human review.
         ``"auto_approve"`` — proceed without human review.
     """
+    if settings.gate_auto_approve:
+        return "auto_approve"
     if tier in (ApprovalTier.T0_CRITICAL, ApprovalTier.T1_HIGH):
         return "interrupt"
     if tier == ApprovalTier.T2_MODERATE:

@@ -22,7 +22,6 @@ from colette.orchestrator.event_bus import (
     PipelineEventBus,
     compute_elapsed,
 )
-from colette.orchestrator.pipeline import build_pipeline
 from colette.orchestrator.progress import ProgressEvent, state_to_progress_event
 from colette.orchestrator.state import create_initial_state
 
@@ -135,6 +134,8 @@ class PipelineRunner:
         self._pg_pool: Any | None = None  # ConnectionPool, set by asetup()
 
         # Build the compiled pipeline graph once (re-built after asetup if needed).
+        from colette.orchestrator.pipeline import build_pipeline
+
         self._gate_registry = create_default_registry(self._settings)
         self._graph = build_pipeline(
             self._gate_registry,
@@ -195,6 +196,8 @@ class PipelineRunner:
         self._checkpointer = _AsyncWrappedPostgresSaver(self._pg_pool)
 
         # Rebuild the graph with the durable checkpointer.
+        from colette.orchestrator.pipeline import build_pipeline
+
         self._graph = build_pipeline(
             self._gate_registry,
             self._settings,

@@ -16,7 +16,7 @@ from colette.schemas.common import ApprovalTier
 
 @pytest.fixture
 def settings() -> Settings:
-    return Settings()
+    return Settings(gate_auto_approve=False)
 
 
 class TestDetermineApprovalAction:
@@ -38,6 +38,11 @@ class TestDetermineApprovalAction:
 
     def test_t3_always_auto_approves(self, settings: Settings) -> None:
         assert determine_approval_action(ApprovalTier.T3_ROUTINE, 0.10, settings) == "auto_approve"
+
+    def test_gate_auto_approve_overrides_all_tiers(self) -> None:
+        auto_settings = Settings(gate_auto_approve=True)
+        for tier in ApprovalTier:
+            assert determine_approval_action(tier, 0.10, auto_settings) == "auto_approve"
 
 
 class TestCreateApprovalRequest:
