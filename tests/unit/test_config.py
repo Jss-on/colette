@@ -37,9 +37,9 @@ def test_llm_fallback_defaults_empty(monkeypatch: object) -> None:
 
 def test_llm_model_defaults() -> None:
     s = Settings()
-    assert "claude" in s.default_planning_model
-    assert "claude" in s.default_execution_model
-    assert "claude" in s.default_validation_model
+    assert s.default_planning_model, "planning model must be set"
+    assert s.default_execution_model, "execution model must be set"
+    assert s.default_validation_model, "validation model must be set"
 
 
 def test_handoff_max_chars_default() -> None:

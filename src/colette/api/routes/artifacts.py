@@ -76,6 +76,7 @@ async def download_artifacts(
 
     # Primary source: metadata.generated_files (has full file content).
     metadata_files = state.get("metadata", {}).get("generated_files", {})
+
     def _is_valid_file(f: object) -> bool:
         return isinstance(f, dict) and "path" in f and "content" in f
 

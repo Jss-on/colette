@@ -21,13 +21,13 @@ class TestRunnerPipelineFailedTraceback:
         queue = bus.subscribe("proj-tb")
 
         # Build a minimal runner with a graph that raises.
-        with patch("colette.orchestrator.runner.build_pipeline") as mock_bp, \
-             patch("colette.orchestrator.runner.create_default_registry"), \
-             patch("colette.orchestrator.runner.project_status_registry"):
+        with (
+            patch("colette.orchestrator.runner.build_pipeline") as mock_bp,
+            patch("colette.orchestrator.runner.create_default_registry"),
+            patch("colette.orchestrator.runner.project_status_registry"),
+        ):
             mock_graph = MagicMock()
-            mock_graph.ainvoke = AsyncMock(
-                side_effect=ValueError("LLM provider unreachable")
-            )
+            mock_graph.ainvoke = AsyncMock(side_effect=ValueError("LLM provider unreachable"))
             mock_bp.return_value = mock_graph
 
             from colette.orchestrator.runner import PipelineRunner
@@ -53,9 +53,11 @@ class TestRunnerPipelineFailedTraceback:
         bus = PipelineEventBus()
         queue = bus.subscribe("proj-tb2")
 
-        with patch("colette.orchestrator.runner.build_pipeline") as mock_bp, \
-             patch("colette.orchestrator.runner.create_default_registry"), \
-             patch("colette.orchestrator.runner.project_status_registry"):
+        with (
+            patch("colette.orchestrator.runner.build_pipeline") as mock_bp,
+            patch("colette.orchestrator.runner.create_default_registry"),
+            patch("colette.orchestrator.runner.project_status_registry"),
+        ):
             mock_graph = MagicMock()
             mock_graph.ainvoke = AsyncMock(side_effect=RuntimeError("boom"))
             mock_bp.return_value = mock_graph
@@ -103,9 +105,7 @@ class TestRunPipelineBgNoSessionFactory:
         runner = MagicMock()
         runner.event_bus = MagicMock(spec=PipelineEventBus)
 
-        with patch(
-            "colette.api.routes.projects.project_status_registry"
-        ) as mock_reg:
+        with patch("colette.api.routes.projects.project_status_registry") as mock_reg:
             await _run_pipeline_bg(runner, "proj-nosf2", "test", None)
 
         # Only "failed" — no "running" since runner.run() never executes.
@@ -126,16 +126,12 @@ class TestRunPipelineBgSuccessDbFailure:
         # Session factory that raises on context entry.
         session_factory = MagicMock()
         bad_session = AsyncMock()
-        bad_session.__aenter__ = AsyncMock(
-            side_effect=RuntimeError("DB connection lost")
-        )
+        bad_session.__aenter__ = AsyncMock(side_effect=RuntimeError("DB connection lost"))
         bad_session.__aexit__ = AsyncMock(return_value=False)
         session_factory.return_value = bad_session
 
         with patch("colette.api.routes.projects.project_status_registry"):
-            await _run_pipeline_bg(
-                runner, "proj-dbfail", "test", session_factory
-            )
+            await _run_pipeline_bg(runner, "proj-dbfail", "test", session_factory)
 
         # Find the PIPELINE_FAILED event among emit calls.
         calls = runner.event_bus.emit.call_args_list
@@ -159,18 +155,16 @@ class TestRunPipelineBgSuccessDbFailure:
 
         session_factory = MagicMock()
         bad_session = AsyncMock()
-        bad_session.__aenter__ = AsyncMock(
-            side_effect=RuntimeError("DB gone")
-        )
+        bad_session.__aenter__ = AsyncMock(side_effect=RuntimeError("DB gone"))
         bad_session.__aexit__ = AsyncMock(return_value=False)
         session_factory.return_value = bad_session
 
         mock_logger = MagicMock()
-        with patch("colette.api.routes.projects.project_status_registry"), \
-             patch("structlog.get_logger", return_value=mock_logger):
-            await _run_pipeline_bg(
-                runner, "proj-dbcrit", "test", session_factory
-            )
+        with (
+            patch("colette.api.routes.projects.project_status_registry"),
+            patch("structlog.get_logger", return_value=mock_logger),
+        ):
+            await _run_pipeline_bg(runner, "proj-dbcrit", "test", session_factory)
 
         mock_logger.critical.assert_called_once()
 
@@ -188,18 +182,16 @@ class TestRunPipelineBgErrorPathDbFailure:
 
         session_factory = MagicMock()
         bad_session = AsyncMock()
-        bad_session.__aenter__ = AsyncMock(
-            side_effect=RuntimeError("DB also dead")
-        )
+        bad_session.__aenter__ = AsyncMock(side_effect=RuntimeError("DB also dead"))
         bad_session.__aexit__ = AsyncMock(return_value=False)
         session_factory.return_value = bad_session
 
         mock_logger = MagicMock()
-        with patch("colette.api.routes.projects.project_status_registry"), \
-             patch("structlog.get_logger", return_value=mock_logger):
-            await _run_pipeline_bg(
-                runner, "proj-double", "test", session_factory
-            )
+        with (
+            patch("colette.api.routes.projects.project_status_registry"),
+            patch("structlog.get_logger", return_value=mock_logger),
+        ):
+            await _run_pipeline_bg(runner, "proj-double", "test", session_factory)
 
         mock_logger.critical.assert_called_once()
 
@@ -224,13 +216,13 @@ class TestRunPipelineBgNormalSuccess:
         ctx.__aexit__ = AsyncMock(return_value=False)
         session_factory.return_value = ctx
 
-        with patch("colette.api.routes.projects.project_status_registry") as mock_reg, \
-             patch("colette.api.routes.projects.ProjectRepository"), \
-             patch("colette.api.routes.projects.PipelineRunRepository") as mock_rr:
+        with (
+            patch("colette.api.routes.projects.project_status_registry") as mock_reg,
+            patch("colette.api.routes.projects.ProjectRepository"),
+            patch("colette.api.routes.projects.PipelineRunRepository") as mock_rr,
+        ):
             mock_rr.return_value.list_for_project = AsyncMock(return_value=[])
-            await _run_pipeline_bg(
-                runner, "proj-ok", "test", session_factory
-            )
+            await _run_pipeline_bg(runner, "proj-ok", "test", session_factory)
 
         # runner.run() manages running→completed; _run_pipeline_bg
         # only marks "completed" on the success path.

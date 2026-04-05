@@ -31,11 +31,18 @@ def _get(d: dict[str, Any] | Any, key: str, default: Any = "") -> Any:
 
 
 _LEXER_MAP: dict[str, str] = {
-    "typescript": "typescript", "javascript": "javascript",
-    "python": "python", "sql": "sql", "yaml": "yaml",
-    "json": "json", "html": "html", "css": "css",
-    "dockerfile": "dockerfile", "bash": "bash",
-    "shell": "bash", "markdown": "markdown",
+    "typescript": "typescript",
+    "javascript": "javascript",
+    "python": "python",
+    "sql": "sql",
+    "yaml": "yaml",
+    "json": "json",
+    "html": "html",
+    "css": "css",
+    "dockerfile": "dockerfile",
+    "bash": "bash",
+    "shell": "bash",
+    "markdown": "markdown",
 }
 
 
@@ -138,97 +145,123 @@ class ApprovalReviewApp(App[str]):
         if stage == "requirements":
             stories = s.get("user_stories", [])
             if stories:
-                panes.append(self._table_pane(
-                    "User Stories", "stories",
-                    ["ID", "Title", "Priority", "Acceptance Criteria"],
-                    [
-                        (
-                            _get(st, "id", "?"),
-                            _get(st, "title", "?"),
-                            _get(st, "priority", "?"),
-                            "\n".join(_get(st, "acceptance_criteria", [])[:5]),
-                        )
-                        for st in stories
-                    ],
-                ))
+                panes.append(
+                    self._table_pane(
+                        "User Stories",
+                        "stories",
+                        ["ID", "Title", "Priority", "Acceptance Criteria"],
+                        [
+                            (
+                                _get(st, "id", "?"),
+                                _get(st, "title", "?"),
+                                _get(st, "priority", "?"),
+                                "\n".join(_get(st, "acceptance_criteria", [])[:5]),
+                            )
+                            for st in stories
+                        ],
+                    )
+                )
             nfrs = s.get("nfrs", [])
             if nfrs:
-                panes.append(self._table_pane(
-                    "NFRs", "nfrs",
-                    ["ID", "Category", "Description", "Target"],
-                    [
-                        (
-                            _get(n, "id"), _get(n, "category"),
-                            _get(n, "description"), _get(n, "target", "-"),
-                        )
-                        for n in nfrs
-                    ],
-                ))
+                panes.append(
+                    self._table_pane(
+                        "NFRs",
+                        "nfrs",
+                        ["ID", "Category", "Description", "Target"],
+                        [
+                            (
+                                _get(n, "id"),
+                                _get(n, "category"),
+                                _get(n, "description"),
+                                _get(n, "target", "-"),
+                            )
+                            for n in nfrs
+                        ],
+                    )
+                )
             constraints = s.get("tech_constraints", [])
             if constraints:
-                panes.append(self._table_pane(
-                    "Constraints", "constraints",
-                    ["ID", "Description", "Rationale"],
-                    [
-                        (_get(c, "id"), _get(c, "description"), _get(c, "rationale"))
-                        for c in constraints
-                    ],
-                ))
+                panes.append(
+                    self._table_pane(
+                        "Constraints",
+                        "constraints",
+                        ["ID", "Description", "Rationale"],
+                        [
+                            (_get(c, "id"), _get(c, "description"), _get(c, "rationale"))
+                            for c in constraints
+                        ],
+                    )
+                )
 
         elif stage == "design":
             endpoints = s.get("endpoints", [])
             if endpoints:
-                panes.append(self._table_pane(
-                    f"Endpoints ({len(endpoints)})", "endpoints",
-                    ["#", "Method", "Path", "Summary", "Auth"],
-                    [
-                        (
-                            str(i), _get(ep, "method"), _get(ep, "path"),
-                            _get(ep, "summary"),
-                            "Y" if _get(ep, "auth_required", True) else "N",
-                        )
-                        for i, ep in enumerate(endpoints, 1)
-                    ],
-                ))
+                panes.append(
+                    self._table_pane(
+                        f"Endpoints ({len(endpoints)})",
+                        "endpoints",
+                        ["#", "Method", "Path", "Summary", "Auth"],
+                        [
+                            (
+                                str(i),
+                                _get(ep, "method"),
+                                _get(ep, "path"),
+                                _get(ep, "summary"),
+                                "Y" if _get(ep, "auth_required", True) else "N",
+                            )
+                            for i, ep in enumerate(endpoints, 1)
+                        ],
+                    )
+                )
             entities = s.get("db_entities", [])
             if entities:
-                panes.append(self._table_pane(
-                    f"DB Entities ({len(entities)})", "entities",
-                    ["Entity", "Fields", "Indexes", "Relationships"],
-                    [
-                        (
-                            _get(e, "name"),
-                            ", ".join(
-                                f"{_get(f, 'name')}: {_get(f, 'type')}"
-                                for f in _get(e, "fields", [])[:8]
-                            ),
-                            ", ".join(_get(e, "indexes", [])) or "-",
-                            ", ".join(_get(e, "relationships", [])) or "-",
-                        )
-                        for e in entities
-                    ],
-                ))
+                panes.append(
+                    self._table_pane(
+                        f"DB Entities ({len(entities)})",
+                        "entities",
+                        ["Entity", "Fields", "Indexes", "Relationships"],
+                        [
+                            (
+                                _get(e, "name"),
+                                ", ".join(
+                                    f"{_get(f, 'name')}: {_get(f, 'type')}"
+                                    for f in _get(e, "fields", [])[:8]
+                                ),
+                                ", ".join(_get(e, "indexes", [])) or "-",
+                                ", ".join(_get(e, "relationships", [])) or "-",
+                            )
+                            for e in entities
+                        ],
+                    )
+                )
             components = s.get("ui_components", [])
             if components:
-                panes.append(self._table_pane(
-                    f"UI Components ({len(components)})", "components",
-                    ["Name", "Description", "Route", "Children"],
-                    [
-                        (
-                            _get(c, "name"), _get(c, "description"),
-                            _get(c, "route", "-") or "-",
-                            ", ".join(_get(c, "children", [])) or "-",
-                        )
-                        for c in components
-                    ],
-                ))
+                panes.append(
+                    self._table_pane(
+                        f"UI Components ({len(components)})",
+                        "components",
+                        ["Name", "Description", "Route", "Children"],
+                        [
+                            (
+                                _get(c, "name"),
+                                _get(c, "description"),
+                                _get(c, "route", "-") or "-",
+                                ", ".join(_get(c, "children", [])) or "-",
+                            )
+                            for c in components
+                        ],
+                    )
+                )
             tech = s.get("tech_stack", {})
             if tech:
-                panes.append(self._table_pane(
-                    "Tech Stack", "tech",
-                    ["Role", "Technology"],
-                    [(role, str(val)) for role, val in tech.items()],
-                ))
+                panes.append(
+                    self._table_pane(
+                        "Tech Stack",
+                        "tech",
+                        ["Role", "Technology"],
+                        [(role, str(val)) for role, val in tech.items()],
+                    )
+                )
             adrs = s.get("adrs", [])
             if adrs:
                 panes.append(self._richlog_pane("ADRs", "adrs", self._format_adrs(adrs)))
@@ -248,15 +281,21 @@ class ApprovalReviewApp(App[str]):
                 panes.append(self._files_pane("Source Files", "src-files", gen_files))
             files = s.get("files", [])
             if files:
-                panes.append(self._table_pane(
-                    "Change Summary", "changes",
-                    ["Path", "Language", "Lines+"],
-                    [(
-                        _get(f, "path", "?"),
-                        _get(f, "language", ""),
-                        str(_get(f, "lines_added", 0)),
-                    ) for f in files],
-                ))
+                panes.append(
+                    self._table_pane(
+                        "Change Summary",
+                        "changes",
+                        ["Path", "Language", "Lines+"],
+                        [
+                            (
+                                _get(f, "path", "?"),
+                                _get(f, "language", ""),
+                                str(_get(f, "lines_added", 0)),
+                            )
+                            for f in files
+                        ],
+                    )
+                )
 
         elif stage == "testing":
             gen_files = s.get("generated_files", [])
@@ -264,14 +303,17 @@ class ApprovalReviewApp(App[str]):
                 panes.append(self._files_pane("Test Files", "test-files", gen_files))
             findings = s.get("security_findings", [])
             if findings:
-                panes.append(self._table_pane(
-                    "Security Findings", "findings",
-                    ["Severity", "Category", "Description"],
-                    [
-                        (_get(f, "severity"), _get(f, "category"), _get(f, "description"))
-                        for f in findings
-                    ],
-                ))
+                panes.append(
+                    self._table_pane(
+                        "Security Findings",
+                        "findings",
+                        ["Severity", "Category", "Description"],
+                        [
+                            (_get(f, "severity"), _get(f, "category"), _get(f, "description"))
+                            for f in findings
+                        ],
+                    )
+                )
 
         elif stage in ("staging", "deployment"):
             gen_files = s.get("generated_files", [])
@@ -365,10 +407,15 @@ class ApprovalReviewApp(App[str]):
             if syntax_data:
                 code, lang = syntax_data
                 try:
-                    rl.write(Syntax(
-                        code, lang, theme="monokai",
-                        line_numbers=True, word_wrap=True,
-                    ))
+                    rl.write(
+                        Syntax(
+                            code,
+                            lang,
+                            theme="monokai",
+                            line_numbers=True,
+                            word_wrap=True,
+                        )
+                    )
                 except Exception:
                     rl.write(code)
 
@@ -401,10 +448,15 @@ class ApprovalReviewApp(App[str]):
             viewer.write(Text(f"── {path} ──", style="bold green"))
             if content:
                 try:
-                    viewer.write(Syntax(
-                        content, lexer, theme="monokai",
-                        line_numbers=True, word_wrap=True,
-                    ))
+                    viewer.write(
+                        Syntax(
+                            content,
+                            lexer,
+                            theme="monokai",
+                            line_numbers=True,
+                            word_wrap=True,
+                        )
+                    )
                 except Exception:
                     viewer.write(content)
             else:

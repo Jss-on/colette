@@ -43,28 +43,20 @@ def _mock_httpx_client(
 
 class TestApproveCommand:
     @patch("httpx.Client")
-    def test_approve_success(
-        self, mock_cls: MagicMock, runner: CliRunner
-    ) -> None:
+    def test_approve_success(self, mock_cls: MagicMock, runner: CliRunner) -> None:
         mock_cls.return_value = _mock_httpx_client()
         result = runner.invoke(main, ["approve", "gate-123"])
         assert result.exit_code == 0
         assert "approved" in result.output.lower()
 
     @patch("httpx.Client")
-    def test_approve_with_comment(
-        self, mock_cls: MagicMock, runner: CliRunner
-    ) -> None:
+    def test_approve_with_comment(self, mock_cls: MagicMock, runner: CliRunner) -> None:
         mock_cls.return_value = _mock_httpx_client()
-        result = runner.invoke(
-            main, ["approve", "gate-123", "--comment", "LGTM"]
-        )
+        result = runner.invoke(main, ["approve", "gate-123", "--comment", "LGTM"])
         assert result.exit_code == 0
 
     @patch("httpx.Client")
-    def test_approve_http_error(
-        self, mock_cls: MagicMock, runner: CliRunner
-    ) -> None:
+    def test_approve_http_error(self, mock_cls: MagicMock, runner: CliRunner) -> None:
         import httpx
 
         mock_cls.return_value = _mock_httpx_client(
@@ -79,33 +71,23 @@ class TestApproveCommand:
 
 class TestRejectCommand:
     @patch("httpx.Client")
-    def test_reject_success(
-        self, mock_cls: MagicMock, runner: CliRunner
-    ) -> None:
+    def test_reject_success(self, mock_cls: MagicMock, runner: CliRunner) -> None:
         mock_cls.return_value = _mock_httpx_client()
         result = runner.invoke(main, ["reject", "gate-456"])
         assert result.exit_code == 0
         assert "rejected" in result.output.lower()
 
     @patch("httpx.Client")
-    def test_reject_with_reason(
-        self, mock_cls: MagicMock, runner: CliRunner
-    ) -> None:
+    def test_reject_with_reason(self, mock_cls: MagicMock, runner: CliRunner) -> None:
         mock_cls.return_value = _mock_httpx_client()
-        result = runner.invoke(
-            main, ["reject", "gate-456", "--reason", "Needs rework"]
-        )
+        result = runner.invoke(main, ["reject", "gate-456", "--reason", "Needs rework"])
         assert result.exit_code == 0
 
     @patch("httpx.Client")
-    def test_reject_http_error(
-        self, mock_cls: MagicMock, runner: CliRunner
-    ) -> None:
+    def test_reject_http_error(self, mock_cls: MagicMock, runner: CliRunner) -> None:
         import httpx
 
-        mock_cls.return_value = _mock_httpx_client(
-            side_effect=httpx.HTTPError("timeout")
-        )
+        mock_cls.return_value = _mock_httpx_client(side_effect=httpx.HTTPError("timeout"))
         result = runner.invoke(main, ["reject", "gate-456"])
         assert result.exit_code != 0
 
@@ -115,18 +97,14 @@ class TestRejectCommand:
 
 class TestResumeCommand:
     @patch("httpx.Client")
-    def test_resume_success(
-        self, mock_cls: MagicMock, runner: CliRunner
-    ) -> None:
+    def test_resume_success(self, mock_cls: MagicMock, runner: CliRunner) -> None:
         mock_cls.return_value = _mock_httpx_client()
         result = runner.invoke(main, ["resume", "proj-aaa"])
         assert result.exit_code == 0
         assert "resumed" in result.output.lower()
 
     @patch("httpx.Client")
-    def test_resume_404(
-        self, mock_cls: MagicMock, runner: CliRunner
-    ) -> None:
+    def test_resume_404(self, mock_cls: MagicMock, runner: CliRunner) -> None:
         import httpx
 
         mock_resp = MagicMock()
@@ -139,9 +117,7 @@ class TestResumeCommand:
         assert "not found" in result.output.lower()
 
     @patch("httpx.Client")
-    def test_resume_409(
-        self, mock_cls: MagicMock, runner: CliRunner
-    ) -> None:
+    def test_resume_409(self, mock_cls: MagicMock, runner: CliRunner) -> None:
         import httpx
 
         mock_resp = MagicMock()
@@ -153,9 +129,7 @@ class TestResumeCommand:
         assert result.exit_code != 0
 
     @patch("httpx.Client")
-    def test_resume_other_http_status_error(
-        self, mock_cls: MagicMock, runner: CliRunner
-    ) -> None:
+    def test_resume_other_http_status_error(self, mock_cls: MagicMock, runner: CliRunner) -> None:
         import httpx
 
         mock_resp = MagicMock()
@@ -166,14 +140,10 @@ class TestResumeCommand:
         assert result.exit_code != 0
 
     @patch("httpx.Client")
-    def test_resume_generic_http_error(
-        self, mock_cls: MagicMock, runner: CliRunner
-    ) -> None:
+    def test_resume_generic_http_error(self, mock_cls: MagicMock, runner: CliRunner) -> None:
         import httpx
 
-        mock_cls.return_value = _mock_httpx_client(
-            side_effect=httpx.HTTPError("Network error")
-        )
+        mock_cls.return_value = _mock_httpx_client(side_effect=httpx.HTTPError("Network error"))
         result = runner.invoke(main, ["resume", "proj-net"])
         assert result.exit_code != 0
 
@@ -183,18 +153,14 @@ class TestResumeCommand:
 
 class TestCancelCommand:
     @patch("httpx.Client")
-    def test_cancel_success(
-        self, mock_cls: MagicMock, runner: CliRunner
-    ) -> None:
+    def test_cancel_success(self, mock_cls: MagicMock, runner: CliRunner) -> None:
         mock_cls.return_value = _mock_httpx_client()
         result = runner.invoke(main, ["cancel", "proj-bbb"])
         assert result.exit_code == 0
         assert "cancelled" in result.output.lower()
 
     @patch("httpx.Client")
-    def test_cancel_404(
-        self, mock_cls: MagicMock, runner: CliRunner
-    ) -> None:
+    def test_cancel_404(self, mock_cls: MagicMock, runner: CliRunner) -> None:
         import httpx
 
         mock_resp = MagicMock()
@@ -206,9 +172,7 @@ class TestCancelCommand:
         assert "not found" in result.output.lower()
 
     @patch("httpx.Client")
-    def test_cancel_other_status_error(
-        self, mock_cls: MagicMock, runner: CliRunner
-    ) -> None:
+    def test_cancel_other_status_error(self, mock_cls: MagicMock, runner: CliRunner) -> None:
         import httpx
 
         mock_resp = MagicMock()
@@ -219,14 +183,10 @@ class TestCancelCommand:
         assert result.exit_code != 0
 
     @patch("httpx.Client")
-    def test_cancel_generic_http_error(
-        self, mock_cls: MagicMock, runner: CliRunner
-    ) -> None:
+    def test_cancel_generic_http_error(self, mock_cls: MagicMock, runner: CliRunner) -> None:
         import httpx
 
-        mock_cls.return_value = _mock_httpx_client(
-            side_effect=httpx.HTTPError("timeout")
-        )
+        mock_cls.return_value = _mock_httpx_client(side_effect=httpx.HTTPError("timeout"))
         result = runner.invoke(main, ["cancel", "proj-timeout"])
         assert result.exit_code != 0
 
@@ -250,21 +210,15 @@ class TestDownloadCommand:
 
         mock_cls.return_value = _mock_httpx_client(content=zip_bytes)
         with runner.isolated_filesystem():
-            result = runner.invoke(
-                main, ["download", "proj-dl", "-o", "out"]
-            )
+            result = runner.invoke(main, ["download", "proj-dl", "-o", "out"])
             assert result.exit_code == 0
             assert "1 files" in result.output or "Extracted" in result.output
 
     @patch("httpx.Client")
-    def test_download_http_error(
-        self, mock_cls: MagicMock, runner: CliRunner
-    ) -> None:
+    def test_download_http_error(self, mock_cls: MagicMock, runner: CliRunner) -> None:
         import httpx
 
-        mock_cls.return_value = _mock_httpx_client(
-            side_effect=httpx.HTTPError("404")
-        )
+        mock_cls.return_value = _mock_httpx_client(side_effect=httpx.HTTPError("404"))
         result = runner.invoke(main, ["download", "proj-missing"])
         assert result.exit_code != 0
 
@@ -274,9 +228,7 @@ class TestDownloadCommand:
 
 class TestLogsCommand:
     @patch("httpx.Client")
-    def test_logs_success(
-        self, mock_cls: MagicMock, runner: CliRunner
-    ) -> None:
+    def test_logs_success(self, mock_cls: MagicMock, runner: CliRunner) -> None:
         mock_cls.return_value = _mock_httpx_client(
             response_json={
                 "state_snapshot": {
@@ -291,9 +243,7 @@ class TestLogsCommand:
         assert result.exit_code == 0
 
     @patch("httpx.Client")
-    def test_logs_with_stage_filter(
-        self, mock_cls: MagicMock, runner: CliRunner
-    ) -> None:
+    def test_logs_with_stage_filter(self, mock_cls: MagicMock, runner: CliRunner) -> None:
         mock_cls.return_value = _mock_httpx_client(
             response_json={
                 "state_snapshot": {
@@ -307,15 +257,11 @@ class TestLogsCommand:
                 },
             }
         )
-        result = runner.invoke(
-            main, ["logs", "proj-logs", "--stage", "design"]
-        )
+        result = runner.invoke(main, ["logs", "proj-logs", "--stage", "design"])
         assert result.exit_code == 0
 
     @patch("httpx.Client")
-    def test_logs_with_errors(
-        self, mock_cls: MagicMock, runner: CliRunner
-    ) -> None:
+    def test_logs_with_errors(self, mock_cls: MagicMock, runner: CliRunner) -> None:
         mock_cls.return_value = _mock_httpx_client(
             response_json={
                 "state_snapshot": {
@@ -330,14 +276,10 @@ class TestLogsCommand:
         assert result.exit_code == 0
 
     @patch("httpx.Client")
-    def test_logs_http_error(
-        self, mock_cls: MagicMock, runner: CliRunner
-    ) -> None:
+    def test_logs_http_error(self, mock_cls: MagicMock, runner: CliRunner) -> None:
         import httpx
 
-        mock_cls.return_value = _mock_httpx_client(
-            side_effect=httpx.HTTPError("fail")
-        )
+        mock_cls.return_value = _mock_httpx_client(side_effect=httpx.HTTPError("fail"))
         result = runner.invoke(main, ["logs", "proj-bad"])
         assert result.exit_code != 0
 
@@ -347,9 +289,7 @@ class TestLogsCommand:
 
 class TestStatusCommand:
     @patch("httpx.Client")
-    def test_status_non_follow(
-        self, mock_cls: MagicMock, runner: CliRunner
-    ) -> None:
+    def test_status_non_follow(self, mock_cls: MagicMock, runner: CliRunner) -> None:
         mock_cls.return_value = _mock_httpx_client(
             response_json={"status": "running", "state_snapshot": {}}
         )
@@ -357,9 +297,7 @@ class TestStatusCommand:
         assert result.exit_code == 0
 
     @patch("httpx.Client")
-    def test_status_interrupted_shows_notice(
-        self, mock_cls: MagicMock, runner: CliRunner
-    ) -> None:
+    def test_status_interrupted_shows_notice(self, mock_cls: MagicMock, runner: CliRunner) -> None:
         mock_cls.return_value = _mock_httpx_client(
             response_json={"status": "interrupted", "state_snapshot": {}}
         )
@@ -367,9 +305,7 @@ class TestStatusCommand:
         assert result.exit_code == 0
 
     @patch("httpx.Client")
-    def test_status_cancelled_shows_notice(
-        self, mock_cls: MagicMock, runner: CliRunner
-    ) -> None:
+    def test_status_cancelled_shows_notice(self, mock_cls: MagicMock, runner: CliRunner) -> None:
         mock_cls.return_value = _mock_httpx_client(
             response_json={"status": "cancelled", "state_snapshot": {}}
         )
@@ -377,14 +313,10 @@ class TestStatusCommand:
         assert result.exit_code == 0
 
     @patch("httpx.Client")
-    def test_status_http_error(
-        self, mock_cls: MagicMock, runner: CliRunner
-    ) -> None:
+    def test_status_http_error(self, mock_cls: MagicMock, runner: CliRunner) -> None:
         import httpx
 
-        mock_cls.return_value = _mock_httpx_client(
-            side_effect=httpx.HTTPError("conn refused")
-        )
+        mock_cls.return_value = _mock_httpx_client(side_effect=httpx.HTTPError("conn refused"))
         result = runner.invoke(main, ["status", "proj-err"])
         assert result.exit_code != 0
 
@@ -394,9 +326,7 @@ class TestStatusCommand:
 
 class TestRunSseLoop:
     @patch("httpx.Client")
-    def test_sse_loop_http_error_returns_true(
-        self, mock_cls: MagicMock
-    ) -> None:
+    def test_sse_loop_http_error_returns_true(self, mock_cls: MagicMock) -> None:
         import httpx
 
         from colette.cli import _run_sse_loop
@@ -419,9 +349,7 @@ class TestRunSseLoop:
 class TestHandleInteractiveApproval:
     @patch("colette.cli_review.ApprovalReviewApp")
     @patch("httpx.Client")
-    def test_approved_sends_requests(
-        self, mock_cls: MagicMock, mock_app_cls: MagicMock
-    ) -> None:
+    def test_approved_sends_requests(self, mock_cls: MagicMock, mock_app_cls: MagicMock) -> None:
         from colette.cli import _handle_interactive_approval
 
         mock_app_cls.return_value.run.return_value = "approved"
@@ -429,7 +357,8 @@ class TestHandleInteractiveApproval:
         console = MagicMock()
 
         result = _handle_interactive_approval(
-            "http://x", "proj-1",
+            "http://x",
+            "proj-1",
             {"request_id": "req-1", "stage": "design"},
             console,
         )
@@ -438,9 +367,7 @@ class TestHandleInteractiveApproval:
 
     @patch("colette.cli_review.ApprovalReviewApp")
     @patch("httpx.Client")
-    def test_rejected_sends_reject(
-        self, mock_cls: MagicMock, mock_app_cls: MagicMock
-    ) -> None:
+    def test_rejected_sends_reject(self, mock_cls: MagicMock, mock_app_cls: MagicMock) -> None:
         from colette.cli import _handle_interactive_approval
 
         mock_app_cls.return_value.run.return_value = "rejected"
@@ -448,7 +375,8 @@ class TestHandleInteractiveApproval:
         console = MagicMock()
 
         result = _handle_interactive_approval(
-            "http://x", "proj-1",
+            "http://x",
+            "proj-1",
             {"request_id": "req-1"},
             console,
         )
@@ -456,21 +384,18 @@ class TestHandleInteractiveApproval:
 
     @patch("colette.cli_review.ApprovalReviewApp")
     @patch("httpx.Client")
-    def test_approved_but_resume_fails(
-        self, mock_cls: MagicMock, mock_app_cls: MagicMock
-    ) -> None:
+    def test_approved_but_resume_fails(self, mock_cls: MagicMock, mock_app_cls: MagicMock) -> None:
         import httpx
 
         from colette.cli import _handle_interactive_approval
 
         mock_app_cls.return_value.run.return_value = "approved"
-        mock_cls.return_value = _mock_httpx_client(
-            side_effect=httpx.HTTPError("resume failed")
-        )
+        mock_cls.return_value = _mock_httpx_client(side_effect=httpx.HTTPError("resume failed"))
         console = MagicMock()
 
         result = _handle_interactive_approval(
-            "http://x", "proj-1",
+            "http://x",
+            "proj-1",
             {"request_id": "req-1"},
             console,
         )

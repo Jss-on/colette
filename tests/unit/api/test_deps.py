@@ -122,9 +122,7 @@ class TestRequireRole:
     @pytest.mark.asyncio
     async def test_allows_with_permission(self) -> None:
         check = require_role(Permission.SUBMIT_PROJECT)
-        user = CurrentUser(
-            user_id="u1", username="requestor", role=Role.PROJECT_REQUESTOR
-        )
+        user = CurrentUser(user_id="u1", username="requestor", role=Role.PROJECT_REQUESTOR)
         result = await check(user=user)
         assert result is user
 

@@ -27,11 +27,11 @@ def _sanitize_for_json(obj: Any) -> Any:
     """Deep-copy, replacing non-JSON-serializable values with ``repr()``."""
     import json
 
-    if obj is None or isinstance(obj, (bool, int, float, str)):
+    if obj is None or isinstance(obj, bool | int | float | str):
         return obj
     if isinstance(obj, dict):
         return {k: _sanitize_for_json(v) for k, v in obj.items()}
-    if isinstance(obj, (list, tuple)):
+    if isinstance(obj, list | tuple):
         return [_sanitize_for_json(v) for v in obj]
     try:
         json.dumps(obj)
@@ -105,9 +105,7 @@ async def _run_pipeline_bg(
                 repo = ProjectRepository(session)
                 await repo.update_status(uuid.UUID(project_id), "failed")
                 run_repo = PipelineRunRepository(session)
-                runs = await run_repo.list_for_project(
-                    uuid.UUID(project_id), limit=1
-                )
+                runs = await run_repo.list_for_project(uuid.UUID(project_id), limit=1)
                 if runs:
                     await run_repo.update_state(runs[0].id, status="failed")
                 await session.commit()
@@ -130,9 +128,7 @@ async def _run_pipeline_bg(
                 repo = ProjectRepository(session)
                 await repo.update_status(uuid.UUID(project_id), "awaiting_approval")
                 run_repo = PipelineRunRepository(session)
-                runs = await run_repo.list_for_project(
-                    uuid.UUID(project_id), limit=1
-                )
+                runs = await run_repo.list_for_project(uuid.UUID(project_id), limit=1)
                 if runs:
                     await run_repo.update_state(
                         runs[0].id,
@@ -150,15 +146,9 @@ async def _run_pipeline_bg(
                                 request_id=req.get("request_id", ""),
                                 stage=req.get("stage", ""),
                                 tier=str(req.get("tier", "")),
-                                context_summary=req.get(
-                                    "context_summary", ""
-                                ),
-                                proposed_action=req.get(
-                                    "proposed_action", ""
-                                ),
-                                risk_assessment=req.get(
-                                    "risk_assessment", ""
-                                ),
+                                context_summary=req.get("context_summary", ""),
+                                proposed_action=req.get("proposed_action", ""),
+                                risk_assessment=req.get("risk_assessment", ""),
                             )
                 await session.commit()
         except Exception as db_exc:
@@ -177,12 +167,12 @@ async def _run_pipeline_bg(
             repo = ProjectRepository(session)
             await repo.update_status(uuid.UUID(project_id), "completed")
             run_repo = PipelineRunRepository(session)
-            runs = await run_repo.list_for_project(
-                uuid.UUID(project_id), limit=1
-            )
+            runs = await run_repo.list_for_project(uuid.UUID(project_id), limit=1)
             if runs:
                 await run_repo.update_state(
-                    runs[0].id, status="completed", state_snapshot=safe_state,
+                    runs[0].id,
+                    status="completed",
+                    state_snapshot=safe_state,
                 )
             await session.commit()
         log.info("pipeline.completed", project_id=project_id)
@@ -241,9 +231,7 @@ async def create_project(
     # Start pipeline in background.
     from colette.db.session import _session_factory
 
-    background_tasks.add_task(
-        _run_pipeline_bg, runner, pid, body.user_request, _session_factory
-    )
+    background_tasks.add_task(_run_pipeline_bg, runner, pid, body.user_request, _session_factory)
 
     return _project_to_response(project)
 

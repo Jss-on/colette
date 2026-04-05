@@ -82,9 +82,7 @@ class TestPipelineSSEEvent:
 # ── Helpers ──────────────────────────────────────────────────────────
 
 
-def _make_runner(
-    bus: PipelineEventBus, *, is_active: bool = True
-) -> MagicMock:
+def _make_runner(bus: PipelineEventBus, *, is_active: bool = True) -> MagicMock:
     """Create a mock runner exposing the given event bus."""
     runner = MagicMock()
     runner.event_bus = bus

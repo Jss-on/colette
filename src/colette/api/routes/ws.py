@@ -19,9 +19,7 @@ from colette.orchestrator.event_bus import EventType
 
 router = APIRouter()
 
-_TERMINAL_EVENTS = frozenset(
-    {EventType.PIPELINE_COMPLETED, EventType.PIPELINE_FAILED}
-)
+_TERMINAL_EVENTS = frozenset({EventType.PIPELINE_COMPLETED, EventType.PIPELINE_FAILED})
 
 
 class ConnectionManager:
@@ -41,9 +39,7 @@ class ConnectionManager:
         if not conns:
             self._connections.pop(project_id, None)
 
-    async def broadcast(
-        self, project_id: str, data: dict[str, Any]
-    ) -> None:
+    async def broadcast(self, project_id: str, data: dict[str, Any]) -> None:
         for ws in list(self._connections.get(project_id, [])):
             try:
                 await ws.send_json(data)
@@ -97,26 +93,32 @@ async def _emit_ws_catchup(
     ts = datetime.now(UTC).isoformat()
     for i, stage_name in enumerate(STAGE_ORDER):
         if i < current_idx:
-            await websocket.send_json({
-                "event_type": "stage_started",
-                "project_id": project_id,
-                "stage": stage_name,
-                "timestamp": ts,
-            })
-            await websocket.send_json({
-                "event_type": "stage_completed",
-                "project_id": project_id,
-                "stage": stage_name,
-                "timestamp": ts,
-                "elapsed_seconds": progress.elapsed_seconds,
-            })
+            await websocket.send_json(
+                {
+                    "event_type": "stage_started",
+                    "project_id": project_id,
+                    "stage": stage_name,
+                    "timestamp": ts,
+                }
+            )
+            await websocket.send_json(
+                {
+                    "event_type": "stage_completed",
+                    "project_id": project_id,
+                    "stage": stage_name,
+                    "timestamp": ts,
+                    "elapsed_seconds": progress.elapsed_seconds,
+                }
+            )
         elif i == current_idx:
-            await websocket.send_json({
-                "event_type": "stage_started",
-                "project_id": project_id,
-                "stage": stage_name,
-                "timestamp": ts,
-            })
+            await websocket.send_json(
+                {
+                    "event_type": "stage_started",
+                    "project_id": project_id,
+                    "stage": stage_name,
+                    "timestamp": ts,
+                }
+            )
 
 
 @router.websocket("/projects/{project_id}/ws")
@@ -134,10 +136,12 @@ async def pipeline_ws(websocket: WebSocket, project_id: str) -> None:
 
     # If pipeline already finished, send terminal event and close.
     if not runner.is_active(project_id):
-        await websocket.send_json({
-            "event_type": "complete",
-            "project_id": project_id,
-        })
+        await websocket.send_json(
+            {
+                "event_type": "complete",
+                "project_id": project_id,
+            }
+        )
         manager.disconnect(project_id, websocket)
         return
 
@@ -148,17 +152,17 @@ async def pipeline_ws(websocket: WebSocket, project_id: str) -> None:
 
         while True:
             try:
-                event = await asyncio.wait_for(
-                    queue.get(), timeout=heartbeat
-                )
+                event = await asyncio.wait_for(queue.get(), timeout=heartbeat)
             except TimeoutError:
                 # Heartbeat ping to keep connection alive.
                 await websocket.send_json({"event_type": "heartbeat"})
                 if not runner.is_active(project_id):
-                    await websocket.send_json({
-                        "event_type": "complete",
-                        "project_id": project_id,
-                    })
+                    await websocket.send_json(
+                        {
+                            "event_type": "complete",
+                            "project_id": project_id,
+                        }
+                    )
                     break
                 continue
 
@@ -173,9 +177,7 @@ async def pipeline_ws(websocket: WebSocket, project_id: str) -> None:
     except Exception:
         import structlog
 
-        structlog.get_logger(__name__).warning(
-            "ws.unexpected_error", project_id=project_id
-        )
+        structlog.get_logger(__name__).warning("ws.unexpected_error", project_id=project_id)
     finally:
         runner.event_bus.unsubscribe(project_id, queue)
         manager.disconnect(project_id, websocket)
