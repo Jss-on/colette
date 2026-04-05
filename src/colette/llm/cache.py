@@ -4,7 +4,7 @@ Wraps system messages with ``cache_control`` metadata so that
 identical system prompts (including JSON schemas) are cached by
 the Anthropic API.  Cached reads cost 0.1x normal input tokens.
 
-LiteLLM passes the content-block format through to Anthropic's
+ChatOpenRouter passes the content-block format through to Anthropic's
 API directly, including the ``cache_control`` field.
 """
 
@@ -22,7 +22,7 @@ _MIN_CACHEABLE_CHARS = 4096
 def build_cached_system_message(prompt: str) -> SystemMessage:
     """Build a SystemMessage with Anthropic cache_control if eligible.
 
-    Uses content-block format so LiteLLM passes ``cache_control``
+    Uses content-block format so ChatOpenRouter passes ``cache_control``
     through to the Anthropic API.  Falls back to a plain SystemMessage
     for prompts that are too short to cache.
     """
