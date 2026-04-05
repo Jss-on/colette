@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help install dev hooks lint format typecheck test test-unit test-integration security clean docker-up docker-down docs-serve docs-build changelog bump-patch bump-minor bump-major release
+.PHONY: help install dev hooks lint format typecheck test test-unit test-integration security clean docker-up docker-down docs-serve docs-build changelog bump-patch bump-minor bump-major release web web-dev web-install
 
 # ── Meta ──────────────────────────────────────────────────────────────
 help: ## Show this help
@@ -100,6 +100,16 @@ define bump
 	git tag -a "v$$NEXT" -m "v$$NEXT"; \
 	echo "Tagged v$$NEXT — run 'make release' to push and trigger CI."
 endef
+
+# ── Web UI ───────────────────────────────────────────────────────────
+web: ## Build web UI for production
+	cd web && npm run build
+
+web-dev: ## Start web UI dev server
+	cd web && npm run dev
+
+web-install: ## Install web UI dependencies
+	cd web && npm install
 
 # ── All checks (CI equivalent) ───────────────────────────────────────
 check: lint typecheck test-unit security ## Run all quality checks

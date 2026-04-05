@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useParams } from 'react-router'
 import { Layout } from '../components/shared/Layout'
 import { MetricsBar } from '../components/shared/MetricsBar'
@@ -9,16 +10,43 @@ import { ActivityFeed } from '../components/activity/ActivityFeed'
 import { ArtifactPanel } from '../components/artifacts/ArtifactPanel'
 import { ApprovalQueue } from '../components/approvals/ApprovalQueue'
 import { useWebSocket } from '../hooks/useWebSocket'
-import { useUIStore } from '../stores/ui'
+import { useUIStore, type ActiveView } from '../stores/ui'
+
+const VIEW_KEYS: Record<string, ActiveView> = {
+  b: 'board',
+  p: 'pipeline',
+  a: 'activity',
+  f: 'artifacts',
+}
 
 export function ProjectDashboard() {
   const { id } = useParams<{ id: string }>()
   const ws = useWebSocket(id)
   const activeView = useUIStore((s) => s.activeView)
+  const setActiveView = useUIStore((s) => s.setActiveView)
+  const selectAgent = useUIStore((s) => s.selectAgent)
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+
+      const key = e.key.toLowerCase()
+      if (VIEW_KEYS[key]) {
+        setActiveView(VIEW_KEYS[key])
+        return
+      }
+      if (key === 'escape') {
+        selectAgent(null)
+      }
+    }
+
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [setActiveView, selectAgent])
 
   return (
     <Layout>
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-3">
           <h1 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
             Project Dashboard
