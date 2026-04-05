@@ -6,6 +6,8 @@ import { AgentBoard } from '../components/board/AgentBoard'
 import { PipelineView } from '../components/pipeline/PipelineView'
 import { AgentDrawer } from '../components/detail/AgentDrawer'
 import { ActivityFeed } from '../components/activity/ActivityFeed'
+import { ArtifactPanel } from '../components/artifacts/ArtifactPanel'
+import { ApprovalQueue } from '../components/approvals/ApprovalQueue'
 import { useWebSocket } from '../hooks/useWebSocket'
 import { useUIStore } from '../stores/ui'
 
@@ -44,7 +46,14 @@ export function ProjectDashboard() {
       {activeView === 'pipeline' && <PipelineView />}
       {activeView === 'activity' && <ActivityFeed />}
       {activeView === 'artifacts' && (
-        <p style={{ color: 'var(--text-secondary)' }}>Artifacts view coming in Phase 5.</p>
+        <div className="grid gap-4 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <ArtifactPanel />
+          </div>
+          <div>
+            <ApprovalQueue />
+          </div>
+        </div>
       )}
 
       <AgentDrawer />
