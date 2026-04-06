@@ -73,6 +73,11 @@ class PipelineState(TypedDict, total=False):
     # ── Generated files (for deterministic eval) ─────────────────────
     generated_files: list[dict[str, str]]
 
+    # ── Operator intervention ───────────────────────────────────────
+    user_feedback: Annotated[list[str], operator.add]
+    paused: bool
+    paused_at: str | None
+
     # ── Extensible bag ───────────────────────────────────────────────
     metadata: dict[str, Any]
 

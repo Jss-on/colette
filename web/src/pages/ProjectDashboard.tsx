@@ -9,6 +9,7 @@ import { AgentDrawer } from '../components/detail/AgentDrawer'
 import { ActivityFeed } from '../components/activity/ActivityFeed'
 import { ArtifactPanel } from '../components/artifacts/ArtifactPanel'
 import { ApprovalQueue } from '../components/approvals/ApprovalQueue'
+import { CommandBar } from '../components/command/CommandBar'
 import { useWebSocket } from '../hooks/useWebSocket'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { useNotifications } from '../hooks/useNotifications'
@@ -55,6 +56,7 @@ export function ProjectDashboard() {
       )}
 
       <AgentDrawer />
+      <CommandBar />
     </Layout>
   )
 }

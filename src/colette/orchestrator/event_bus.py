@@ -58,6 +58,15 @@ class EventType(StrEnum):
     FEEDBACK_APPLIED = "feedback_applied"
     PIPELINE_COMPLETED = "pipeline_completed"
     PIPELINE_FAILED = "pipeline_failed"
+    PIPELINE_PAUSED = "pipeline_paused"
+    PIPELINE_RESUMED = "pipeline_resumed"
+    STAGE_RESTARTED = "stage_restarted"
+    STAGE_SKIPPED = "stage_skipped"
+    OPERATOR_FEEDBACK = "operator_feedback"
+    OPERATOR_MESSAGE = "operator_message"
+    HANDOFF_EDITED = "handoff_edited"
+    ARTIFACT_GENERATED = "artifact_generated"
+    AGENT_TOOL_RESULT = "agent_tool_result"
 
 
 @dataclass(frozen=True)
