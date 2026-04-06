@@ -98,6 +98,16 @@ export interface GateResult {
   needs_approval: boolean
 }
 
+export interface ToolCall {
+  tool_call_id: string
+  tool_name: string
+  status: 'running' | 'success' | 'error' | 'retried'
+  duration_ms?: number
+  arguments_preview?: string
+  result_preview?: string
+  timestamp: string
+}
+
 export interface StageInfo {
   name: string
   status: StageStatus

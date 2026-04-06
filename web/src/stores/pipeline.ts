@@ -5,6 +5,7 @@ import type {
   ConversationEntry,
   PipelineEvent,
   StageInfo,
+  ToolCall,
 } from '../types/events'
 import { EventType } from '../types/events'
 import { useTerminalStore } from './terminal'
@@ -18,6 +19,7 @@ interface PipelineStore {
   conversation: ConversationEntry[]
   events: PipelineEvent[]
   approvals: ApprovalRequest[]
+  agentTools: Record<string, ToolCall[]>
   handleEvent: (event: PipelineEvent) => void
   setInitialState: (agents: AgentPresence[], conversation: ConversationEntry[]) => void
   approveGate: (gateId: string) => Promise<void>
@@ -28,6 +30,7 @@ export const usePipelineStore = create<PipelineStore>((set, get) => ({
   stages: {},
   agents: {},
   conversation: [],
+  agentTools: {},
   events: [],
   approvals: [],
 
@@ -115,6 +118,41 @@ export const usePipelineStore = create<PipelineStore>((set, get) => ({
 
     if (eventType === EventType.AGENT_TOOL_CALL && event.agent) {
       upsertAgent(event.agent, 'tool_use')
+      // Track tool call
+      const detail = event.detail ?? {}
+      const toolCall: ToolCall = {
+        tool_call_id: (detail.tool_call_id as string) ?? `tc-${Date.now()}`,
+        tool_name: (detail.tool_name as string) ?? 'unknown',
+        status: 'running',
+        duration_ms: undefined,
+        arguments_preview: (detail.arguments as string) ?? undefined,
+        result_preview: undefined,
+        timestamp: event.timestamp,
+      }
+      const existing = state.agentTools[event.agent] ?? []
+      updates.agentTools = {
+        ...(updates.agentTools ?? state.agentTools),
+        [event.agent]: [...existing, toolCall],
+      }
+    }
+
+    if (eventType === EventType.AGENT_TOOL_RESULT && event.agent) {
+      const detail = event.detail ?? {}
+      const callId = (detail.tool_call_id as string) ?? ''
+      const existing = (updates.agentTools ?? state.agentTools)[event.agent] ?? []
+      updates.agentTools = {
+        ...(updates.agentTools ?? state.agentTools),
+        [event.agent]: existing.map((tc) =>
+          tc.tool_call_id === callId
+            ? {
+                ...tc,
+                status: (detail.status as ToolCall['status']) ?? 'success',
+                duration_ms: (detail.duration_ms as number) ?? undefined,
+                result_preview: (detail.result_preview as string) ?? undefined,
+              }
+            : tc,
+        ),
+      }
     }
 
     if (eventType === EventType.AGENT_REVIEWING && event.agent) {
