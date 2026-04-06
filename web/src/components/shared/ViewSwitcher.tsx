@@ -1,6 +1,7 @@
 import { useUIStore, type ActiveView } from '../../stores/ui'
 
 const VIEWS: { key: ActiveView; label: string; shortcut: string }[] = [
+  { key: 'warroom', label: 'War Room', shortcut: 'W' },
   { key: 'board', label: 'Board', shortcut: 'B' },
   { key: 'pipeline', label: 'Pipeline', shortcut: 'P' },
   { key: 'activity', label: 'Activity', shortcut: 'A' },

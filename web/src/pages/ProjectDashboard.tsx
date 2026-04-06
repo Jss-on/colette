@@ -2,6 +2,7 @@ import { useParams } from 'react-router'
 import { Layout } from '../components/shared/Layout'
 import { MetricsBar } from '../components/shared/MetricsBar'
 import { ViewSwitcher } from '../components/shared/ViewSwitcher'
+import { WarRoom } from '../components/warroom/WarRoom'
 import { AgentBoard } from '../components/board/AgentBoard'
 import { PipelineView } from '../components/pipeline/PipelineView'
 import { AgentDrawer } from '../components/detail/AgentDrawer'
@@ -36,6 +37,7 @@ export function ProjectDashboard() {
 
       <MetricsBar />
 
+      {activeView === 'warroom' && <WarRoom />}
       {activeView === 'board' && <AgentBoard />}
       {activeView === 'pipeline' && <PipelineView />}
       {activeView === 'activity' && <ActivityFeed />}
