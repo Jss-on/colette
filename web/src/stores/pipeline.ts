@@ -10,6 +10,7 @@ import type {
 import { EventType } from '../types/events'
 import { useTerminalStore } from './terminal'
 import { useDecisionStore } from './decisions'
+import { useArtifactStore } from './artifacts'
 
 const MAX_EVENTS = 200
 
@@ -319,6 +320,22 @@ export const usePipelineStore = create<PipelineStore>((set, get) => ({
         threshold: (detail.threshold as number) ?? 0,
         approvalId,
         resolved: false,
+      })
+    }
+
+    // Handle artifact generation
+    if (eventType === EventType.ARTIFACT_GENERATED) {
+      const detail = event.detail ?? {}
+      useArtifactStore.getState().addFile({
+        id: `artifact-${event.timestamp}-${(detail.path as string) ?? ''}`,
+        path: (detail.path as string) ?? 'unknown',
+        stage: event.stage ?? '',
+        agent: event.agent ?? '',
+        language: (detail.language as string) ?? '',
+        size_bytes: (detail.size_bytes as number) ?? 0,
+        content_preview: (detail.content_preview as string) ?? undefined,
+        isNew: true,
+        timestamp: event.timestamp,
       })
     }
 

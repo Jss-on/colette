@@ -7,8 +7,7 @@ import { AgentBoard } from '../components/board/AgentBoard'
 import { PipelineView } from '../components/pipeline/PipelineView'
 import { AgentDrawer } from '../components/detail/AgentDrawer'
 import { ActivityFeed } from '../components/activity/ActivityFeed'
-import { ArtifactPanel } from '../components/artifacts/ArtifactPanel'
-import { ApprovalQueue } from '../components/approvals/ApprovalQueue'
+import { ArtifactWorkshop } from '../components/artifacts/ArtifactWorkshop'
 import { CommandBar } from '../components/command/CommandBar'
 import { useWebSocket } from '../hooks/useWebSocket'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
@@ -44,16 +43,7 @@ export function ProjectDashboard() {
       {activeView === 'board' && <AgentBoard />}
       {activeView === 'pipeline' && <PipelineView />}
       {activeView === 'activity' && <ActivityFeed />}
-      {activeView === 'artifacts' && (
-        <div className="grid gap-4 lg:grid-cols-3">
-          <div className="lg:col-span-2">
-            <ArtifactPanel />
-          </div>
-          <div>
-            <ApprovalQueue />
-          </div>
-        </div>
-      )}
+      {activeView === 'artifacts' && <ArtifactWorkshop />}
 
       <AgentDrawer />
       <CommandBar />
