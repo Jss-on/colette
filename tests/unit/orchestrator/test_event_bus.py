@@ -93,9 +93,18 @@ class TestEventType:
             "agent_message",
             "agent_stream_chunk",
             "agent_state_changed",
+            "agent_tool_result",
             "feedback_applied",
             "pipeline_completed",
             "pipeline_failed",
+            "pipeline_paused",
+            "pipeline_resumed",
+            "stage_restarted",
+            "stage_skipped",
+            "operator_feedback",
+            "operator_message",
+            "handoff_edited",
+            "artifact_generated",
         }
         actual = {et.value for et in EventType}
         assert actual == expected
