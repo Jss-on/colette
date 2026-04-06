@@ -7,6 +7,7 @@ import type {
   StageInfo,
 } from '../types/events'
 import { EventType } from '../types/events'
+import { useTerminalStore } from './terminal'
 
 const MAX_EVENTS = 200
 
@@ -156,6 +157,16 @@ export const usePipelineStore = create<PipelineStore>((set, get) => ({
       const existing = (updates.agents ?? state.agents)[event.agent]
       if (existing) {
         upsertAgent(event.agent, 'thinking', { activity: existing.activity })
+      }
+      // Feed chunk to Live Terminal
+      const chunk = event.message ?? (event.detail?.chunk as string) ?? ''
+      if (chunk) {
+        useTerminalStore.getState().appendChunk(
+          event.agent,
+          chunk,
+          event.stage ?? '',
+          existing?.display_name ?? event.agent,
+        )
       }
     }
 

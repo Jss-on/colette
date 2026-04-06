@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import { useParams } from 'react-router'
 import { Layout } from '../components/shared/Layout'
 import { MetricsBar } from '../components/shared/MetricsBar'
@@ -10,60 +9,27 @@ import { ActivityFeed } from '../components/activity/ActivityFeed'
 import { ArtifactPanel } from '../components/artifacts/ArtifactPanel'
 import { ApprovalQueue } from '../components/approvals/ApprovalQueue'
 import { useWebSocket } from '../hooks/useWebSocket'
-import { useUIStore, type ActiveView } from '../stores/ui'
-
-const VIEW_KEYS: Record<string, ActiveView> = {
-  b: 'board',
-  p: 'pipeline',
-  a: 'activity',
-  f: 'artifacts',
-}
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
+import { useUIStore } from '../stores/ui'
 
 export function ProjectDashboard() {
   const { id } = useParams<{ id: string }>()
   const ws = useWebSocket(id)
   const activeView = useUIStore((s) => s.activeView)
-  const setActiveView = useUIStore((s) => s.setActiveView)
-  const selectAgent = useUIStore((s) => s.selectAgent)
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
-
-      const key = e.key.toLowerCase()
-      if (VIEW_KEYS[key]) {
-        setActiveView(VIEW_KEYS[key])
-        return
-      }
-      if (key === 'escape') {
-        selectAgent(null)
-      }
-    }
-
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [setActiveView, selectAgent])
+  useKeyboardShortcuts()
 
   return (
-    <Layout>
-      <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <Layout showTerminal>
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <h1 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
+          <h1
+            className="text-lg font-bold"
+            style={{ color: 'var(--on-surface)', fontFamily: 'var(--font-headline)' }}
+          >
             Project Dashboard
           </h1>
-          <span
-            className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs"
-            style={{
-              background: ws.connected ? 'rgba(63,185,80,0.15)' : 'rgba(248,81,73,0.15)',
-              color: ws.connected ? 'var(--green)' : 'var(--red)',
-            }}
-          >
-            <span
-              className="inline-block h-1.5 w-1.5 rounded-full"
-              style={{ background: ws.connected ? 'var(--green)' : 'var(--red)' }}
-            />
-            {ws.connected ? 'Live' : ws.reconnecting ? 'Reconnecting...' : 'Disconnected'}
-          </span>
+          <ConnectionBadge connected={ws.connected} reconnecting={ws.reconnecting} />
         </div>
         <ViewSwitcher />
       </div>
@@ -86,5 +52,23 @@ export function ProjectDashboard() {
 
       <AgentDrawer />
     </Layout>
+  )
+}
+
+function ConnectionBadge({ connected, reconnecting }: { connected: boolean; reconnecting: boolean }) {
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium"
+      style={{
+        background: connected ? 'rgba(78, 222, 163, 0.1)' : 'rgba(255, 180, 171, 0.1)',
+        color: connected ? 'var(--tertiary)' : 'var(--error)',
+      }}
+    >
+      <span
+        className="inline-block h-1.5 w-1.5 rounded-full"
+        style={{ background: connected ? 'var(--tertiary)' : 'var(--error)' }}
+      />
+      {connected ? 'Live' : reconnecting ? 'Reconnecting...' : 'Disconnected'}
+    </span>
   )
 }

@@ -1,14 +1,16 @@
 import { usePipelineStore } from '../../stores/pipeline'
 import { formatDuration, formatTokens } from '../../utils/format'
 
+const STAGE_ORDER = ['requirements', 'design', 'implementation', 'testing', 'deployment', 'monitoring']
+
 export function MetricsBar() {
   const stages = usePipelineStore((s) => s.stages)
   const agents = usePipelineStore((s) => s.agents)
 
   const stageList = Object.values(stages)
   const completed = stageList.filter((s) => s.status === 'completed').length
-  const total = Math.max(stageList.length, 6)
-  const progress = total > 0 ? (completed / total) * 100 : 0
+  const total = 6
+  const progress = (completed / total) * 100
 
   const totalTokens = Object.values(agents).reduce((sum, a) => sum + a.tokens_used, 0)
   const totalElapsed = stageList.reduce((sum, s) => sum + s.elapsed_ms, 0)
@@ -17,46 +19,98 @@ export function MetricsBar() {
     (a) => a.state !== 'idle' && a.state !== 'done'
   ).length
 
+  // Find current running stage
+  const currentStage = stageList.find((s) => s.status === 'running')
+
+  // Estimate cost: rough token pricing
+  const costEstimate = (totalTokens / 1_000_000) * 3
+
   return (
     <div
-      className="mb-6 flex flex-wrap items-center gap-6 rounded-lg border px-4 py-3"
-      style={{ background: 'var(--bg-surface)', borderColor: 'var(--border)' }}
+      className="mb-4 flex flex-wrap items-center gap-4 rounded-lg border px-4 py-2.5"
+      style={{
+        background: 'var(--surface-container-low)',
+        borderColor: 'var(--outline-variant)',
+      }}
     >
-      <div className="flex items-center gap-3 flex-1 min-w-[200px]">
-        <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
-          Progress
-        </span>
-        <div
-          className="h-2 flex-1 rounded-full overflow-hidden"
-          style={{ background: 'var(--bg-surface-2)' }}
+      {/* Segmented progress bar */}
+      <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+        <span
+          className="text-[10px] font-medium uppercase tracking-wider"
+          style={{ color: 'var(--on-surface-variant)', fontFamily: 'var(--font-label)' }}
         >
-          <div
-            className="h-full rounded-full transition-all duration-500"
-            style={{ width: `${progress}%`, background: 'var(--green)' }}
-          />
+          Pipeline
+        </span>
+        <div className="flex flex-1 gap-0.5">
+          {STAGE_ORDER.map((name) => {
+            const stage = stages[name]
+            const status = stage?.status ?? 'pending'
+            return (
+              <div
+                key={name}
+                className="h-1.5 flex-1 rounded-full transition-all duration-500"
+                title={`${name}: ${status}`}
+                style={{
+                  background:
+                    status === 'completed' ? 'var(--tertiary)' :
+                    status === 'running' ? 'var(--primary)' :
+                    status === 'failed' ? 'var(--error)' :
+                    'var(--surface-container-highest)',
+                }}
+              />
+            )
+          })}
         </div>
-        <span className="text-xs tabular-nums" style={{ color: 'var(--text-secondary)' }}>
-          {completed}/{total}
+        <span
+          className="text-[10px] tabular-nums"
+          style={{ color: 'var(--on-surface-variant)', fontFamily: 'var(--font-mono)' }}
+        >
+          {Math.round(progress)}%
         </span>
       </div>
 
+      {/* Current stage badge */}
+      {currentStage && (
+        <span
+          className="flex items-center gap-1.5 rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider"
+          style={{
+            background: 'rgba(76, 215, 246, 0.1)',
+            color: 'var(--primary)',
+            fontFamily: 'var(--font-label)',
+          }}
+        >
+          <span
+            className="inline-block h-1.5 w-1.5 rounded-full animate-pulse-cyan"
+            style={{ background: 'var(--primary)' }}
+          />
+          {currentStage.name}
+        </span>
+      )}
+
       <Metric label="Tokens" value={formatTokens(totalTokens)} />
       <Metric label="Elapsed" value={formatDuration(totalElapsed)} />
+      <Metric label="Cost" value={`~$${costEstimate.toFixed(2)}`} />
       <Metric label="Agents" value={`${activeAgents}/${Object.keys(agents).length}`} />
-      {errorCount > 0 && <Metric label="Errors" value={String(errorCount)} color="var(--red)" />}
+      {errorCount > 0 && <Metric label="Errors" value={String(errorCount)} color="var(--error)" />}
     </div>
   )
 }
 
 function Metric({ label, value, color }: { label: string; value: string; color?: string }) {
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+    <div className="flex items-center gap-1.5">
+      <span
+        className="text-[10px] uppercase tracking-wider"
+        style={{ color: 'var(--outline)', fontFamily: 'var(--font-label)' }}
+      >
         {label}
       </span>
       <span
-        className="text-sm font-medium tabular-nums"
-        style={{ color: color ?? 'var(--text-primary)' }}
+        className="text-xs font-medium tabular-nums"
+        style={{
+          color: color ?? 'var(--on-surface)',
+          fontFamily: 'var(--font-mono)',
+        }}
       >
         {value}
       </span>

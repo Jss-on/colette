@@ -1,0 +1,125 @@
+/* Colette Mission Control -- Design Tokens */
+/* Source: docs/web-ui/01-vision-and-design-system.md */
+
+@layer base {
+  :root {
+    /* Semantic Colors */
+    --primary: #4cd7f6;
+    --primary-container: #06b6d4;
+    --on-primary: #003640;
+    --secondary: #fbabff;
+    --secondary-container: #ae05c6;
+    --tertiary: #4edea3;
+    --tertiary-container: #1bbd85;
+    --error: #ffb4ab;
+    --error-container: #93000a;
+
+    /* Surfaces */
+    --surface: #0f131f;
+    --surface-dim: #0a0e1a;
+    --surface-container-lowest: #0a0e1a;
+    --surface-container-low: #171b28;
+    --surface-container: #1b1f2c;
+    --surface-container-high: #262a37;
+    --surface-container-highest: #313442;
+
+    /* Text */
+    --on-surface: #dfe2f3;
+    --on-surface-variant: #bcc9cd;
+    --outline: #869397;
+    --outline-variant: #3d494c;
+
+    /* Legacy aliases (backward compat with existing components) */
+    --bg-primary: var(--surface);
+    --bg-surface: var(--surface-container-low);
+    --bg-surface-2: var(--surface-container);
+    --bg-hover: rgba(76, 215, 246, 0.04);
+    --border: var(--outline-variant);
+    --text-primary: var(--on-surface);
+    --text-secondary: var(--on-surface-variant);
+    --accent: var(--primary);
+    --green: var(--tertiary);
+    --red: var(--error);
+    --amber: #d29922;
+    --purple: #a371f7;
+
+    /* Spacing */
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 16px;
+    --space-lg: 24px;
+    --space-xl: 32px;
+    --space-2xl: 48px;
+
+    /* Typography */
+    --font-headline: 'Space Grotesk', system-ui, sans-serif;
+    --font-body: 'Manrope', 'Inter', system-ui, sans-serif;
+    --font-label: 'Inter', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', monospace;
+
+    /* Sidebar */
+    --sidebar-width: 220px;
+    --sidebar-collapsed-width: 56px;
+
+    /* Terminal */
+    --terminal-default-height: 30vh;
+  }
+}
+
+/* Glass card effect */
+.glass-card {
+  background: rgba(17, 24, 39, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(30, 41, 59, 0.5);
+  transition: background 200ms ease-out, border-color 200ms ease-out;
+}
+
+.glass-card:hover {
+  background: rgba(26, 35, 50, 0.9);
+  border-color: rgba(76, 215, 246, 0.3);
+}
+
+/* Glow effects */
+.glow-cyan {
+  box-shadow: 0 0 20px rgba(76, 215, 246, 0.15);
+}
+
+/* Pulse animation for running/thinking state */
+@keyframes pulse-cyan {
+  0% { box-shadow: 0 0 0 0 rgba(76, 215, 246, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(76, 215, 246, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(76, 215, 246, 0); }
+}
+
+.animate-pulse-cyan {
+  animation: pulse-cyan 2s ease-in-out infinite;
+}
+
+/* Typing dots for thinking indicator */
+@keyframes typing-dots {
+  0%, 20% { opacity: 0; }
+  50% { opacity: 1; }
+  80%, 100% { opacity: 0; }
+}
+
+/* Stream cursor blink */
+@keyframes stream-cursor {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+.stream-cursor::after {
+  content: '\2588';
+  animation: stream-cursor 1s steps(2) infinite;
+  color: var(--primary);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse-cyan {
+    animation: none;
+  }
+  .stream-cursor::after {
+    animation: none;
+  }
+}
