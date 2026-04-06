@@ -11,6 +11,7 @@ import { ArtifactPanel } from '../components/artifacts/ArtifactPanel'
 import { ApprovalQueue } from '../components/approvals/ApprovalQueue'
 import { useWebSocket } from '../hooks/useWebSocket'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
+import { useNotifications } from '../hooks/useNotifications'
 import { useUIStore } from '../stores/ui'
 
 export function ProjectDashboard() {
@@ -19,9 +20,10 @@ export function ProjectDashboard() {
   const activeView = useUIStore((s) => s.activeView)
 
   useKeyboardShortcuts()
+  useNotifications()
 
   return (
-    <Layout showTerminal>
+    <Layout showTerminal showDecisionRail>
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <h1

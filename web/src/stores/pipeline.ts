@@ -8,6 +8,7 @@ import type {
 } from '../types/events'
 import { EventType } from '../types/events'
 import { useTerminalStore } from './terminal'
+import { useDecisionStore } from './decisions'
 
 const MAX_EVENTS = 200
 
@@ -204,6 +205,19 @@ export const usePipelineStore = create<PipelineStore>((set, get) => ({
           },
         }
       }
+      // Feed to Decision Rail
+      useDecisionStore.getState().addEntry({
+        id: `gate-pass-${event.stage}-${event.timestamp}`,
+        type: 'gate_passed',
+        timestamp: event.timestamp,
+        stage: event.stage,
+        title: `${event.stage} Gate`,
+        detail: 'Auto-approved',
+        score: (detail.score as number) ?? 1,
+        threshold: (detail.threshold as number) ?? undefined,
+        reasons: (detail.reasons as string[]) ?? [],
+        resolved: true,
+      })
     }
 
     if (eventType === EventType.GATE_FAILED && event.stage) {
@@ -224,14 +238,28 @@ export const usePipelineStore = create<PipelineStore>((set, get) => ({
           },
         }
       }
+      // Feed to Decision Rail
+      useDecisionStore.getState().addEntry({
+        id: `gate-fail-${event.stage}-${event.timestamp}`,
+        type: 'gate_failed',
+        timestamp: event.timestamp,
+        stage: event.stage,
+        title: `${event.stage} Gate`,
+        detail: event.message ?? 'Gate check failed',
+        score: (detail.score as number) ?? 0,
+        threshold: (detail.threshold as number) ?? undefined,
+        reasons: (detail.reasons as string[]) ?? [],
+        resolved: true,
+      })
     }
 
     if (eventType === EventType.APPROVAL_REQUIRED) {
       const detail = event.detail ?? {}
+      const approvalId = (detail.id as string) ?? ''
       updates.approvals = [
         ...state.approvals,
         {
-          id: (detail.id as string) ?? '',
+          id: approvalId,
           gate_name: (detail.gate_name as string) ?? '',
           stage: event.stage ?? '',
           risk_level: (detail.risk_level as string) ?? 'medium',
@@ -241,6 +269,19 @@ export const usePipelineStore = create<PipelineStore>((set, get) => ({
           requested_at: event.timestamp,
         },
       ]
+      // Feed to Decision Rail
+      useDecisionStore.getState().addEntry({
+        id: `approval-${approvalId}-${event.timestamp}`,
+        type: 'approval_required',
+        timestamp: event.timestamp,
+        stage: event.stage ?? '',
+        title: `${event.stage ?? ''} Gate`,
+        detail: event.message ?? 'Approval required',
+        score: (detail.score as number) ?? 0,
+        threshold: (detail.threshold as number) ?? 0,
+        approvalId,
+        resolved: false,
+      })
     }
 
     set(updates)
